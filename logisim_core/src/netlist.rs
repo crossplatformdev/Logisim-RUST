@@ -4,8 +4,8 @@
 //! (the network of connected components), including nodes, nets, and
 //! the connections between components.
 
-use crate::signal::{Signal, BusWidth};
 use crate::component::ComponentId;
+use crate::signal::{BusWidth, Signal};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -242,7 +242,7 @@ impl Netlist {
     pub fn create_node(&mut self, width: BusWidth) -> NodeId {
         let id = NodeId(self.next_node_id);
         self.next_node_id += 1;
-        
+
         let node = Node::new(id, width);
         self.nodes.insert(id, node);
         id
@@ -252,7 +252,7 @@ impl Netlist {
     pub fn create_named_node(&mut self, width: BusWidth, name: String) -> NodeId {
         let id = NodeId(self.next_node_id);
         self.next_node_id += 1;
-        
+
         let node = Node::new_named(id, width, name);
         self.nodes.insert(id, node);
         id
@@ -262,7 +262,7 @@ impl Netlist {
     pub fn create_net(&mut self, width: BusWidth) -> NetId {
         let id = NetId(self.next_net_id);
         self.next_net_id += 1;
-        
+
         let net = Net::new(id, width);
         self.nets.insert(id, net);
         id
@@ -272,7 +272,7 @@ impl Netlist {
     pub fn create_named_net(&mut self, width: BusWidth, name: String) -> NetId {
         let id = NetId(self.next_net_id);
         self.next_net_id += 1;
-        
+
         let net = Net::new_named(id, width, name);
         self.nets.insert(id, net);
         id
@@ -299,7 +299,12 @@ impl Netlist {
     }
 
     /// Connect a component pin to a node
-    pub fn connect(&mut self, component_id: ComponentId, pin_name: String, node_id: NodeId) -> Result<(), &'static str> {
+    pub fn connect(
+        &mut self,
+        component_id: ComponentId,
+        pin_name: String,
+        node_id: NodeId,
+    ) -> Result<(), &'static str> {
         // Check if node exists
         if !self.nodes.contains_key(&node_id) {
             return Err("Node does not exist");
@@ -318,7 +323,11 @@ impl Netlist {
     }
 
     /// Disconnect a component pin from a node
-    pub fn disconnect(&mut self, component_id: ComponentId, pin_name: &str) -> Result<(), &'static str> {
+    pub fn disconnect(
+        &mut self,
+        component_id: ComponentId,
+        pin_name: &str,
+    ) -> Result<(), &'static str> {
         // Find and remove the connection
         let mut found_node_id = None;
         self.connections.retain(|conn| {
@@ -446,7 +455,7 @@ mod tests {
     fn test_node_creation() {
         let mut netlist = Netlist::new();
         let node_id = netlist.create_node(BusWidth(1));
-        
+
         assert_eq!(node_id, NodeId(1));
         let node = netlist.get_node(node_id).unwrap();
         assert_eq!(node.id, node_id);
@@ -458,7 +467,7 @@ mod tests {
     fn test_named_node_creation() {
         let mut netlist = Netlist::new();
         let node_id = netlist.create_named_node(BusWidth(8), "DataBus".to_string());
-        
+
         let node = netlist.get_node(node_id).unwrap();
         assert_eq!(node.name, Some("DataBus".to_string()));
         assert_eq!(node.width, BusWidth(8));
@@ -469,17 +478,17 @@ mod tests {
         let mut netlist = Netlist::new();
         let node_id = netlist.create_node(BusWidth(1));
         let component_id = ComponentId(42);
-        
+
         // Connect component pin to node
         let result = netlist.connect(component_id, "OUT".to_string(), node_id);
         assert!(result.is_ok());
-        
+
         // Check connection was created
         let connections = netlist.get_component_connections(component_id);
         assert_eq!(connections.len(), 1);
         assert_eq!(connections[0].pin_name, "OUT");
         assert_eq!(connections[0].node_id, node_id);
-        
+
         // Check node was updated
         let node = netlist.get_node(node_id).unwrap();
         assert!(node.connected_components.contains(&component_id));
@@ -490,16 +499,18 @@ mod tests {
         let mut netlist = Netlist::new();
         let node_id = netlist.create_node(BusWidth(1));
         let component_id = ComponentId(42);
-        
+
         // Connect then disconnect
-        netlist.connect(component_id, "OUT".to_string(), node_id).unwrap();
+        netlist
+            .connect(component_id, "OUT".to_string(), node_id)
+            .unwrap();
         let result = netlist.disconnect(component_id, "OUT");
         assert!(result.is_ok());
-        
+
         // Check connection was removed
         let connections = netlist.get_component_connections(component_id);
         assert!(connections.is_empty());
-        
+
         // Check node was updated
         let node = netlist.get_node(node_id).unwrap();
         assert!(node.connected_components.is_empty());
@@ -510,12 +521,14 @@ mod tests {
         let mut netlist = Netlist::new();
         let node_id = netlist.create_node(BusWidth(1));
         let component_id = ComponentId(42);
-        
-        netlist.connect(component_id, "OUT".to_string(), node_id).unwrap();
-        
+
+        netlist
+            .connect(component_id, "OUT".to_string(), node_id)
+            .unwrap();
+
         let found_node = netlist.get_pin_node(component_id, "OUT");
         assert_eq!(found_node, Some(node_id));
-        
+
         let not_found = netlist.get_pin_node(component_id, "IN");
         assert_eq!(not_found, None);
     }
@@ -526,11 +539,11 @@ mod tests {
         let node_id = netlist.create_node(BusWidth(1));
         let comp1 = ComponentId(1);
         let comp2 = ComponentId(2);
-        
+
         // Connect multiple components to the same node
         netlist.connect(comp1, "OUT".to_string(), node_id).unwrap();
         netlist.connect(comp2, "IN".to_string(), node_id).unwrap();
-        
+
         // Get affected components
         let affected = netlist.get_affected_components(node_id);
         assert_eq!(affected.len(), 2);
@@ -541,14 +554,18 @@ mod tests {
     #[test]
     fn test_netlist_stats() {
         let mut netlist = Netlist::new();
-        
+
         let node1 = netlist.create_node(BusWidth(1));
         let node2 = netlist.create_node(BusWidth(8));
         let _net = netlist.create_net(BusWidth(1));
-        
-        netlist.connect(ComponentId(1), "A".to_string(), node1).unwrap();
-        netlist.connect(ComponentId(2), "B".to_string(), node2).unwrap();
-        
+
+        netlist
+            .connect(ComponentId(1), "A".to_string(), node1)
+            .unwrap();
+        netlist
+            .connect(ComponentId(2), "B".to_string(), node2)
+            .unwrap();
+
         let stats = netlist.stats();
         assert_eq!(stats.node_count, 2);
         assert_eq!(stats.net_count, 1);

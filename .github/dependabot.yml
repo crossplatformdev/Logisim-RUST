@@ -1,20 +1,29 @@
 version: 2
 updates:
-  - package-ecosystem: "gradle"
+  # Update Rust dependencies in workspace root
+  - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
     target-branch: "main"
     groups:
-      slf4j:
-         patterns:
-           - "org.slf4j*"
-      junit:
-         patterns:
-           - "org.junit*"
+      serde:
+        patterns:
+          - "serde*"
+      test-deps:
+        patterns:
+          - "proptest"
+          - "criterion"
 
+  # Update Rust dependencies in logisim_core crate
+  - package-ecosystem: "cargo"
+    directory: "/logisim_core"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+
+  # Keep GitHub Actions updates
   - package-ecosystem: "github-actions"
-    # directory of "/" for github-actions means .github/workflows
     directory: "/"
     schedule:
       interval: "weekly"

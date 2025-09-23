@@ -1,5 +1,5 @@
 //! # Logisim Core
-//! 
+//!
 //! Core simulation kernel for the Logisim-RUST digital logic simulator.
 //! This crate provides the foundational types and algorithms for simulating
 //! digital circuits, including event-driven simulation, signal propagation,
@@ -10,7 +10,7 @@
 //! The simulation kernel is built around several key concepts:
 //!
 //! - **Signals**: Represent logical values (high, low, unknown, error) and buses
-//! - **Components**: Digital logic elements that process signals 
+//! - **Components**: Digital logic elements that process signals
 //! - **Events**: Time-ordered simulation events that drive the simulation
 //! - **Netlist**: The network of connected components and signals
 //! - **Simulation**: The main simulation engine that processes events
@@ -47,17 +47,17 @@
 //! sim.run().unwrap();
 //! ```
 
-pub mod signal;
 pub mod component;
 pub mod event;
 pub mod netlist;
+pub mod signal;
 pub mod simulation;
 pub mod circ_format;
 
 // Re-export core types for convenience
-pub use signal::{Signal, Value, Bus, BusWidth, Timestamp};
-pub use component::{Component, Pin, ComponentId};
-pub use event::{SimulatorEvent, EventQueue};
-pub use netlist::{NodeId, NetId, Netlist};
+pub use component::{Component, ComponentId, Pin};
+pub use event::{EventQueue, SimulatorEvent};
+pub use netlist::{NetId, Netlist, NodeId};
+pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
 pub use circ_format::{CircParser, CircWriter, CircuitFile, CircIntegration, RomContents};

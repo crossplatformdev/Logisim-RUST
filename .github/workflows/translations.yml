@@ -1,15 +1,4 @@
-#
-# Logisim-evolution translation files (*.properties) checker.
-#
-# Github action that ensures project translation files are in sync and
-# in a good shape in general.
-#
-# Worker uses trans-tool: https://github.com/MarcinOrlowski/trans-tool
-#
-# Marcin Orlowski
-#
-
-name: "Translations"
+name: "Translation Checks"
 
 on:
   push:
@@ -18,61 +7,77 @@ on:
     branches: [ main ]
 
 jobs:
-  translations_lint:
-    name: "Translations linter"
+  analyze_translations:
+    name: "Check for translation file changes"
     runs-on: ubuntu-latest
-
+    outputs:
+      run_check: ${{ steps.filter.outputs.translations }}
+    
     steps:
-      # https://github.com/marketplace/actions/checkout
-      - name: "Checkout sources"
-        uses: actions/checkout@v5
+    - name: "Checkout sources"
+      uses: actions/checkout@v4
+    
+    - name: "Look for changes in translation files"
+      uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          translations:
+            - '**/translations/**'
+            - '**/locales/**'
+            - '**/i18n/**'
+            - '**/*.po'
+            - '**/*.pot'
+            - '**/*.ftl'  # Fluent localization files
+    
+    - name: "Will translation check step run?"
+      run: |
+        found="NO"
+        [[ ${{ steps.filter.outputs.translations }} == 'true' ]] && found="YES"
+        echo "run_check=${found}" >> $GITHUB_OUTPUT
+        echo "Translation check step will run: ${found}"
 
-      # https://github.com/marketplace/actions/paths-changes-filter
-      - name: "Looking for modified files..."
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            translations:
-              - 'src/main/resources/resources/logisim/**/*.properties'
-
-      - name: "===> SEE HERE FOR LINTING REPORT"
-        if: steps.filter.outputs.translations == 'true'
-        run: |
-          # Have no mercy.
-          set -euo pipefail
-
-          sudo pip install pysimple-log==0.0.5 trans-tool==2.5.2
-          trans-tool --version
-
-          # Declare constants
-          declare -r resources_path="src/main/resources/resources/logisim/"
-          declare -r base_language="en"
-
-          # Get all Logisim's localization base (EN) files
-          declare -r base_files=$(find ${resources_path}* -name "*.properties" | grep -E '*/[a-zA-Z]+.properties$' | grep -v settings.properties)
-
-          # Read currently supported languages from settings.properties
-          declare -r langs="$(cut -d  ' ' -f3- < "${resources_path}settings.properties")"
-
-          # Validate.
-          failed=
-          for file in ${base_files}; do
-            # Keep validating even if previous run failed, so we can have complete report.
-            trans-tool -l "${langs}" -ls "${base_language}" -b "${file}" >> /tmp/report.txt || failed="YES"
-          done
-
-          if [[ "${failed}" == "YES" ]]; then
-            echo ""
-            echo "Project *.properties files have some problems or are out of sync."
-            echo "Please see 'Update existing translations' in trans-tool's docs:"
-            echo "  https://github.com/MarcinOrlowski/trans-tool"
-            echo "for more info on how to address these issues."
-            echo ""
-            cat /tmp/report.txt
-            echo ""
-
-            # Do not fail the action no matter what. This is intentional
-            # unless translation files are in better condition.
-            # exit 1
-          fi
+  check_translations:
+    name: "Translation File Checks"
+    runs-on: ubuntu-latest
+    needs: analyze_translations
+    if: needs.analyze_translations.outputs.run_check == 'true'
+    
+    steps:
+    - name: "Checkout sources"
+      uses: actions/checkout@v4
+    
+    - name: "Install Rust toolchain"
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: "Check for translation consistency"
+      run: |
+        echo "Checking translation file consistency..."
+        
+        # Check if translation files exist
+        if [ -d "translations" ] || [ -d "locales" ] || [ -d "i18n" ]; then
+          echo "Translation directories found"
+          find . -name "*.po" -o -name "*.pot" -o -name "*.ftl" | head -10
+        else
+          echo "No translation directories found - this is normal for early development"
+          echo "When internationalization is needed, consider using rust-i18n or fluent-rs"
+        fi
+        
+        # Basic validation if .po files exist
+        if find . -name "*.po" | grep -q .; then
+          echo "Found .po files, checking basic syntax..."
+          # You could add msgfmt validation here
+        fi
+    
+    - name: "Check for hardcoded strings (future i18n prep)"
+      run: |
+        echo "Scanning for potentially hardcoded user-facing strings..."
+        # This is a basic check - in real i18n you'd use proper tools
+        
+        # Look for println! with string literals (basic check)
+        if grep -r 'println!.*"[A-Z]' --include="*.rs" .; then
+          echo "Found potential user-facing strings. Consider i18n when UI is added."
+        else
+          echo "No obvious hardcoded user-facing strings found."
+        fi
+      continue-on-error: true
