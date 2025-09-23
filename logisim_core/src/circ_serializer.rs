@@ -345,7 +345,7 @@ mod tests {
     
     #[test]
     fn test_serialize_simple_project() {
-        let mut project = CircuitProject {
+        let project = CircuitProject {
             source: "3.8.0".to_string(),
             version: "1.0".to_string(),
             libraries: vec![

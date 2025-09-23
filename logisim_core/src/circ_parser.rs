@@ -408,42 +408,7 @@ impl CircParser {
         Ok(LibraryTool { name, attributes })
     }
     
-    /// Parse main circuit reference
-    fn parse_main<R: BufRead>(
-        reader: &mut Reader<R>,
-        start: &BytesStart
-    ) -> Result<String, CircParseError> {
-        let mut name = String::new();
-        
-        for attr in start.attributes() {
-            let attr = attr?;
-            if attr.key.as_ref() == b"name" {
-                name = String::from_utf8_lossy(&attr.value).to_string();
-                break;
-            }
-        }
-        
-        // Skip to end of main element - it should be empty or self-closing
-        let mut buf = Vec::new();
-        loop {
-            match reader.read_event_into(&mut buf) {
-                Ok(Event::End(ref e)) if e.name().as_ref() == b"main" => {
-                    break;
-                }
-                Ok(Event::Eof) => {
-                    return Err(CircParseError::InvalidStructure(
-                        "Unexpected end of file in main".to_string()
-                    ));
-                }
-                Err(e) => return Err(CircParseError::XmlError(e)),
-                _ => {} // Skip any content
-            }
-            buf.clear();
-        }
-        
-        Ok(name)
-    }
-    
+
     /// Parse options section
     fn parse_options<R: BufRead>(reader: &mut Reader<R>) -> Result<IndexMap<String, String>, CircParseError> {
         let mut options = IndexMap::new();
@@ -451,14 +416,14 @@ impl CircParser {
         
         loop {
             match reader.read_event_into(&mut buf) {
-                Ok(Event::Start(ref e)) => {
+                Ok(Event::Empty(ref e)) => {
                     match e.name().as_ref() {
                         b"a" => {
                             let (name, value) = Self::parse_attribute(e)?;
                             options.insert(name, value);
                         }
                         _ => {
-                            Self::skip_element(reader)?;
+                            // Ignore unknown empty elements
                         }
                     }
                 }
@@ -486,13 +451,13 @@ impl CircParser {
         
         loop {
             match reader.read_event_into(&mut buf) {
-                Ok(Event::Start(ref e)) => {
+                Ok(Event::Empty(ref e)) => {
                     match e.name().as_ref() {
                         b"tool" => {
                             mappings.push(Self::parse_tool_mapping(e)?);
                         }
                         _ => {
-                            Self::skip_element(reader)?;
+                            // Ignore unknown empty elements
                         }
                     }
                 }
@@ -544,6 +509,33 @@ impl CircParser {
                         b"tool" => {
                             toolbar.push(Self::parse_toolbar_tool(reader, e)?);
                         }
+                        _ => {
+                            Self::skip_element(reader)?;
+                        }
+                    }
+                }
+                Ok(Event::Empty(ref e)) => {
+                    match e.name().as_ref() {
+                        b"tool" => {
+                            let mut lib = None;
+                            let mut name = None;
+                            
+                            for attr in e.attributes() {
+                                let attr = attr?;
+                                match attr.key.as_ref() {
+                                    b"lib" => lib = Some(String::from_utf8_lossy(&attr.value).to_string()),
+                                    b"name" => name = Some(String::from_utf8_lossy(&attr.value).to_string()),
+                                    _ => {}
+                                }
+                            }
+                            
+                            toolbar.push(ToolbarItem {
+                                item_type: ToolbarItemType::Tool,
+                                lib,
+                                name,
+                                attributes: IndexMap::new(),
+                            });
+                        }
                         b"sep" => {
                             toolbar.push(ToolbarItem {
                                 item_type: ToolbarItemType::Separator,
@@ -551,10 +543,9 @@ impl CircParser {
                                 name: None,
                                 attributes: IndexMap::new(),
                             });
-                            Self::skip_element(reader)?;
                         }
                         _ => {
-                            Self::skip_element(reader)?;
+                            // Ignore unknown empty elements
                         }
                     }
                 }
@@ -675,6 +666,33 @@ impl CircParser {
                         b"wire" => {
                             wires.push(Self::parse_wire(e)?);
                         }
+                        b"comp" => {
+                            // Parse components without attributes (self-closing)
+                            let mut lib = String::new();
+                            let mut location = None;
+                            let mut name = String::new();
+                            
+                            for attr in e.attributes() {
+                                let attr = attr?;
+                                match attr.key.as_ref() {
+                                    b"lib" => lib = String::from_utf8_lossy(&attr.value).to_string(),
+                                    b"loc" => {
+                                        location = Some(Self::parse_coordinates(&String::from_utf8_lossy(&attr.value))?);
+                                    }
+                                    b"name" => name = String::from_utf8_lossy(&attr.value).to_string(),
+                                    _ => {}
+                                }
+                            }
+                            
+                            let location = location.ok_or_else(|| CircParseError::MissingAttribute("loc".to_string()))?;
+                            
+                            components.push(Component {
+                                lib,
+                                location,
+                                name,
+                                attributes: IndexMap::new(),
+                            });
+                        }
                         _ => {
                             // Ignore unknown empty elements
                         }
@@ -755,14 +773,14 @@ impl CircParser {
         
         loop {
             match reader.read_event_into(&mut buf) {
-                Ok(Event::Start(ref e)) => {
+                Ok(Event::Empty(ref e)) => {
                     match e.name().as_ref() {
                         b"a" => {
                             let (attr_name, attr_value) = Self::parse_attribute(e)?;
                             attributes.insert(attr_name, attr_value);
                         }
                         _ => {
-                            Self::skip_element(reader)?;
+                            // Ignore unknown empty elements
                         }
                     }
                 }

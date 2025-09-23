@@ -309,3 +309,53 @@ fn test_debug_parsing() {
     assert_eq!(circuit.wires.len(), 1);
     assert_eq!(circuit.components.len(), 1);
 }
+
+#[test]
+fn test_debug_complex_parsing() {
+    let xml = concat!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n",
+        "<project source=\"3.8.0\" version=\"1.0\">\n",
+        "  <lib desc=\"#Wiring\" name=\"0\"/>\n",
+        "  <lib desc=\"#Gates\" name=\"1\"/>\n",
+        "  <main name=\"main\"/>\n",
+        "  <circuit name=\"main\">\n",
+        "    <wire from=\"(160,130)\" to=\"(220,130)\"/>\n",
+        "    <wire from=\"(160,170)\" to=\"(220,170)\"/>\n",
+        "    <comp lib=\"0\" loc=\"(160,130)\" name=\"Pin\">\n",
+        "      <a name=\"label\" val=\"A\"/>\n",
+        "    </comp>\n",
+        "    <comp lib=\"0\" loc=\"(160,170)\" name=\"Pin\">\n",
+        "      <a name=\"label\" val=\"B\"/>\n",
+        "    </comp>\n",
+        "  </circuit>\n",
+        "</project>"
+    );
+    
+    let cursor = Cursor::new(xml);
+    let project = CircParser::parse(cursor).unwrap();
+    
+    println!("Complex - Source: {}", project.source);
+    println!("Complex - Libraries: {}", project.libraries.len());
+    println!("Complex - Circuits: {}", project.circuits.len());
+    
+    if let Some(circuit) = project.circuits.first() {
+        println!("Complex - Circuit name: {}", circuit.name);
+        println!("Complex - Wires: {}", circuit.wires.len());
+        println!("Complex - Components: {}", circuit.components.len());
+        
+        for (i, comp) in circuit.components.iter().enumerate() {
+            println!("Component {}: {} at {:?} from lib {}", i, comp.name, comp.location, comp.lib);
+            for (k, v) in &comp.attributes {
+                println!("  {}: {}", k, v);
+            }
+        }
+    }
+    
+    // Verify basic parsing
+    assert_eq!(project.libraries.len(), 2);
+    let circuit = &project.circuits[0];
+    assert_eq!(circuit.wires.len(), 2);
+    // This is the assertion that's failing
+    println!("Expected 2 components, got {}", circuit.components.len());
+    assert_eq!(circuit.components.len(), 2);
+}
