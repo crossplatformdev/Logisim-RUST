@@ -3,10 +3,10 @@
 //! This module implements the core simulation loop, event processing,
 //! and component management for the digital logic simulator.
 
-use crate::signal::{Signal, Timestamp, Value};
-use crate::component::{Component, ComponentId, UpdateResult, ClockEdge};
+use crate::component::{ClockEdge, Component, ComponentId, UpdateResult};
 use crate::event::{EventQueue, EventType};
 use crate::netlist::{Netlist, NodeId};
+use crate::signal::{Signal, Timestamp, Value};
 use std::collections::HashMap;
 use thiserror::Error;
 
@@ -43,7 +43,7 @@ impl Default for SimulationConfig {
         SimulationConfig {
             max_time: Some(Timestamp(10_000)), // Reduced timeout for testing
             max_events: Some(1_000),           // Reduced max events
-            oscillation_threshold: 100,       // Reduced oscillation threshold
+            oscillation_threshold: 100,        // Reduced oscillation threshold
             debug: false,
         }
     }
@@ -161,22 +161,22 @@ impl Simulation {
     pub fn reset(&mut self) {
         // Clear event queue
         self.event_queue.clear();
-        
+
         // Reset all components
         for component in self.components.values_mut() {
             component.reset();
         }
-        
+
         // Reset clock state
         self.clock_state = Value::Low;
         self.prev_clock_state = Value::Low;
-        
+
         // Reset statistics
         self.stats = SimulationStats::default();
-        
+
         // Schedule initial reset event
         self.event_queue.schedule_reset(Timestamp(0));
-        
+
         if self.config.debug {
             println!("Simulation reset");
         }
@@ -208,12 +208,19 @@ impl Simulation {
         self.stats.events_processed += 1;
 
         if self.config.debug {
-            println!("Processing event at time {}: {:?}", event.time, event.event_type);
+            println!(
+                "Processing event at time {}: {:?}",
+                event.time, event.event_type
+            );
         }
 
         // Process the event
         match event.event_type {
-            EventType::SignalChange { node_id, new_signal, source_component } => {
+            EventType::SignalChange {
+                node_id,
+                new_signal,
+                source_component,
+            } => {
                 self.process_signal_change(event.time, node_id, new_signal, source_component)?;
             }
             EventType::ClockTick => {
@@ -271,7 +278,8 @@ impl Simulation {
         signal: Signal,
         source_component: ComponentId,
     ) {
-        self.event_queue.schedule_signal_change(time, node_id, signal, source_component);
+        self.event_queue
+            .schedule_signal_change(time, node_id, signal, source_component);
     }
 
     /// Schedule a clock tick
@@ -299,21 +307,26 @@ impl Simulation {
         }
 
         // Update the signal at the node
-        self.netlist.set_node_signal(node_id, new_signal.clone())
+        self.netlist
+            .set_node_signal(node_id, new_signal.clone())
             .map_err(|e| SimulationError::NetlistError(e.to_string()))?;
 
         // Get all components affected by this signal change
         let affected_components = self.netlist.get_affected_components(node_id);
 
         if self.config.debug {
-            println!("Signal change at node {} affects {} components", 
-                     node_id, affected_components.len());
+            println!(
+                "Signal change at node {} affects {} components",
+                node_id,
+                affected_components.len()
+            );
         }
 
         // Schedule updates for all affected components
         for component_id in affected_components {
             // Schedule a component update event with a small delay
-            self.event_queue.schedule_component_update(time.add_delay(1), component_id);
+            self.event_queue
+                .schedule_component_update(time.add_delay(1), component_id);
         }
 
         self.stats.propagation_steps += 1;
@@ -357,20 +370,25 @@ impl Simulation {
     }
 
     /// Process a component update event
-    fn process_component_update(&mut self, time: Timestamp, component_id: ComponentId) -> Result<(), SimulationError> {
+    fn process_component_update(
+        &mut self,
+        time: Timestamp,
+        component_id: ComponentId,
+    ) -> Result<(), SimulationError> {
         if let Some(component) = self.components.get_mut(&component_id) {
             // Update component inputs from connected nodes
             let connections = self.netlist.get_component_connections(component_id);
             for connection in connections {
                 if let Some(pin) = component.get_pin_mut(&connection.pin_name) {
                     if pin.is_input() {
-                        if let Some(node_signal) = self.netlist.get_node_signal(connection.node_id) {
+                        if let Some(node_signal) = self.netlist.get_node_signal(connection.node_id)
+                        {
                             let _ = pin.set_signal(node_signal.clone());
                         }
                     }
                 }
             }
-            
+
             // Update the component
             let result = component.update(time);
             self.handle_update_result(time, component_id, result)?;
@@ -393,7 +411,8 @@ impl Simulation {
             if let Some(component) = self.components.get_mut(&component_id) {
                 component.reset();
                 // Schedule initial update after reset
-                self.event_queue.schedule_component_update(time.add_delay(1), component_id);
+                self.event_queue
+                    .schedule_component_update(time.add_delay(1), component_id);
             }
         }
 
@@ -416,16 +435,22 @@ impl Simulation {
             // Find the node connected to this output pin
             if let Some(node_id) = self.netlist.get_pin_node(component_id, &pin_name) {
                 // Check if this would actually change the signal at the node
-                let should_propagate = if let Some(current_signal) = self.netlist.get_node_signal(node_id) {
-                    current_signal != &signal
-                } else {
-                    true
-                };
+                let should_propagate =
+                    if let Some(current_signal) = self.netlist.get_node_signal(node_id) {
+                        current_signal != &signal
+                    } else {
+                        true
+                    };
 
                 if should_propagate {
                     // Schedule signal change with appropriate delay
                     let event_time = current_time.add_delay(result.delay);
-                    self.event_queue.schedule_signal_change(event_time, node_id, signal, component_id);
+                    self.event_queue.schedule_signal_change(
+                        event_time,
+                        node_id,
+                        signal,
+                        component_id,
+                    );
                 }
             }
         }
@@ -439,8 +464,6 @@ impl Default for Simulation {
         Self::new()
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -460,7 +483,7 @@ mod tests {
         let mut sim = Simulation::new();
         let gate = Box::new(AndGate::new(ComponentId(1)));
         let id = sim.add_component(gate);
-        
+
         assert_eq!(id, ComponentId(1));
         assert!(sim.get_component(id).is_some());
     }
@@ -468,24 +491,36 @@ mod tests {
     #[test]
     fn test_simple_and_gate_simulation() {
         let mut sim = Simulation::new();
-        
+
         // Create AND gate
         let gate = Box::new(AndGate::new(ComponentId(1)));
         let gate_id = sim.add_component(gate);
-        
+
         // Create nodes for inputs and output
-        let a_node = sim.netlist_mut().create_named_node(BusWidth(1), "A".to_string());
-        let b_node = sim.netlist_mut().create_named_node(BusWidth(1), "B".to_string());
-        let y_node = sim.netlist_mut().create_named_node(BusWidth(1), "Y".to_string());
-        
+        let a_node = sim
+            .netlist_mut()
+            .create_named_node(BusWidth(1), "A".to_string());
+        let b_node = sim
+            .netlist_mut()
+            .create_named_node(BusWidth(1), "B".to_string());
+        let y_node = sim
+            .netlist_mut()
+            .create_named_node(BusWidth(1), "Y".to_string());
+
         // Connect gate pins to nodes
-        sim.netlist_mut().connect(gate_id, "A".to_string(), a_node).unwrap();
-        sim.netlist_mut().connect(gate_id, "B".to_string(), b_node).unwrap();
-        sim.netlist_mut().connect(gate_id, "Y".to_string(), y_node).unwrap();
-        
+        sim.netlist_mut()
+            .connect(gate_id, "A".to_string(), a_node)
+            .unwrap();
+        sim.netlist_mut()
+            .connect(gate_id, "B".to_string(), b_node)
+            .unwrap();
+        sim.netlist_mut()
+            .connect(gate_id, "Y".to_string(), y_node)
+            .unwrap();
+
         // Reset simulation
         sim.reset();
-        
+
         // Set initial inputs
         sim.schedule_signal_change(
             Timestamp(10),
@@ -499,14 +534,14 @@ mod tests {
             Signal::new_single(Value::High),
             ComponentId(0), // External source
         );
-        
+
         // Run simulation
         let result = sim.run();
         if let Err(e) = &result {
             println!("Simple AND gate simulation error: {}", e);
         }
         assert!(result.is_ok());
-        
+
         // Check that events were processed
         assert!(sim.stats().events_processed > 0);
         assert!(sim.current_time() > Timestamp(0));
@@ -515,24 +550,36 @@ mod tests {
     #[test]
     fn test_clocked_latch_simulation() {
         let mut sim = Simulation::new();
-        
+
         // Create latch
         let latch = Box::new(ClockedLatch::new(ComponentId(1)));
         let latch_id = sim.add_component(latch);
-        
+
         // Create nodes
-        let d_node = sim.netlist_mut().create_named_node(BusWidth(1), "D".to_string());
-        let clk_node = sim.netlist_mut().create_named_node(BusWidth(1), "CLK".to_string());
-        let q_node = sim.netlist_mut().create_named_node(BusWidth(1), "Q".to_string());
-        
+        let d_node = sim
+            .netlist_mut()
+            .create_named_node(BusWidth(1), "D".to_string());
+        let clk_node = sim
+            .netlist_mut()
+            .create_named_node(BusWidth(1), "CLK".to_string());
+        let q_node = sim
+            .netlist_mut()
+            .create_named_node(BusWidth(1), "Q".to_string());
+
         // Connect latch pins to nodes
-        sim.netlist_mut().connect(latch_id, "D".to_string(), d_node).unwrap();
-        sim.netlist_mut().connect(latch_id, "CLK".to_string(), clk_node).unwrap();
-        sim.netlist_mut().connect(latch_id, "Q".to_string(), q_node).unwrap();
-        
+        sim.netlist_mut()
+            .connect(latch_id, "D".to_string(), d_node)
+            .unwrap();
+        sim.netlist_mut()
+            .connect(latch_id, "CLK".to_string(), clk_node)
+            .unwrap();
+        sim.netlist_mut()
+            .connect(latch_id, "Q".to_string(), q_node)
+            .unwrap();
+
         // Reset simulation
         sim.reset();
-        
+
         // Set up test sequence
         sim.schedule_signal_change(
             Timestamp(10),
@@ -546,11 +593,11 @@ mod tests {
             Signal::new_single(Value::High), // Rising edge
             ComponentId(0),
         );
-        
+
         // Run simulation
         let result = sim.run();
         assert!(result.is_ok());
-        
+
         // Verify simulation ran
         assert!(sim.stats().events_processed > 0);
     }
@@ -558,14 +605,14 @@ mod tests {
     #[test]
     fn test_simulation_reset() {
         let mut sim = Simulation::new();
-        
+
         // Add some events
         sim.schedule_clock_tick(Timestamp(100));
         assert!(!sim.event_queue.is_empty());
-        
+
         // Reset
         sim.reset();
-        
+
         // Should have reset event scheduled
         assert!(!sim.event_queue.is_empty());
         assert_eq!(sim.current_time(), Timestamp(0));
@@ -575,17 +622,17 @@ mod tests {
     #[test]
     fn test_run_steps() {
         let mut sim = Simulation::new();
-        
+
         // Schedule multiple events
         sim.schedule_clock_tick(Timestamp(10));
         sim.schedule_clock_tick(Timestamp(20));
         sim.schedule_clock_tick(Timestamp(30));
-        
+
         // Run only 2 steps
         let steps = sim.run_steps(2).unwrap();
         assert_eq!(steps, 2);
         assert_eq!(sim.stats().events_processed, 2);
-        
+
         // Should have one event left
         assert!(!sim.event_queue.is_empty());
     }
@@ -593,15 +640,15 @@ mod tests {
     #[test]
     fn test_run_until() {
         let mut sim = Simulation::new();
-        
+
         sim.schedule_clock_tick(Timestamp(10));
         sim.schedule_clock_tick(Timestamp(20));
         sim.schedule_clock_tick(Timestamp(30));
-        
+
         // Run until time 25
         let result = sim.run_until(Timestamp(25));
         assert!(result.is_ok());
-        
+
         // Should have processed events up to time 25 (including at least the clock events at 10 and 20)
         // Note that events_processed may include other events like reset
         assert!(sim.stats().events_processed >= 2);

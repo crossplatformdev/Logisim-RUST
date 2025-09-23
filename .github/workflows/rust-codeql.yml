@@ -1,0 +1,54 @@
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '23 2 * * 1'  # Weekly on Mondays at 2:23 AM UTC
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  analyze:
+    name: "CodeQL Analysis"
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Only analyzing Rust for this project
+        language: [ 'rust' ]
+
+    steps:
+    - name: "Checkout repository"
+      uses: actions/checkout@v4
+
+    - name: "Initialize CodeQL"
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Custom queries can be added here if needed
+        # queries: security-extended,security-and-quality
+
+    - name: "Install Rust toolchain"
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: "Cache Rust dependencies"
+      uses: Swatinem/rust-cache@v2
+
+    # Build the project for CodeQL analysis
+    - name: "Build project"
+      run: |
+        cargo build --verbose --all-features
+
+    - name: "Perform CodeQL Analysis"
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"

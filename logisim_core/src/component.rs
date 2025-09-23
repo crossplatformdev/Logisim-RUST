@@ -3,7 +3,7 @@
 //! This module defines the interfaces that digital logic components must implement
 //! to participate in the simulation, including I/O pins and signal propagation.
 
-use crate::signal::{Signal, Value, BusWidth, Timestamp};
+use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
@@ -223,7 +223,12 @@ pub enum ClockEdge {
 /// Trait for components that can propagate signals
 pub trait Propagator {
     /// Propagate a signal change through this component
-    fn propagate(&mut self, input_pin: &str, signal: Signal, current_time: Timestamp) -> UpdateResult;
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult;
 
     /// Get all components that should be notified when this component's outputs change
     fn get_dependent_components(&self) -> Vec<ComponentId> {
@@ -268,9 +273,21 @@ impl Component for AndGate {
     }
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let a = self.pins.get("A").unwrap().signal.as_single().unwrap_or(Value::Unknown);
-        let b = self.pins.get("B").unwrap().signal.as_single().unwrap_or(Value::Unknown);
-        
+        let a = self
+            .pins
+            .get("A")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+        let b = self
+            .pins
+            .get("B")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+
         let output = a.and(b);
         let output_signal = Signal::new_single(output);
 
@@ -298,7 +315,12 @@ impl Component for AndGate {
 }
 
 impl Propagator for AndGate {
-    fn propagate(&mut self, input_pin: &str, signal: Signal, current_time: Timestamp) -> UpdateResult {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
         if let Some(pin) = self.pins.get_mut(input_pin) {
             let _ = pin.set_signal(signal);
         }
@@ -377,12 +399,14 @@ impl Component for ClockedLatch {
     fn clock_edge(&mut self, edge: ClockEdge, current_time: Timestamp) -> UpdateResult {
         if edge == ClockEdge::Rising {
             // On rising edge, capture the D input
-            let d_value = self.pins.get("D")
+            let d_value = self
+                .pins
+                .get("D")
                 .unwrap()
                 .signal
                 .as_single()
                 .unwrap_or(Value::Unknown);
-            
+
             self.stored_value = d_value;
             self.update(current_time)
         } else {
@@ -396,7 +420,12 @@ impl Component for ClockedLatch {
 }
 
 impl Propagator for ClockedLatch {
-    fn propagate(&mut self, input_pin: &str, signal: Signal, current_time: Timestamp) -> UpdateResult {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
         if let Some(pin) = self.pins.get_mut(input_pin) {
             let _ = pin.set_signal(signal.clone());
         }
@@ -431,16 +460,22 @@ mod tests {
     #[test]
     fn test_and_gate() {
         let mut gate = AndGate::new(ComponentId(1));
-        
+
         // Set inputs
-        gate.get_pin_mut("A").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
-        gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
-        
+        gate.get_pin_mut("A")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::High))
+            .unwrap();
+        gate.get_pin_mut("B")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::High))
+            .unwrap();
+
         // Update
         let result = gate.update(Timestamp(0));
         assert!(result.state_changed);
         assert_eq!(result.outputs.len(), 1);
-        
+
         let output = result.outputs.get("Y").unwrap();
         assert_eq!(output.as_single(), Some(Value::High));
     }
@@ -448,7 +483,7 @@ mod tests {
     #[test]
     fn test_and_gate_logic() {
         let mut gate = AndGate::new(ComponentId(1));
-        
+
         // Test all combinations
         let test_cases = [
             (Value::Low, Value::Low, Value::Low),
@@ -458,26 +493,43 @@ mod tests {
         ];
 
         for (a, b, expected) in test_cases {
-            gate.get_pin_mut("A").unwrap().set_signal(Signal::new_single(a)).unwrap();
-            gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(b)).unwrap();
-            
+            gate.get_pin_mut("A")
+                .unwrap()
+                .set_signal(Signal::new_single(a))
+                .unwrap();
+            gate.get_pin_mut("B")
+                .unwrap()
+                .set_signal(Signal::new_single(b))
+                .unwrap();
+
             let result = gate.update(Timestamp(0));
             let output = result.outputs.get("Y").unwrap();
-            assert_eq!(output.as_single(), Some(expected), "AND({}, {}) should be {}", a, b, expected);
+            assert_eq!(
+                output.as_single(),
+                Some(expected),
+                "AND({}, {}) should be {}",
+                a,
+                b,
+                expected
+            );
         }
     }
 
     #[test]
     fn test_clocked_latch() {
         let mut latch = ClockedLatch::new(ComponentId(2));
-        
+
         // Set D input
-        latch.get_pin_mut("D").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
-        
+        latch
+            .get_pin_mut("D")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::High))
+            .unwrap();
+
         // Clock edge should capture the input
         let result = latch.clock_edge(ClockEdge::Rising, Timestamp(0));
         assert!(result.state_changed);
-        
+
         let output = result.outputs.get("Q").unwrap();
         assert_eq!(output.as_single(), Some(Value::High));
         assert_eq!(latch.stored_value, Value::High);

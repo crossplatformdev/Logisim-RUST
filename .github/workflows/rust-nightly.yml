@@ -1,0 +1,76 @@
+name: "Rust Nightly Tests"
+
+on:
+  schedule:
+    # Run every day at 3:00 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  nightly_test:
+    name: "Test with Rust Nightly"
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true  # Don't fail CI if nightly has issues
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - name: "Checkout sources"
+      uses: actions/checkout@v4
+    
+    - name: "Install Rust nightly toolchain"
+      uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: rustfmt, clippy
+    
+    - name: "Cache Rust dependencies"
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+    
+    - name: "Check code formatting"
+      run: cargo fmt --all -- --check
+    
+    - name: "Run Clippy"
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    
+    - name: "Build workspace"
+      run: cargo build --verbose --all-features
+    
+    - name: "Run tests"
+      run: cargo test --verbose --all-features
+    
+    - name: "Build documentation"
+      run: cargo doc --verbose --all-features --no-deps
+
+  experimental_features:
+    name: "Test Experimental Features"
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    
+    steps:
+    - name: "Checkout sources"
+      uses: actions/checkout@v4
+    
+    - name: "Install Rust nightly toolchain"
+      uses: dtolnay/rust-toolchain@nightly
+    
+    - name: "Cache Rust dependencies"
+      uses: Swatinem/rust-cache@v2
+    
+    - name: "Test with unstable features"
+      run: |
+        # Test building with various unstable features
+        # This helps us prepare for future Rust versions
+        cargo build --all-features
+        cargo test --all-features
+    
+    - name: "Check for future incompatibilities"
+      run: |
+        # Run with future-incompat-report to catch upcoming breaking changes
+        cargo check --future-incompat-report --all-features
