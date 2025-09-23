@@ -1,0 +1,485 @@
+//! Component traits and types for the simulation.
+//!
+//! This module defines the interfaces that digital logic components must implement
+//! to participate in the simulation, including I/O pins and signal propagation.
+
+use crate::signal::{Signal, Value, BusWidth, Timestamp};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fmt;
+
+/// Unique identifier for a component
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ComponentId(pub u64);
+
+impl ComponentId {
+    /// Create a new component ID
+    pub fn new(id: u64) -> Self {
+        ComponentId(id)
+    }
+
+    /// Get the ID as u64
+    pub fn as_u64(self) -> u64 {
+        self.0
+    }
+}
+
+impl From<u64> for ComponentId {
+    fn from(id: u64) -> Self {
+        ComponentId(id)
+    }
+}
+
+impl fmt::Display for ComponentId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "C{}", self.0)
+    }
+}
+
+/// Direction of a pin
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum PinDirection {
+    /// Input pin
+    Input,
+    /// Output pin
+    Output,
+    /// Bidirectional pin
+    InOut,
+}
+
+/// Represents a connection point on a component
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Pin {
+    /// Name of this pin
+    pub name: String,
+    /// Direction of this pin
+    pub direction: PinDirection,
+    /// Bus width of this pin
+    pub width: BusWidth,
+    /// Current signal on this pin
+    pub signal: Signal,
+}
+
+impl Pin {
+    /// Create a new input pin
+    pub fn new_input(name: impl Into<String>, width: BusWidth) -> Self {
+        Pin {
+            name: name.into(),
+            direction: PinDirection::Input,
+            width,
+            signal: Signal::unknown(width),
+        }
+    }
+
+    /// Create a new output pin
+    pub fn new_output(name: impl Into<String>, width: BusWidth) -> Self {
+        Pin {
+            name: name.into(),
+            direction: PinDirection::Output,
+            width,
+            signal: Signal::unknown(width),
+        }
+    }
+
+    /// Create a new bidirectional pin
+    pub fn new_inout(name: impl Into<String>, width: BusWidth) -> Self {
+        Pin {
+            name: name.into(),
+            direction: PinDirection::InOut,
+            width,
+            signal: Signal::unknown(width),
+        }
+    }
+
+    /// Check if this is an input pin
+    pub fn is_input(&self) -> bool {
+        matches!(self.direction, PinDirection::Input | PinDirection::InOut)
+    }
+
+    /// Check if this is an output pin
+    pub fn is_output(&self) -> bool {
+        matches!(self.direction, PinDirection::Output | PinDirection::InOut)
+    }
+
+    /// Update the signal on this pin
+    pub fn set_signal(&mut self, signal: Signal) -> Result<(), &'static str> {
+        if signal.width() != self.width {
+            return Err("Signal width mismatch");
+        }
+        self.signal = signal;
+        Ok(())
+    }
+
+    /// Get the current signal
+    pub fn get_signal(&self) -> &Signal {
+        &self.signal
+    }
+}
+
+/// Result of a component update
+#[derive(Debug, Clone)]
+pub struct UpdateResult {
+    /// New output signals to propagate
+    pub outputs: HashMap<String, Signal>,
+    /// Propagation delay for these outputs
+    pub delay: u64,
+    /// Whether the component state changed
+    pub state_changed: bool,
+}
+
+impl UpdateResult {
+    /// Create a new update result with no outputs
+    pub fn new() -> Self {
+        UpdateResult {
+            outputs: HashMap::new(),
+            delay: 0,
+            state_changed: false,
+        }
+    }
+
+    /// Create an update result with outputs
+    pub fn with_outputs(outputs: HashMap<String, Signal>, delay: u64) -> Self {
+        UpdateResult {
+            outputs,
+            delay,
+            state_changed: true,
+        }
+    }
+
+    /// Add an output signal
+    pub fn add_output(&mut self, pin_name: String, signal: Signal) {
+        self.outputs.insert(pin_name, signal);
+        self.state_changed = true;
+    }
+
+    /// Set the propagation delay
+    pub fn set_delay(&mut self, delay: u64) {
+        self.delay = delay;
+    }
+}
+
+impl Default for UpdateResult {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Trait that all simulation components must implement
+pub trait Component: std::fmt::Debug {
+    /// Get the unique identifier for this component
+    fn id(&self) -> ComponentId;
+
+    /// Get the name/type of this component
+    fn name(&self) -> &str;
+
+    /// Get all pins on this component
+    fn pins(&self) -> &HashMap<String, Pin>;
+
+    /// Get all pins on this component (mutable)
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin>;
+
+    /// Get a specific pin by name
+    fn get_pin(&self, name: &str) -> Option<&Pin> {
+        self.pins().get(name)
+    }
+
+    /// Get a specific pin by name (mutable)
+    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
+        self.pins_mut().get_mut(name)
+    }
+
+    /// Update the component's outputs based on current inputs
+    /// This is called when input signals change
+    fn update(&mut self, current_time: Timestamp) -> UpdateResult;
+
+    /// Reset the component to its initial state
+    fn reset(&mut self);
+
+    /// Get the typical propagation delay for this component
+    fn propagation_delay(&self) -> u64 {
+        1 // Default 1 time unit
+    }
+
+    /// Check if this component has sequential behavior (memory)
+    fn is_sequential(&self) -> bool {
+        false // Most components are combinational
+    }
+
+    /// Handle a clock edge (for sequential components)
+    fn clock_edge(&mut self, _edge: ClockEdge, _current_time: Timestamp) -> UpdateResult {
+        UpdateResult::new() // Default: no response to clock
+    }
+}
+
+/// Clock edge types for sequential components
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClockEdge {
+    /// Rising edge (low to high)
+    Rising,
+    /// Falling edge (high to low)
+    Falling,
+}
+
+/// Trait for components that can propagate signals
+pub trait Propagator {
+    /// Propagate a signal change through this component
+    fn propagate(&mut self, input_pin: &str, signal: Signal, current_time: Timestamp) -> UpdateResult;
+
+    /// Get all components that should be notified when this component's outputs change
+    fn get_dependent_components(&self) -> Vec<ComponentId> {
+        Vec::new() // Default: no dependencies
+    }
+}
+
+/// A basic AND gate implementation for testing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AndGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl AndGate {
+    /// Create a new 2-input AND gate
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
+        pins.insert("B".to_string(), Pin::new_input("B", BusWidth(1)));
+        pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
+
+        AndGate { id, pins }
+    }
+}
+
+impl Component for AndGate {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "AND"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let a = self.pins.get("A").unwrap().signal.as_single().unwrap_or(Value::Unknown);
+        let b = self.pins.get("B").unwrap().signal.as_single().unwrap_or(Value::Unknown);
+        
+        let output = a.and(b);
+        let output_signal = Signal::new_single(output);
+
+        let mut result = UpdateResult::new();
+        result.add_output("Y".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+
+        // Update internal pin state
+        if let Some(pin) = self.pins.get_mut("Y") {
+            let _ = pin.set_signal(output_signal);
+        }
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        2 // 2 time units for AND gate
+    }
+}
+
+impl Propagator for AndGate {
+    fn propagate(&mut self, input_pin: &str, signal: Signal, current_time: Timestamp) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// A basic clocked latch implementation for testing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClockedLatch {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    stored_value: Value,
+}
+
+impl ClockedLatch {
+    /// Create a new clocked latch
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("D".to_string(), Pin::new_input("D", BusWidth(1)));
+        pins.insert("CLK".to_string(), Pin::new_input("CLK", BusWidth(1)));
+        pins.insert("Q".to_string(), Pin::new_output("Q", BusWidth(1)));
+
+        ClockedLatch {
+            id,
+            pins,
+            stored_value: Value::Unknown,
+        }
+    }
+}
+
+impl Component for ClockedLatch {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "LATCH"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        // For a latch, output always reflects stored value
+        let output_signal = Signal::new_single(self.stored_value);
+
+        let mut result = UpdateResult::new();
+        result.add_output("Q".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+
+        // Update internal pin state
+        if let Some(pin) = self.pins.get_mut("Q") {
+            let _ = pin.set_signal(output_signal);
+        }
+
+        result
+    }
+
+    fn reset(&mut self) {
+        self.stored_value = Value::Unknown;
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn is_sequential(&self) -> bool {
+        true
+    }
+
+    fn clock_edge(&mut self, edge: ClockEdge, current_time: Timestamp) -> UpdateResult {
+        if edge == ClockEdge::Rising {
+            // On rising edge, capture the D input
+            let d_value = self.pins.get("D")
+                .unwrap()
+                .signal
+                .as_single()
+                .unwrap_or(Value::Unknown);
+            
+            self.stored_value = d_value;
+            self.update(current_time)
+        } else {
+            UpdateResult::new()
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        3 // 3 time units for latch
+    }
+}
+
+impl Propagator for ClockedLatch {
+    fn propagate(&mut self, input_pin: &str, signal: Signal, current_time: Timestamp) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal.clone());
+        }
+
+        // For clock input, check for edges
+        if input_pin == "CLK" {
+            if let Some(new_value) = signal.as_single() {
+                // Detect clock edge (simplified - in real implementation would track previous value)
+                if new_value == Value::High {
+                    return self.clock_edge(ClockEdge::Rising, current_time);
+                }
+            }
+        }
+
+        UpdateResult::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pin_creation() {
+        let pin = Pin::new_input("A", BusWidth(1));
+        assert_eq!(pin.name, "A");
+        assert!(pin.is_input());
+        assert!(!pin.is_output());
+        assert_eq!(pin.width, BusWidth(1));
+    }
+
+    #[test]
+    fn test_and_gate() {
+        let mut gate = AndGate::new(ComponentId(1));
+        
+        // Set inputs
+        gate.get_pin_mut("A").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
+        gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
+        
+        // Update
+        let result = gate.update(Timestamp(0));
+        assert!(result.state_changed);
+        assert_eq!(result.outputs.len(), 1);
+        
+        let output = result.outputs.get("Y").unwrap();
+        assert_eq!(output.as_single(), Some(Value::High));
+    }
+
+    #[test]
+    fn test_and_gate_logic() {
+        let mut gate = AndGate::new(ComponentId(1));
+        
+        // Test all combinations
+        let test_cases = [
+            (Value::Low, Value::Low, Value::Low),
+            (Value::Low, Value::High, Value::Low),
+            (Value::High, Value::Low, Value::Low),
+            (Value::High, Value::High, Value::High),
+        ];
+
+        for (a, b, expected) in test_cases {
+            gate.get_pin_mut("A").unwrap().set_signal(Signal::new_single(a)).unwrap();
+            gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(b)).unwrap();
+            
+            let result = gate.update(Timestamp(0));
+            let output = result.outputs.get("Y").unwrap();
+            assert_eq!(output.as_single(), Some(expected), "AND({}, {}) should be {}", a, b, expected);
+        }
+    }
+
+    #[test]
+    fn test_clocked_latch() {
+        let mut latch = ClockedLatch::new(ComponentId(2));
+        
+        // Set D input
+        latch.get_pin_mut("D").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
+        
+        // Clock edge should capture the input
+        let result = latch.clock_edge(ClockEdge::Rising, Timestamp(0));
+        assert!(result.state_changed);
+        
+        let output = result.outputs.get("Q").unwrap();
+        assert_eq!(output.as_single(), Some(Value::High));
+        assert_eq!(latch.stored_value, Value::High);
+    }
+}

@@ -1,0 +1,15 @@
+[package]
+name = "logisim_core"
+version = "0.1.0"
+edition = "2021"
+description = "Core simulation kernel for Logisim-RUST digital logic simulator"
+license = "GPL-3.0-or-later"
+authors = ["Logisim-RUST Contributors"]
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+# Testing dependencies
+proptest = "1.0"
