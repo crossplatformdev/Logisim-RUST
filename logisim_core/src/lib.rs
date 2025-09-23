@@ -52,6 +52,8 @@ pub mod component;
 pub mod event;
 pub mod netlist;
 pub mod simulation;
+pub mod circ_parser;
+pub mod circ_serializer;
 
 // Re-export core types for convenience
 pub use signal::{Signal, Value, Bus, BusWidth, Timestamp};
@@ -59,3 +61,5 @@ pub use component::{Component, Pin, ComponentId};
 pub use event::{SimulatorEvent, EventQueue};
 pub use netlist::{NodeId, NetId, Netlist};
 pub use simulation::Simulation;
+pub use circ_parser::{CircuitProject, CircParser, CircParseError};
+pub use circ_serializer::{CircSerializer, CircSerializeError};

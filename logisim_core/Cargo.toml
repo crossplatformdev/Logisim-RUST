@@ -9,6 +9,8 @@ authors = ["Logisim-RUST Contributors"]
 [dependencies]
 serde = { workspace = true }
 thiserror = { workspace = true }
+quick-xml = { version = "0.36", features = ["serialize"] }
+indexmap = { version = "2.0", features = ["serde"] }
 
 [dev-dependencies]
 # Testing dependencies
