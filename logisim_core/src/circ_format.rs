@@ -789,7 +789,7 @@ impl CircIntegration {
                 _ => vec![(0, 0)], // Default single node
             };
 
-            for (i, (dx, dy)) in pin_offsets.into_iter().enumerate() {
+            for (_i, (dx, dy)) in pin_offsets.into_iter().enumerate() {
                 let pin_location = (comp_location.0 + dx, comp_location.1 + dy);
                 if !location_to_node.contains_key(&pin_location) {
                     let node = sim.netlist_mut().create_named_node(
