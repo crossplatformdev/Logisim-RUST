@@ -14,6 +14,38 @@
 //! - **Events**: Time-ordered simulation events that drive the simulation
 //! - **Netlist**: The network of connected components and signals
 //! - **Simulation**: The main simulation engine that processes events
+//!
+//! ## Example Usage
+//!
+//! ```rust
+//! use logisim_core::*;
+//! use logisim_core::component::AndGate;
+//! use logisim_core::signal::{Value, BusWidth};
+//! use logisim_core::simulation::Simulation;
+//!
+//! // Create a simulation
+//! let mut sim = Simulation::new();
+//!
+//! // Add an AND gate
+//! let gate = Box::new(AndGate::new(ComponentId(1)));
+//! let gate_id = sim.add_component(gate);
+//!
+//! // Create nodes for connections
+//! let input_a = sim.netlist_mut().create_named_node(BusWidth(1), "A".to_string());
+//! let input_b = sim.netlist_mut().create_named_node(BusWidth(1), "B".to_string());
+//! let output = sim.netlist_mut().create_named_node(BusWidth(1), "Y".to_string());
+//!
+//! // Connect the gate
+//! sim.netlist_mut().connect(gate_id, "A".to_string(), input_a).unwrap();
+//! sim.netlist_mut().connect(gate_id, "B".to_string(), input_b).unwrap();
+//! sim.netlist_mut().connect(gate_id, "Y".to_string(), output).unwrap();
+//!
+//! // Set up initial conditions and run simulation
+//! sim.reset();
+//! sim.schedule_signal_change(Timestamp(10), input_a, Signal::new_single(Value::High), ComponentId(0));
+//! sim.schedule_signal_change(Timestamp(10), input_b, Signal::new_single(Value::High), ComponentId(0));
+//! sim.run().unwrap();
+//! ```
 
 pub mod signal;
 pub mod component;

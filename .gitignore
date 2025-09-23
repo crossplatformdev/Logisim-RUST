@@ -292,3 +292,9 @@ gradle-app.setting
 
 # python代码
 *.py
+
+# Rust
+target/
+Cargo.lock
+**/target/
+**/*.lock
