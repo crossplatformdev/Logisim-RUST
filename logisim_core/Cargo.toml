@@ -9,6 +9,8 @@ authors = ["Logisim-RUST Contributors"]
 [dependencies]
 serde = { workspace = true }
 thiserror = { workspace = true }
+quick-xml = { workspace = true }
+roxmltree = { workspace = true }
 
 [dev-dependencies]
 # Testing dependencies

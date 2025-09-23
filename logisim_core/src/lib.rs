@@ -52,6 +52,7 @@ pub mod component;
 pub mod event;
 pub mod netlist;
 pub mod simulation;
+pub mod circ_format;
 
 // Re-export core types for convenience
 pub use signal::{Signal, Value, Bus, BusWidth, Timestamp};
@@ -59,3 +60,4 @@ pub use component::{Component, Pin, ComponentId};
 pub use event::{SimulatorEvent, EventQueue};
 pub use netlist::{NodeId, NetId, Netlist};
 pub use simulation::Simulation;
+pub use circ_format::{CircParser, CircWriter, CircuitFile, CircIntegration, RomContents};
