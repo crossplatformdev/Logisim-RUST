@@ -1,0 +1,19 @@
+# Root level .gitignore for Logisim-RUST repository
+
+# Specific to subprojects
+/Logisim-Rust/target/
+/Logisim-Rust/Cargo.lock
+/Logisim-Evolution/build/
+/Logisim-Evolution/.gradle/
+/Logisim-Evolution/out/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

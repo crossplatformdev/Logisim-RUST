@@ -1,6 +1,6 @@
 // ************************************************************************
 // THIS IS A COMPILE TIME GENERATED FILE! DO NOT EDIT BY HAND!
-// Generated at 2025-09-24T03:28:39+0000
+// Generated at 2025-09-24T03:31:26+0000
 // ************************************************************************
 
 package com.cburch.logisim.generated;
@@ -15,9 +15,9 @@ public final class BuildInfo {
   public static final String buildId = "(Not built from Git repo)";
 
   // Project build timestamp
-  public static final long millis = 1758684519642L; // keep trailing 'L'
+  public static final long millis = 1758684686054L; // keep trailing 'L'
   public static final String year = "2025";
-  public static final String dateIso8601 = "2025-09-24T03:28:39+0000";
+  public static final String dateIso8601 = "2025-09-24T03:31:26+0000";
   public static final Date date = new Date();
   static { date.setTime(millis); }
 
