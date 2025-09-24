@@ -27,12 +27,14 @@
 //! - Separation of logical component behavior from visual representation
 
 pub mod component;
+pub mod draw_context;
 pub mod event;
 pub mod factory;
 pub mod pin;
 
 // Re-export core types for convenience
 pub use component::{AbstractComponent, Component, ComponentId};
+pub use draw_context::{Color, ComponentDrawContext, DrawCommand, GraphicsContext};
 pub use event::{ComponentEvent, ComponentListener, ComponentUserEvent};
 pub use factory::{AbstractComponentFactory, ComponentFactory};
 pub use pin::{EndData, Pin, PinDirection};

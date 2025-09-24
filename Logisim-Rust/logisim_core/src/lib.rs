@@ -69,8 +69,9 @@ pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
 pub use comp::{
-    AbstractComponent, AbstractComponentFactory, Component, ComponentEvent, ComponentFactory,
-    ComponentId, ComponentListener, ComponentUserEvent, EndData, Pin, PinDirection,
+    AbstractComponent, AbstractComponentFactory, Color, Component, ComponentDrawContext,
+    ComponentEvent, ComponentFactory, ComponentId, ComponentListener, ComponentUserEvent,
+    DrawCommand, EndData, GraphicsContext, Pin, PinDirection,
 };
 pub use component::{
     Component as SimComponent, ComponentId as SimComponentId, Pin as SimPin,
