@@ -8,7 +8,7 @@ use logisim_core::circ_format::{CircIntegration, CircParser, CircWriter, RomCont
 use std::fs;
 use std::path::Path;
 
-const MAINBOARD_CIRC_PATH: &str = "test_resources/MAINBOARD.circ";
+const MAINBOARD_CIRC_PATH: &str = "test_resources/logisim_evolution/MAINBOARD.circ";
 
 #[test]
 fn test_mainboard_circ_exists() {
