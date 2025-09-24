@@ -1868,11 +1868,16 @@ impl Ram {
             // Multi-bit address - simplified conversion
             let mut address = 0u32;
             for (i, &bit) in signal.values().iter().enumerate() {
-                if bit == Value::High {
+                if bit == Value::High && i < 32 {
                     address |= 1 << i;
                 }
             }
-            address & ((1 << self.address_bits) - 1)
+            let mask = if self.address_bits >= 32 {
+                u32::MAX
+            } else {
+                (1 << self.address_bits) - 1
+            };
+            address & mask
         }
     }
 }
@@ -2123,7 +2128,11 @@ impl Counter {
         pins.insert("Q".to_string(), Pin::new_output("Q", width)); // Count output
         pins.insert("CARRY".to_string(), Pin::new_output("CARRY", BusWidth(1))); // Carry out
 
-        let default_max = (1u32 << width.as_u32()) - 1;
+        let default_max = if width.as_u32() >= 32 {
+            u32::MAX
+        } else {
+            (1u32 << width.as_u32()) - 1
+        };
         Counter { 
             id, 
             pins, 
@@ -2241,7 +2250,7 @@ impl Counter {
     fn signal_to_count(&self, signal: &Signal) -> u32 {
         let mut count = 0u32;
         for (i, &bit) in signal.values().iter().enumerate() {
-            if bit == Value::High {
+            if bit == Value::High && i < 32 {
                 count |= 1 << i;
             }
         }
@@ -2381,7 +2390,11 @@ impl Component for Adder {
         let cin_value = if cin == Value::High { 1 } else { 0 };
         
         let sum = a_value + b_value + cin_value;
-        let max_value = (1u32 << self.width.as_u32()) - 1;
+        let max_value = if self.width.as_u32() >= 32 {
+            u32::MAX
+        } else {
+            (1u32 << self.width.as_u32()) - 1
+        };
         
         let result_value = sum & max_value;
         let carry_out = if sum > max_value { Value::High } else { Value::Low };
@@ -2422,7 +2435,7 @@ impl Adder {
     fn signal_to_number(&self, signal: &Signal) -> u32 {
         let mut number = 0u32;
         for (i, &bit) in signal.values().iter().enumerate() {
-            if bit == Value::High {
+            if bit == Value::High && i < 32 {
                 number |= 1 << i;
             }
         }
@@ -2550,7 +2563,7 @@ impl Divider {
     fn signal_to_number(&self, signal: &Signal) -> u32 {
         let mut number = 0u32;
         for (i, &bit) in signal.values().iter().enumerate() {
-            if bit == Value::High {
+            if bit == Value::High && i < 32 {
                 number |= 1 << i;
             }
         }
@@ -2593,7 +2606,11 @@ pub struct Decoder {
 impl Decoder {
     pub fn new(id: ComponentId, input_width: BusWidth) -> Self {
         let mut pins = HashMap::new();
-        let output_count = 1u32 << input_width.as_u32(); // 2^n outputs
+        let output_count = if input_width.as_u32() >= 32 {
+            u32::MAX
+        } else {
+            1u32 << input_width.as_u32()
+        }; // 2^n outputs
         
         // Address input
         pins.insert("ADDR".to_string(), Pin::new_input("ADDR", input_width));
@@ -2682,7 +2699,7 @@ impl Decoder {
     fn signal_to_address(&self, signal: &Signal) -> u32 {
         let mut address = 0u32;
         for (i, &bit) in signal.values().iter().enumerate() {
-            if bit == Value::High {
+            if bit == Value::High && i < 32 {
                 address |= 1 << i;
             }
         }
