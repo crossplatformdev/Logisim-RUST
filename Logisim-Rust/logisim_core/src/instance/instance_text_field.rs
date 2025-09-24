@@ -214,18 +214,18 @@ impl InstanceTextField {
         let text_height = char_height;
 
         let x = match self.align {
-            TextAlign::Left => self.location.x(),
-            TextAlign::Center => self.location.x() - text_width / 2,
-            TextAlign::Right => self.location.x() - text_width,
+            TextAlign::Left => self.location.x,
+            TextAlign::Center => self.location.x - text_width / 2,
+            TextAlign::Right => self.location.x - text_width,
         };
 
         let y = match self.vertical_align {
-            VerticalAlign::Top => self.location.y(),
-            VerticalAlign::Center => self.location.y() - text_height / 2,
-            VerticalAlign::Bottom => self.location.y() - text_height,
+            VerticalAlign::Top => self.location.y,
+            VerticalAlign::Center => self.location.y - text_height / 2,
+            VerticalAlign::Bottom => self.location.y - text_height,
         };
 
-        Bounds::new(x, y, text_width, text_height)
+        Bounds::create(x, y, text_width, text_height)
     }
 
     /// Checks if a point is within the text field bounds.
