@@ -11,10 +11,18 @@ use std::sync::Arc;
 /// 
 /// A Drawing manages a collection of canvas objects and provides
 /// event notification when the collection changes.
-#[derive(Debug)]
 pub struct Drawing {
     objects: Vec<Arc<dyn CanvasObject>>,
     listeners: Vec<Box<dyn CanvasModelListener>>,
+}
+
+impl std::fmt::Debug for Drawing {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Drawing")
+            .field("object_count", &self.objects.len())
+            .field("listener_count", &self.listeners.len())
+            .finish()
+    }
 }
 
 impl Drawing {
@@ -100,10 +108,10 @@ impl Drawing {
         
         for object in &self.objects {
             let bounds = object.bounds();
-            min_x = min_x.min(bounds.x());
-            min_y = min_y.min(bounds.y());
-            max_x = max_x.max(bounds.x() + bounds.width());
-            max_y = max_y.max(bounds.y() + bounds.height());
+            min_x = min_x.min(bounds.get_x());
+            min_y = min_y.min(bounds.get_y());
+            max_x = max_x.max(bounds.get_x() + bounds.get_width());
+            max_y = max_y.max(bounds.get_y() + bounds.get_height());
         }
         
         Bounds::create(min_x, min_y, max_x - min_x, max_y - min_y)
@@ -111,7 +119,7 @@ impl Drawing {
     
     /// Find objects that contain the specified location
     pub fn find_objects_at(&self, x: i32, y: i32, assume_filled: bool) -> Vec<Arc<dyn CanvasObject>> {
-        let location = logisim_core::data::Location::create(x, y);
+        let location = logisim_core::data::Location::new(x, y);
         
         self.objects
             .iter()

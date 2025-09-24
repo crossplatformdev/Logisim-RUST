@@ -2,47 +2,44 @@
 //!
 //! This module corresponds to the Java DrawAttr class.
 
-use logisim_core::data::Attribute;
+use crate::draw::model::canvas_object::Color32;
 
 /// Standard drawing attributes used by shapes
 pub struct DrawAttr;
 
 impl DrawAttr {
-    /// Stroke width attribute
-    pub fn stroke_width() -> &'static Attribute<i32> {
-        static STROKE_WIDTH: Attribute<i32> = Attribute::new("stroke_width", 1);
-        &STROKE_WIDTH
-    }
+    /// Stroke width attribute name
+    pub const STROKE_WIDTH: &'static str = "stroke_width";
     
-    /// Stroke color attribute  
-    pub fn stroke_color() -> &'static Attribute<egui::Color32> {
-        static STROKE_COLOR: Attribute<egui::Color32> = Attribute::new("stroke_color", egui::Color32::BLACK);
-        &STROKE_COLOR
-    }
+    /// Stroke color attribute name  
+    pub const STROKE_COLOR: &'static str = "stroke_color";
     
-    /// Fill color attribute
-    pub fn fill_color() -> &'static Attribute<Option<egui::Color32>> {
-        static FILL_COLOR: Attribute<Option<egui::Color32>> = Attribute::new("fill_color", None);
-        &FILL_COLOR
-    }
+    /// Fill color attribute name
+    pub const FILL_COLOR: &'static str = "fill_color";
     
-    /// Font family attribute
-    pub fn font_family() -> &'static Attribute<String> {
-        static FONT_FAMILY: Attribute<String> = Attribute::new("font_family", "SansSerif".to_string());
-        &FONT_FAMILY
-    }
+    /// Font family attribute name
+    pub const FONT_FAMILY: &'static str = "font_family";
     
-    /// Font size attribute
-    pub fn font_size() -> &'static Attribute<i32> {
-        static FONT_SIZE: Attribute<i32> = Attribute::new("font_size", 12);
-        &FONT_SIZE
-    }
+    /// Font size attribute name
+    pub const FONT_SIZE: &'static str = "font_size";
     
-    /// Text alignment attribute
-    pub fn text_align() -> &'static Attribute<TextAlign> {
-        static TEXT_ALIGN: Attribute<TextAlign> = Attribute::new("text_align", TextAlign::Center);
-        &TEXT_ALIGN
-    }
+    /// Text alignment attribute name
+    pub const TEXT_ALIGN: &'static str = "text_align";
+    
+    /// Default stroke width
+    pub const DEFAULT_STROKE_WIDTH: i32 = 1;
+    
+    /// Default stroke color
+    pub const DEFAULT_STROKE_COLOR: Color32 = Color32::BLACK;
+    
+    /// Default font family
+    pub const DEFAULT_FONT_FAMILY: &'static str = "SansSerif";
+    
+    /// Default font size
+    pub const DEFAULT_FONT_SIZE: i32 = 12;
+    
+    /// Default text alignment
+    pub const DEFAULT_TEXT_ALIGN: TextAlign = TextAlign::Center;
 }
 
 /// Text alignment options

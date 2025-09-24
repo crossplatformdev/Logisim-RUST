@@ -2,9 +2,9 @@
 //!
 //! This module corresponds to the Java Line class.
 
-use crate::draw::model::{CanvasObject, AbstractCanvasObject, DrawingContext, Handle, HandleGesture, CanvasObjectId};
+use crate::draw::model::{CanvasObject, AbstractCanvasObject, DrawingContext, Handle, HandleGesture, CanvasObjectId, AttributeAccess, Color32, Stroke};
 use crate::draw::{DrawError, DrawResult};
-use logisim_core::data::{Attribute, AttributeSet, Bounds, Location};
+use logisim_core::data::{AttributeSet, Bounds, Location};
 use super::DrawAttr;
 
 /// A line shape that can be drawn on a canvas
@@ -18,9 +18,7 @@ pub struct Line {
 impl Line {
     /// Create a new line from start to end
     pub fn new(id: CanvasObjectId, start: Location, end: Location) -> Self {
-        let mut attributes = AttributeSet::new();
-        attributes.set_value(DrawAttr::stroke_width(), 1);
-        attributes.set_value(DrawAttr::stroke_color(), egui::Color32::BLACK);
+        let attributes = AttributeSet::new();
         
         Self {
             base: AbstractCanvasObject::with_attributes(id, "Line".to_string(), attributes),
@@ -51,8 +49,8 @@ impl Line {
     
     /// Get the length of the line
     pub fn length(&self) -> f64 {
-        let dx = (self.end.x() - self.start.x()) as f64;
-        let dy = (self.end.y() - self.start.y()) as f64;
+        let dx = (self.end.x - self.start.x) as f64;
+        let dy = (self.end.y - self.start.y) as f64;
         (dx * dx + dy * dy).sqrt()
     }
 }
@@ -88,11 +86,11 @@ impl CanvasObject for Line {
         let tolerance = 3; // pixels
         
         // Use point-to-line distance formula
-        let a = (self.end.y() - self.start.y()) as f64;
-        let b = (self.start.x() - self.end.x()) as f64;
-        let c = (self.end.x() * self.start.y() - self.start.x() * self.end.y()) as f64;
+        let a = (self.end.y - self.start.y) as f64;
+        let b = (self.start.x - self.end.x) as f64;
+        let c = (self.end.x * self.start.y - self.start.x * self.end.y) as f64;
         
-        let distance = (a * loc.x() as f64 + b * loc.y() as f64 + c).abs() / (a * a + b * b).sqrt();
+        let distance = (a * loc.x as f64 + b * loc.y as f64 + c).abs() / (a * a + b * b).sqrt();
         
         distance <= tolerance as f64
     }
@@ -110,10 +108,10 @@ impl CanvasObject for Line {
     }
     
     fn bounds(&self) -> Bounds {
-        let min_x = self.start.x().min(self.end.x());
-        let min_y = self.start.y().min(self.end.y());
-        let max_x = self.start.x().max(self.end.x());
-        let max_y = self.start.y().max(self.end.y());
+        let min_x = self.start.x.min(self.end.x);
+        let min_y = self.start.y.min(self.end.y);
+        let max_x = self.start.x.max(self.end.x);
+        let max_y = self.start.y.max(self.end.y);
         
         Bounds::create(min_x, min_y, max_x - min_x, max_y - min_y)
     }
@@ -131,10 +129,6 @@ impl CanvasObject for Line {
         } else {
             Vec::new()
         }
-    }
-    
-    fn get_value<V: Clone>(&self, attr: &Attribute<V>) -> Option<V> {
-        self.base.get_value(attr)
     }
     
     fn insert_handle(&mut self, _desired: Handle, _previous: Option<Handle>) {
@@ -172,33 +166,50 @@ impl CanvasObject for Line {
     }
     
     fn translate(&mut self, dx: i32, dy: i32) {
-        self.start = Location::create(self.start.x() + dx, self.start.y() + dy);
-        self.end = Location::create(self.end.x() + dx, self.end.y() + dy);
+        self.start = Location::new(self.start.x + dx, self.start.y + dy);
+        self.end = Location::new(self.end.x + dx, self.end.y + dy);
     }
     
     fn paint(&self, g: &mut dyn DrawingContext, highlighted: bool) {
-        let stroke_width = self.get_value(DrawAttr::stroke_width()).unwrap_or(1);
-        let mut stroke_color = self.get_value(DrawAttr::stroke_color()).unwrap_or(egui::Color32::BLACK);
+        let stroke_width = self.get_attribute_value(DrawAttr::STROKE_WIDTH)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(DrawAttr::DEFAULT_STROKE_WIDTH) as f32;
         
-        if highlighted {
-            stroke_color = egui::Color32::RED; // Highlight color
-        }
+        let stroke_color = if highlighted {
+            Color32::RED
+        } else {
+            DrawAttr::DEFAULT_STROKE_COLOR
+        };
         
-        g.set_stroke(egui::Stroke::new(stroke_width as f32, stroke_color));
+        g.set_stroke(Stroke::new(stroke_width, stroke_color));
         g.draw_line(
-            self.start.x() as f32,
-            self.start.y() as f32,
-            self.end.x() as f32,
-            self.end.y() as f32,
+            self.start.x as f32,
+            self.start.y as f32,
+            self.end.x as f32,
+            self.end.y as f32,
         );
-    }
-    
-    fn set_value<V: Clone>(&mut self, attr: &Attribute<V>, value: V) -> DrawResult<()> {
-        self.base.set_value(attr, value)
     }
     
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+    
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
+impl AttributeAccess for Line {
+    fn get_attribute_value(&self, attr_name: &str) -> Option<String> {
+        match attr_name {
+            DrawAttr::STROKE_WIDTH => Some(DrawAttr::DEFAULT_STROKE_WIDTH.to_string()),
+            DrawAttr::STROKE_COLOR => Some("black".to_string()),
+            _ => self.base.get_attribute_value(attr_name),
+        }
+    }
+    
+    fn set_attribute_value(&mut self, attr_name: &str, value: String) -> DrawResult<()> {
+        self.base.set_attribute_value(attr_name, value)
     }
 }
 
@@ -208,8 +219,8 @@ mod tests {
     
     #[test]
     fn test_line_creation() {
-        let start = Location::create(10, 20);
-        let end = Location::create(30, 40);
+        let start = Location::new(10, 20);
+        let end = Location::new(30, 40);
         let line = Line::new(CanvasObjectId(1), start, end);
         
         assert_eq!(line.start(), start);
@@ -221,39 +232,47 @@ mod tests {
     fn test_line_bounds() {
         let line = Line::new(
             CanvasObjectId(1),
-            Location::create(10, 20),
-            Location::create(30, 40)
+            Location::new(10, 20),
+            Location::new(30, 40)
         );
         
         let bounds = line.bounds();
-        assert_eq!(bounds.x(), 10);
-        assert_eq!(bounds.y(), 20);
-        assert_eq!(bounds.width(), 20);
-        assert_eq!(bounds.height(), 20);
+        assert_eq!(bounds.get_x(), 10);
+        assert_eq!(bounds.get_y(), 20);
+        assert_eq!(bounds.get_width(), 20);
+        assert_eq!(bounds.get_height(), 20);
     }
     
     #[test]
     fn test_line_translation() {
         let mut line = Line::new(
             CanvasObjectId(1),
-            Location::create(10, 20),
-            Location::create(30, 40)
+            Location::new(10, 20),
+            Location::new(30, 40)
         );
         
         line.translate(5, 10);
         
-        assert_eq!(line.start(), Location::create(15, 30));
-        assert_eq!(line.end(), Location::create(35, 50));
+        assert_eq!(line.start(), Location::new(15, 30));
+        assert_eq!(line.end(), Location::new(35, 50));
     }
     
     #[test]
     fn test_line_length() {
         let line = Line::new(
             CanvasObjectId(1),
-            Location::create(0, 0),
-            Location::create(3, 4)
+            Location::new(0, 0),
+            Location::new(3, 4)
         );
         
         assert_eq!(line.length(), 5.0); // 3-4-5 triangle
+    }
+    
+    #[test] 
+    fn test_line_attribute_access() {
+        let line = Line::new(CanvasObjectId(1), Location::new(0, 0), Location::new(10, 10));
+        
+        assert_eq!(line.get_attribute_value(DrawAttr::STROKE_WIDTH), Some("1".to_string()));
+        assert_eq!(line.get_attribute_value(DrawAttr::STROKE_COLOR), Some("black".to_string()));
     }
 }

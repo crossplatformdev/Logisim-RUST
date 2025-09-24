@@ -48,8 +48,8 @@ impl Handle {
     
     /// Check if this handle is at the specified location (within tolerance)
     pub fn is_at(&self, location: Location, tolerance: i32) -> bool {
-        let dx = (self.location.x() - location.x()).abs();
-        let dy = (self.location.y() - location.y()).abs();
+        let dx = (self.location.x - location.x).abs();
+        let dy = (self.location.y - location.y).abs();
         dx <= tolerance && dy <= tolerance
     }
 }
@@ -245,8 +245,8 @@ mod tests {
         let mut set = HandleSet::new();
         assert!(set.is_empty());
         
-        let handle1 = Handle::new(Location::create(10, 20));
-        let handle2 = Handle::new(Location::create(30, 40));
+        let handle1 = Handle::new(Location::new(10, 20));
+        let handle2 = Handle::new(Location::new(30, 40));
         
         set.add(handle1.clone());
         set.add(handle2.clone());
@@ -254,7 +254,7 @@ mod tests {
         assert_eq!(set.len(), 2);
         assert!(!set.is_empty());
         
-        let found = set.find_handle(Location::create(11, 21), 2);
+        let found = set.find_handle(Location::new(11, 21), 2);
         assert!(found.is_some());
         assert_eq!(found.unwrap(), &handle1);
         

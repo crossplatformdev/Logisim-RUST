@@ -7,9 +7,9 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 /// Manages the selection of canvas objects
-#[derive(Debug, Clone)]
 pub struct Selection {
-    selected: HashSet<Arc<dyn CanvasObject>>,
+    selected_ids: HashSet<u64>, // Store object IDs instead of object references
+    selected_objects: Vec<Arc<dyn CanvasObject>>, // Keep references for access
     listeners: Vec<Box<dyn SelectionListener>>,
 }
 
@@ -17,45 +17,46 @@ impl Selection {
     /// Create a new empty selection
     pub fn new() -> Self {
         Self {
-            selected: HashSet::new(),
+            selected_ids: HashSet::new(),
+            selected_objects: Vec::new(),
             listeners: Vec::new(),
         }
     }
     
     /// Check if the selection is empty
     pub fn is_empty(&self) -> bool {
-        self.selected.is_empty()
+        self.selected_ids.is_empty()
     }
     
     /// Get the number of selected objects
     pub fn size(&self) -> usize {
-        self.selected.len()
+        self.selected_ids.len()
     }
     
     /// Add an object to the selection
     pub fn add(&mut self, object: Arc<dyn CanvasObject>) {
-        if self.selected.insert(object.clone()) {
+        let id = object.matches_hash_code();
+        if self.selected_ids.insert(id) {
+            self.selected_objects.push(object.clone());
             self.fire_selection_changed(SelectionEvent::Added(object));
         }
     }
     
     /// Remove an object from the selection
     pub fn remove(&mut self, object: &dyn CanvasObject) {
-        // Find matching object by ID
-        let to_remove = self.selected
-            .iter()
-            .find(|obj| obj.matches(object))
-            .cloned();
-            
-        if let Some(obj) = to_remove {
-            self.selected.remove(&obj);
-            self.fire_selection_changed(SelectionEvent::Removed(obj));
+        let id = object.matches_hash_code();
+        if self.selected_ids.remove(&id) {
+            // Find and remove from the objects vec
+            if let Some(pos) = self.selected_objects.iter().position(|obj| obj.matches(object)) {
+                let removed = self.selected_objects.remove(pos);
+                self.fire_selection_changed(SelectionEvent::Removed(removed));
+            }
         }
     }
     
     /// Toggle an object in the selection
     pub fn toggle(&mut self, object: Arc<dyn CanvasObject>) {
-        if self.is_selected(&object) {
+        if self.is_selected(object.as_ref()) {
             self.remove(object.as_ref());
         } else {
             self.add(object);
@@ -64,16 +65,23 @@ impl Selection {
     
     /// Clear the entire selection
     pub fn clear(&mut self) {
-        if !self.selected.is_empty() {
-            let cleared = self.selected.drain().collect();
+        if !self.selected_ids.is_empty() {
+            let cleared = self.selected_objects.drain(..).collect();
+            self.selected_ids.clear();
             self.fire_selection_changed(SelectionEvent::Cleared(cleared));
         }
     }
     
     /// Set the selection to contain only the specified objects
     pub fn set(&mut self, objects: Vec<Arc<dyn CanvasObject>>) {
-        let old_selection = self.selected.drain().collect();
-        self.selected.extend(objects.clone());
+        let old_selection = self.selected_objects.drain(..).collect();
+        self.selected_ids.clear();
+        
+        for obj in &objects {
+            let id = obj.matches_hash_code();
+            self.selected_ids.insert(id);
+        }
+        self.selected_objects = objects.clone();
         
         self.fire_selection_changed(SelectionEvent::Changed {
             added: objects,
@@ -83,17 +91,18 @@ impl Selection {
     
     /// Check if an object is selected
     pub fn is_selected(&self, object: &dyn CanvasObject) -> bool {
-        self.selected.iter().any(|obj| obj.matches(object))
+        let id = object.matches_hash_code();
+        self.selected_ids.contains(&id)
     }
     
     /// Get all selected objects
     pub fn objects(&self) -> Vec<Arc<dyn CanvasObject>> {
-        self.selected.iter().cloned().collect()
+        self.selected_objects.clone()
     }
     
     /// Get the first selected object (if any)
     pub fn first(&self) -> Option<Arc<dyn CanvasObject>> {
-        self.selected.iter().next().cloned()
+        self.selected_objects.first().cloned()
     }
     
     /// Add a selection listener
@@ -109,9 +118,29 @@ impl Selection {
     }
 }
 
+impl std::fmt::Debug for Selection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Selection")
+            .field("selected_ids", &self.selected_ids)
+            .field("num_objects", &self.selected_objects.len())
+            .field("num_listeners", &self.listeners.len())
+            .finish()
+    }
+}
+
 impl Default for Selection {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Clone for Selection {
+    fn clone(&self) -> Self {
+        Self {
+            selected_ids: self.selected_ids.clone(),
+            selected_objects: self.selected_objects.clone(),
+            listeners: Vec::new(), // Don't clone listeners
+        }
     }
 }
 

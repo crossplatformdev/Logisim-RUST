@@ -16,7 +16,7 @@ pub mod overlaps;
 pub mod reorder;
 
 // Re-export key types
-pub use canvas_object::{CanvasObject, AbstractCanvasObject};
+pub use canvas_object::{CanvasObject, AbstractCanvasObject, AttributeAccess, DrawingContext, Color32, Stroke};
 pub use drawing::Drawing;
 pub use handle::{Handle, HandleGesture};
 pub use canvas_model::{CanvasModel, CanvasModelEvent, CanvasModelListener};
@@ -26,9 +26,18 @@ pub use canvas_model::{CanvasModel, CanvasModelEvent, CanvasModelListener};
 pub struct CanvasObjectId(pub u64);
 
 /// Key for attribute-based object identification
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AttributeMapKey {
     attributes: HashMap<String, String>,
+}
+
+impl std::hash::Hash for AttributeMapKey {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Hash all key-value pairs, order independent
+        let mut pairs: Vec<_> = self.attributes.iter().collect();
+        pairs.sort();
+        pairs.hash(state);
+    }
 }
 
 impl AttributeMapKey {

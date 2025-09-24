@@ -32,7 +32,7 @@ pub mod gui;
 pub mod util;
 
 // Re-export commonly used types
-pub use model::{CanvasObject, Drawing, Handle, HandleGesture};
+pub use model::{CanvasObject, Drawing, Handle, HandleGesture, Color32, Stroke, DrawingContext, AttributeAccess};
 pub use canvas::{Canvas, Selection};
 pub use shapes::DrawAttr;
 

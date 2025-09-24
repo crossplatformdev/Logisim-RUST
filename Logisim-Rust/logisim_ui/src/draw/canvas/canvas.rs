@@ -10,7 +10,6 @@ use super::{Selection, CanvasListener, CanvasTool};
 /// 
 /// The Canvas provides the main drawing surface and handles user interaction
 /// with canvas objects through tools and selection.
-#[derive(Debug)]
 pub struct Canvas {
     model: Box<dyn CanvasModel>,
     selection: Selection,
@@ -108,6 +107,17 @@ impl Canvas {
         let screen_x = ((canvas_x - self.offset_x) as f64 * self.zoom) as i32;
         let screen_y = ((canvas_y - self.offset_y) as f64 * self.zoom) as i32;
         (screen_x, screen_y)
+    }
+}
+
+impl std::fmt::Debug for Canvas {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Canvas")
+            .field("selection", &self.selection)
+            .field("zoom", &self.zoom)
+            .field("offset_x", &self.offset_x)
+            .field("offset_y", &self.offset_y)
+            .finish()
     }
 }
 

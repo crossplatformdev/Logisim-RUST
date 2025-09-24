@@ -52,7 +52,7 @@ pub use gui::edit_handler::EditHandler;
 pub use gui::selection::Selection;
 
 // Drawing framework exports
-pub use draw::{DrawError, DrawResult};
+pub use draw::{DrawError, DrawResult, Color32, Stroke, DrawingContext, AttributeAccess};
 pub use draw::model::{CanvasObject, Drawing, Handle, HandleGesture};
 pub use draw::canvas::{Canvas as DrawCanvas, Selection as DrawSelection};
 pub use draw::shapes::DrawAttr;

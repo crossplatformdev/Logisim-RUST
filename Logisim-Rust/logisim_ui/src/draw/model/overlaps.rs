@@ -115,10 +115,10 @@ impl DrawingOverlaps {
     fn get_cells_for_bounds(&self, bounds: Bounds) -> Vec<(i32, i32)> {
         let mut cells = Vec::new();
         
-        let start_x = bounds.x() / self.grid_size;
-        let start_y = bounds.y() / self.grid_size;
-        let end_x = (bounds.x() + bounds.width() + self.grid_size - 1) / self.grid_size;
-        let end_y = (bounds.y() + bounds.height() + self.grid_size - 1) / self.grid_size;
+        let start_x = bounds.get_x() / self.grid_size;
+        let start_y = bounds.get_y() / self.grid_size;
+        let end_x = (bounds.get_x() + bounds.get_width() + self.grid_size - 1) / self.grid_size;
+        let end_y = (bounds.get_y() + bounds.get_height() + self.grid_size - 1) / self.grid_size;
         
         for x in start_x..=end_x {
             for y in start_y..=end_y {
@@ -131,7 +131,7 @@ impl DrawingOverlaps {
     
     /// Get the grid cell for the given location
     fn get_cell_for_location(&self, location: Location) -> (i32, i32) {
-        (location.x() / self.grid_size, location.y() / self.grid_size)
+        (location.x / self.grid_size, location.y / self.grid_size)
     }
 }
 
@@ -143,10 +143,10 @@ impl Default for DrawingOverlaps {
 
 /// Check if two bounds overlap
 fn bounds_overlap(a: Bounds, b: Bounds) -> bool {
-    !(a.x() + a.width() <= b.x() || 
-      b.x() + b.width() <= a.x() || 
-      a.y() + a.height() <= b.y() || 
-      b.y() + b.height() <= a.y())
+    !(a.get_x() + a.get_width() <= b.get_x() || 
+      b.get_x() + b.get_width() <= a.get_x() || 
+      a.get_y() + a.get_height() <= b.get_y() || 
+      b.get_y() + b.get_height() <= a.get_y())
 }
 
 #[cfg(test)]
