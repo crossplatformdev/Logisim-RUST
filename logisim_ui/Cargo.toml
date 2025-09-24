@@ -1,0 +1,33 @@
+[package]
+name = "logisim_ui"
+version = "0.1.0"
+edition = "2021"
+description = "UI/GUI components for Logisim-RUST digital logic designer and simulator"
+license = "GPL-3.0-or-later"
+authors = ["Logisim-RUST Contributors"]
+
+[features]
+default = []  # No default features to ensure CI/CD compatibility
+gui = ["dep:egui", "dep:eframe"]
+
+[dependencies]
+logisim_core = { path = "../logisim_core" }
+serde = { workspace = true }
+thiserror = { workspace = true }
+# GUI framework - using egui for cross-platform compatibility (optional)
+egui = { version = "0.30", optional = true }
+eframe = { version = "0.30", default-features = false, features = [
+    "accesskit",     # Make egui comptaible with screen readers
+    "default_fonts", # Embed the default egui fonts
+    "glow",          # Use glow rendering backend
+    "persistence",   # Enable restoring app state when restarting the app
+], optional = true }
+# Additional dependencies for UI functionality
+indexmap = { version = "2.0", features = ["serde"] }
+
+[dev-dependencies]
+# Testing dependencies
+proptest = "1.0"
+
+[dependencies.env_logger]
+version = "0.10"
