@@ -11,11 +11,9 @@ pub struct MenuBar {
 impl MenuBar {
     /// Create a new menu bar
     pub fn new() -> Self {
-        Self {
-            show_about: false,
-        }
+        Self { show_about: false }
     }
-    
+
     /// Show the menu bar UI
     pub fn show(&mut self, ui: &mut Ui) {
         egui::menu::bar(ui, |ui| {
@@ -49,7 +47,7 @@ impl MenuBar {
                     ui.close_menu();
                 }
             });
-            
+
             // Edit menu
             ui.menu_button("Edit", |ui| {
                 if ui.button("Undo").clicked() {
@@ -83,7 +81,7 @@ impl MenuBar {
                     ui.close_menu();
                 }
             });
-            
+
             // Project menu
             ui.menu_button("Project", |ui| {
                 if ui.button("Add Circuit...").clicked() {
@@ -100,7 +98,7 @@ impl MenuBar {
                     ui.close_menu();
                 }
             });
-            
+
             // Simulate menu
             ui.menu_button("Simulate", |ui| {
                 if ui.button("Reset Simulation").clicked() {
@@ -125,7 +123,7 @@ impl MenuBar {
                     ui.close_menu();
                 }
             });
-            
+
             // Window menu
             ui.menu_button("Window", |ui| {
                 if ui.button("Minimize").clicked() {
@@ -145,7 +143,7 @@ impl MenuBar {
                     ui.close_menu();
                 }
             });
-            
+
             // Help menu
             ui.menu_button("Help", |ui| {
                 if ui.button("User's Guide").clicked() {
@@ -163,13 +161,13 @@ impl MenuBar {
                 }
             });
         });
-        
+
         // Show about dialog if requested
         if self.show_about {
             self.show_about_dialog(ui.ctx());
         }
     }
-    
+
     /// Show the about dialog
     fn show_about_dialog(&mut self, ctx: &egui::Context) {
         egui::Window::new("About Logisim-RUST")

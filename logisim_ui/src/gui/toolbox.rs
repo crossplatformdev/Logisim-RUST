@@ -1,6 +1,6 @@
 //! Toolbox implementation - equivalent to the Java Toolbox class
 
-use eframe::egui::{self, Ui, CollapsibleHeader};
+use eframe::egui::{self, CollapsibleHeader, Ui};
 
 /// Component toolbox for selecting tools and components
 pub struct Toolbox {
@@ -67,11 +67,11 @@ impl Toolbox {
             selected_tool: ToolType::Edit,
         }
     }
-    
+
     /// Show the toolbox UI
     pub fn show(&mut self, ui: &mut Ui) {
         ui.heading("Toolbox");
-        
+
         // Basic tools
         CollapsibleHeader::new("Tools")
             .default_open(true)
@@ -80,7 +80,7 @@ impl Toolbox {
                 self.tool_button(ui, ToolType::Wire, "─", "Wire");
                 self.tool_button(ui, ToolType::Text, "T", "Text");
             });
-        
+
         // I/O components
         CollapsibleHeader::new("Input/Output")
             .default_open(true)
@@ -90,7 +90,7 @@ impl Toolbox {
                 self.tool_button(ui, ToolType::Clock, "⏱", "Clock");
                 self.tool_button(ui, ToolType::Constant, "1", "Constant");
             });
-        
+
         // Logic gates
         CollapsibleHeader::new("Gates")
             .default_open(true)
@@ -103,7 +103,7 @@ impl Toolbox {
                 self.tool_button(ui, ToolType::NorGate, "≥̄1", "NOR Gate");
                 self.tool_button(ui, ToolType::Buffer, "▷", "Buffer");
             });
-        
+
         // Plexers
         CollapsibleHeader::new("Plexers")
             .default_open(false)
@@ -112,7 +112,7 @@ impl Toolbox {
                 self.tool_button(ui, ToolType::Multiplexer, "MUX", "Multiplexer");
                 self.tool_button(ui, ToolType::Demultiplexer, "DEMUX", "Demultiplexer");
             });
-        
+
         // Memory
         CollapsibleHeader::new("Memory")
             .default_open(false)
@@ -122,7 +122,7 @@ impl Toolbox {
                 self.tool_button(ui, ToolType::Register, "REG", "Register");
                 self.tool_button(ui, ToolType::Counter, "CTR", "Counter");
             });
-        
+
         // Flip-flops and latches
         CollapsibleHeader::new("Flip-Flops")
             .default_open(false)
@@ -132,27 +132,27 @@ impl Toolbox {
                 self.tool_button(ui, ToolType::SrLatch, "SR", "SR Latch");
             });
     }
-    
+
     /// Create a tool selection button
     fn tool_button(&mut self, ui: &mut Ui, tool: ToolType, icon: &str, tooltip: &str) {
         let selected = self.selected_tool == tool;
-        
+
         let response = ui.selectable_label(selected, format!("{} {}", icon, tooltip));
-        
+
         if response.clicked() {
             self.selected_tool = tool;
         }
-        
+
         if response.hovered() {
             response.on_hover_text(tooltip);
         }
     }
-    
+
     /// Get the currently selected tool
     pub fn selected_tool(&self) -> ToolType {
         self.selected_tool
     }
-    
+
     /// Set the selected tool
     pub fn set_selected_tool(&mut self, tool: ToolType) {
         self.selected_tool = tool;

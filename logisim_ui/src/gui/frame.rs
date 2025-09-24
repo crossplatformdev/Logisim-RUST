@@ -1,46 +1,43 @@
 //! Main application frame - equivalent to the Java Frame class
 
 #[cfg(feature = "gui")]
-use eframe::egui::{self, Context, SidePanel, CentralPanel, TopBottomPanel, ScrollArea};
+use eframe::egui::{self, CentralPanel, Context, ScrollArea, SidePanel, TopBottomPanel};
 use logisim_core::Simulation;
 
-#[cfg(feature = "gui")] 
-use super::{
-    canvas::Canvas,
-    toolbox::Toolbox,
-    menu::MenuBar,
-    project_explorer::ProjectExplorer,
-};
+#[cfg(feature = "gui")]
+use super::{canvas::Canvas, menu::MenuBar, project_explorer::ProjectExplorer, toolbox::Toolbox};
 
 /// Main application frame containing all UI components
 pub struct MainFrame {
     /// The main canvas for schematic editing
     #[cfg(feature = "gui")]
     canvas: Canvas,
-    
+
     /// Component toolbox
     #[cfg(feature = "gui")]
     toolbox: Toolbox,
-    
+
     /// Main menu bar
     #[cfg(feature = "gui")]
     menu_bar: MenuBar,
-    
+
     /// Project explorer showing circuit hierarchy
     #[cfg(feature = "gui")]
     project_explorer: ProjectExplorer,
-    
+
     /// Current simulation instance
     simulation: Option<Simulation>,
-    
+
     /// Selected tab in the left panel (toolbox vs explorer)
     #[cfg(feature = "gui")]
     left_tab_selected: LeftTab,
-    
+
     /// Zoom level
+    #[allow(dead_code)] // Used only with GUI feature
     zoom_level: f32,
-    
+
     /// Grid visibility
+    #[allow(dead_code)] // Used only with GUI feature
     show_grid: bool,
 }
 
@@ -70,7 +67,7 @@ impl MainFrame {
             show_grid: true,
         }
     }
-    
+
     /// Set the current simulation
     pub fn set_simulation(&mut self, simulation: Simulation) {
         #[cfg(feature = "gui")]
@@ -80,7 +77,7 @@ impl MainFrame {
         }
         self.simulation = Some(simulation);
     }
-    
+
     /// Update the main frame UI
     #[cfg(feature = "gui")]
     pub fn update(&mut self, ctx: &Context) {
@@ -88,7 +85,7 @@ impl MainFrame {
         TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             self.menu_bar.show(ui);
         });
-        
+
         // Left side panel with toolbox and explorer
         SidePanel::left("left_panel")
             .default_width(250.0)
@@ -97,7 +94,7 @@ impl MainFrame {
             .show(ctx, |ui| {
                 self.show_left_panel(ui);
             });
-        
+
         // Bottom panel for attributes and zoom controls
         TopBottomPanel::bottom("bottom_panel")
             .default_height(150.0)
@@ -106,13 +103,13 @@ impl MainFrame {
             .show(ctx, |ui| {
                 self.show_bottom_panel(ui);
             });
-        
+
         // Central canvas area
         CentralPanel::default().show(ctx, |ui| {
             self.canvas.show(ui, self.zoom_level, self.show_grid);
         });
     }
-    
+
     /// Show the left panel with tabs for toolbox and explorer
     #[cfg(feature = "gui")]
     fn show_left_panel(&mut self, ui: &mut egui::Ui) {
@@ -120,21 +117,19 @@ impl MainFrame {
             ui.selectable_value(&mut self.left_tab_selected, LeftTab::Toolbox, "Toolbox");
             ui.selectable_value(&mut self.left_tab_selected, LeftTab::Explorer, "Explorer");
         });
-        
+
         ui.separator();
-        
-        ScrollArea::vertical().show(ui, |ui| {
-            match self.left_tab_selected {
-                LeftTab::Toolbox => {
-                    self.toolbox.show(ui);
-                }
-                LeftTab::Explorer => {
-                    self.project_explorer.show(ui);
-                }
+
+        ScrollArea::vertical().show(ui, |ui| match self.left_tab_selected {
+            LeftTab::Toolbox => {
+                self.toolbox.show(ui);
+            }
+            LeftTab::Explorer => {
+                self.project_explorer.show(ui);
             }
         });
     }
-    
+
     /// Show the bottom panel with attributes and controls
     #[cfg(feature = "gui")]
     fn show_bottom_panel(&mut self, ui: &mut egui::Ui) {
@@ -148,14 +143,14 @@ impl MainFrame {
             if ui.button("+").clicked() {
                 self.zoom_level = (self.zoom_level * 1.2).min(4.0);
             }
-            
+
             ui.separator();
-            
+
             // Grid toggle
             ui.checkbox(&mut self.show_grid, "Show Grid");
-            
+
             ui.separator();
-            
+
             // Simulation controls
             if let Some(_simulation) = &self.simulation {
                 if ui.button("Reset").clicked() {
@@ -169,9 +164,9 @@ impl MainFrame {
                 }
             }
         });
-        
+
         ui.separator();
-        
+
         // Attributes table area
         ScrollArea::vertical().show(ui, |ui| {
             ui.label("Component Attributes");
@@ -179,7 +174,7 @@ impl MainFrame {
             ui.label("No component selected");
         });
     }
-    
+
     /// Get current simulation (for headless access)
     pub fn simulation(&self) -> Option<&Simulation> {
         self.simulation.as_ref()

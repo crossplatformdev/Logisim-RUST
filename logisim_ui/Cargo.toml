@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 authors = ["Logisim-RUST Contributors"]
 
 [features]
-default = ["gui"]
+default = []  # No default features to ensure CI/CD compatibility
 gui = ["dep:egui", "dep:eframe"]
 
 [dependencies]
@@ -31,12 +31,3 @@ proptest = "1.0"
 
 [dependencies.env_logger]
 version = "0.10"
-
-[[bin]]
-name = "logisim"
-path = "src/bin/logisim.rs"
-required-features = ["gui"]
-
-[[bin]]
-name = "demo"
-path = "src/bin/demo.rs"

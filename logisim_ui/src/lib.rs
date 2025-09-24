@@ -43,24 +43,24 @@ pub use gui::canvas::Canvas;
 pub use gui::toolbox::Toolbox;
 
 // Always export these (not GUI dependent)
-pub use gui::selection::Selection;
 pub use gui::edit_handler::EditHandler;
+pub use gui::selection::Selection;
 
 /// UI-specific error types
 #[derive(Debug, thiserror::Error)]
 pub enum UiError {
     #[error("Failed to initialize GUI framework: {0}")]
     GuiInitError(String),
-    
+
     #[error("Canvas rendering error: {0}")]
     RenderError(String),
-    
+
     #[error("Component placement error: {0}")]
     PlacementError(String),
-    
+
     #[error("File operation error: {0}")]
     FileError(String),
-    
+
     #[error("Core simulation error: {0}")]
     CoreError(#[from] logisim_core::simulation::SimulationError),
 }
