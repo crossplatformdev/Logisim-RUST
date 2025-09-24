@@ -53,6 +53,7 @@ pub mod circ_parser;
 pub mod circ_serializer;
 pub mod component;
 pub mod components;
+pub mod contracts;
 pub mod data;
 pub mod event;
 pub mod file;
@@ -68,6 +69,12 @@ pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
 pub use component::{Component, ComponentId, Pin};
+pub use contracts::{
+    BaseComponentListenerContract, BaseDocumentListenerContract, BaseKeyListenerContract,
+    BaseLayoutManagerContract, BaseListDataListenerContract, BaseMouseInputListenerContract,
+    BaseMouseListenerContract, BaseMouseMotionListenerContract, BaseWindowFocusListenerContract,
+    BaseWindowListenerContract, ComponentEvent, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
+};
 pub use data::{
     Attribute, AttributeSet, AttributeValue, BitWidth, Bounds, Direction, Location, StdAttr,
 };
