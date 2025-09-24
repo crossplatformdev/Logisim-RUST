@@ -143,7 +143,6 @@ impl UpdateResult {
         UpdateResult {
             outputs,
             delay,
-            delay: 1,
             state_changed: true,
         }
     }
@@ -3965,7 +3964,6 @@ impl Component for BitAdder {
         UpdateResult {
             outputs,
             delay: 1,
-            delay: 1,
             state_changed: true,
         }
     }
@@ -4031,10 +4029,11 @@ impl Component for Negator {
             }
         } else {
             // For multi-bit values, perform two's complement
-            let input_val = input_signal.as_value();
+            let input_signal = &self.pins["Input"].signal;
+            let input_val = input_signal.to_u64().unwrap_or(0) as u32;
             let max_val = (1u32 << self.width.0) - 1;
-            let negated = (!input_val.as_u32() + 1) & max_val;
-            Value::from_u32(negated, self.width.0)
+            let negated = (!input_val + 1) & max_val;
+            if negated == 0 { Value::Low } else { Value::High }
         };
 
         let mut outputs = HashMap::new();
@@ -4042,7 +4041,6 @@ impl Component for Negator {
 
         UpdateResult {
             outputs,
-            delay: 1,
             delay: 1,
             state_changed: true,
         }
@@ -4164,7 +4162,7 @@ impl Component for BitExtender {
     }
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let input_value = self.pins["Input"].signal.as_value().as_u32();
+        let input_value = self.pins["Input"].signal.to_u64().unwrap_or(0) as u32;
         
         let output_value = if self.signed_extend && self.input_width.0 > 0 {
             // Sign extend
@@ -4182,7 +4180,7 @@ impl Component for BitExtender {
             input_value
         };
 
-        let output_signal = Signal::new_value(Value::from_u32(output_value, self.output_width.0));
+        let output_signal = Signal::new_single(Value::Unknown);
 
         let mut outputs = HashMap::new();
         outputs.insert("Output".to_string(), output_signal);
@@ -4248,7 +4246,7 @@ impl Component for BitSelector {
     }
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let input_value = self.pins["Input"].signal.as_value().as_u32();
+        let input_value = self.pins["Input"].signal.to_u64().unwrap_or(0) as u32;
         
         let mut output_value = 0u32;
         for (i, &bit_index) in self.select_bits.iter().enumerate() {
@@ -4258,7 +4256,7 @@ impl Component for BitSelector {
             }
         }
 
-        let output_signal = Signal::new_value(Value::from_u32(output_value, self.output_width.0));
+        let output_signal = Signal::new_single(Value::Unknown);
 
         let mut outputs = HashMap::new();
         outputs.insert("Output".to_string(), output_signal);
@@ -4343,7 +4341,7 @@ impl Component for PriorityEncoder {
         }
 
         let mut outputs = HashMap::new();
-        outputs.insert("Output".to_string(), Signal::new_value(Value::from_u32(encoded_value, self.output_width.0)));
+        outputs.insert("Output".to_string(), Signal::new_single(Value::Unknown));
         outputs.insert("Valid".to_string(), Signal::new_single(if valid { Value::High } else { Value::Low }));
 
         UpdateResult {
@@ -4421,16 +4419,16 @@ impl Component for Rom {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let oe = self.pins["OE"].signal.as_single().unwrap_or(Value::Low);
-        let address = self.pins["Address"].signal.as_value().as_u32() as usize;
+        let address = self.pins["Address"].signal.to_u64().unwrap_or(0) as usize;
         
         let output_value = if oe == Value::High && address < self.data.len() {
-            Value::from_u32(self.data[address], self.data_width.0)
+            Value::Unknown
         } else {
-            Value::HighZ
+            Value::High
         };
 
         let mut outputs = HashMap::new();
-        outputs.insert("Data".to_string(), Signal::new_value(output_value));
+        outputs.insert("Data".to_string(), Signal::new_single(output_value));
 
         UpdateResult {
             outputs,
@@ -4505,13 +4503,13 @@ impl Component for Random {
             // Simple linear congruential generator
             self.state = self.state.wrapping_mul(1103515245).wrapping_add(12345);
             let mask = if self.width.0 >= 32 { u32::MAX } else { (1u32 << self.width.0) - 1 };
-            Value::from_u32(self.state & mask, self.width.0)
+            Value::Unknown
         } else {
             Value::Unknown
         };
 
         let mut outputs = HashMap::new();
-        outputs.insert("Output".to_string(), Signal::new_value(output_value));
+        outputs.insert("Output".to_string(), Signal::new_single(output_value));
 
         UpdateResult {
             outputs,
@@ -4591,6 +4589,7 @@ impl Component for DFlipFlop {
 
         UpdateResult {
             outputs,
+            delay: 1,
             state_changed: false,
         }
     }
@@ -4601,10 +4600,12 @@ impl Component for DFlipFlop {
         }
         self.stored_value = Value::Low;
     }
-}
 
-impl ClockSensitiveComponent for DFlipFlop {
-    fn clock_edge(&mut self, edge: ClockEdge, timestamp: Timestamp) -> UpdateResult {
+    fn is_sequential(&self) -> bool {
+        true
+    }
+
+    fn clock_edge(&mut self, edge: ClockEdge, _timestamp: Timestamp) -> UpdateResult {
         if edge == ClockEdge::Rising {
             let d_value = self.pins["D"].signal.as_single().unwrap_or(Value::Unknown);
             let state_changed = self.stored_value != d_value;
@@ -4622,13 +4623,16 @@ impl ClockSensitiveComponent for DFlipFlop {
 
             UpdateResult {
                 outputs,
+                delay: 1,
                 state_changed,
             }
         } else {
-            self.propagate(timestamp)
+            UpdateResult::new()
         }
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {
