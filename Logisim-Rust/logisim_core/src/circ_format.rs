@@ -752,7 +752,7 @@ impl CircIntegration {
         circuit: &CircuitDefinition,
         _all_circuits: &HashMap<String, CircuitDefinition>,
     ) -> CircResult<()> {
-        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel};
+        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel, Splitter, Led, Multiplexer, Demultiplexer};
         use crate::signal::{BusWidth, Value};
 
         // Create a mapping from locations to node IDs for wire connections
@@ -824,6 +824,41 @@ impl CircIntegration {
                         .map(BusWidth)
                         .unwrap_or(BusWidth(1));
                     Box::new(Tunnel::new(component_id, label, width))
+                }
+                "Splitter" => {
+                    let fanout = comp_instance.attributes.get("fanout")
+                        .and_then(|f| f.parse::<u32>().ok())
+                        .unwrap_or(2);
+                    let incoming = comp_instance.attributes.get("incoming")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(2));
+                    Box::new(Splitter::new(component_id, fanout, incoming))
+                }
+                "LED" => {
+                    Box::new(Led::new(component_id))
+                }
+                "Multiplexer" => {
+                    let select = comp_instance.attributes.get("select")
+                        .and_then(|s| s.parse::<u32>().ok())
+                        .unwrap_or(1);
+                    let inputs = 2u32.pow(select);
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(1));
+                    Box::new(Multiplexer::new(component_id, inputs, width))
+                }
+                "Demultiplexer" => {
+                    let select = comp_instance.attributes.get("select")
+                        .and_then(|s| s.parse::<u32>().ok())
+                        .unwrap_or(1);
+                    let outputs = 2u32.pow(select);
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(1));
+                    Box::new(Demultiplexer::new(component_id, outputs, width))
                 }
                 "ROM" => {
                     // Create a ROM component (simplified for now)
