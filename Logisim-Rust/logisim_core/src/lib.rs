@@ -52,6 +52,7 @@ pub mod circ_format;
 pub mod circ_parser;
 pub mod circ_serializer;
 pub mod component;
+pub mod contracts;
 pub mod components;
 pub mod data;
 pub mod event;
@@ -69,6 +70,11 @@ pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
 pub use component::{Component, ComponentId, Pin};
+pub use contracts::{
+    BaseComponentListenerContract, BaseDocumentListenerContract, BaseKeyListenerContract,
+    BaseLayoutManagerContract, BaseListDataListenerContract, BaseMouseInputListenerContract,
+    BaseMouseListenerContract, BaseMouseMotionListenerContract, BaseWindowFocusListenerContract,
+    BaseWindowListenerContract, ComponentEvent, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
 pub use components::gray::*;
 pub use std::{base::*, gates::*};
 pub use data::{
@@ -81,6 +87,7 @@ pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
+pub use std::wiring::WiringLibrary;
 pub use util::{
     Cache, CollectionUtil, FileUtil, LocaleManager, StringCache, StringGetter, StringUtil,
 };
