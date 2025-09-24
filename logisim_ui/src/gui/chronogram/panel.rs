@@ -60,9 +60,14 @@ impl ChronogramPanel {
         self.recording = true;
         self.model.clear();
         
-        // TODO: Extract signals from simulation and add to model
-        // This would typically involve examining the netlist and creating SignalInfo objects
-        self.setup_default_signals(simulation);
+        // Setup signals from simulation netlist
+        self.setup_signals_from_simulation(simulation);
+        
+        // Register callback for signal changes (we can't actually do this due to borrowing issues,
+        // but we'll simulate the updates in update_from_simulation)
+        // simulation.add_signal_callback(Box::new(move |node_id, time, signal| {
+        //     // This would require self to be accessible, which creates borrowing issues
+        // }));
     }
     
     /// Stop recording simulation data
@@ -368,16 +373,54 @@ impl ChronogramPanel {
         self.model.add_signal(sysclk_info);
     }
     
-    /// Record current simulation state (placeholder implementation)
-    fn record_simulation_state(&mut self, _simulation: &Simulation, _time: Timestamp) {
-        // TODO: This should extract the current values of all tracked signals
-        // from the simulation and record them in the model
+    /// Setup signals from simulation netlist
+    fn setup_signals_from_simulation(&mut self, simulation: &Simulation) {
+        let node_ids = simulation.get_all_node_ids();
         
-        // Placeholder: record a fake clock signal
-        use logisim_core::{netlist::NodeId, signal::{Signal, Value, BusWidth}};
+        for (index, node_id) in node_ids.iter().enumerate() {
+            // Create a signal info for each node
+            // In a real implementation, we'd want to get the actual name and width
+            // from the netlist, but for now we'll generate placeholder names
+            let name = if index == 0 {
+                "sysclk".to_string() // Required system clock
+            } else {
+                format!("node_{}", node_id.as_u64())
+            };
+            
+            let width = BusWidth(1); // Default to single bit for now
+            
+            let info = SignalInfo::new(*node_id, name, width, index);
+            self.model.add_signal(info);
+        }
         
-        let clock_signal = Signal::new_single(Value::High);
-        self.model.record_signal_change(NodeId(0), _time, clock_signal);
+        // If no nodes exist, add a default system clock
+        if node_ids.is_empty() {
+            self.setup_default_signals(simulation);
+        }
+    }
+    
+    /// Record current simulation state (enhanced implementation)
+    fn record_simulation_state(&mut self, simulation: &Simulation, time: Timestamp) {
+        // Extract current values of all tracked signals from the simulation
+        for signal_info in self.model.signals() {
+            if let Some(current_signal) = simulation.get_node_signal(signal_info.id) {
+                self.model.record_signal_change(signal_info.id, time, current_signal);
+            }
+        }
+        
+        // If no real signals, add a placeholder clock signal for demo purposes
+        if self.model.signal_count() == 1 && self.model.signals()[0].name == "sysclk" {
+            use logisim_core::{netlist::NodeId, signal::{Signal, Value}};
+            
+            // Generate a simple clock signal
+            let clock_value = if (time.as_u64() / 10) % 2 == 0 {
+                Value::Low
+            } else {
+                Value::High
+            };
+            let clock_signal = Signal::new_single(clock_value);
+            self.model.record_signal_change(NodeId(0), time, clock_signal);
+        }
     }
     
     /// Get the chronogram model (read-only access)

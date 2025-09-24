@@ -421,6 +421,16 @@ impl Netlist {
             connection_count: self.connections.len(),
         }
     }
+
+    /// Get all node IDs (for chronogram signal selection)
+    pub fn get_all_node_ids(&self) -> Vec<NodeId> {
+        self.nodes.keys().copied().collect()
+    }
+
+    /// Get the current signal value for a node
+    pub fn get_signal(&self, node_id: NodeId) -> Option<&Signal> {
+        self.nodes.get(&node_id).map(|node| &node.signal)
+    }
 }
 
 impl Default for Netlist {
