@@ -11,7 +11,6 @@ use std::collections::HashMap;
 /// HDL content attribute value
 /// 
 /// Wrapper for HDL content that implements AttributeValue.
-#[derive(Debug, Clone)]
 pub struct HdlContentValue {
     content: Box<dyn HdlModel>,
 }

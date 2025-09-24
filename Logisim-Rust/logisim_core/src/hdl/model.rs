@@ -24,11 +24,13 @@ pub struct PortDescription {
 impl PortDescription {
     /// Create a new port description
     pub fn new(name: String, port_type: String, width: i32) -> Self {
+        let bit_width = BitWidth::create(if width > 0 { width as u32 } else { 1 })
+            .unwrap_or_else(|_| BitWidth::create(1).unwrap());
         Self {
             name,
             port_type,
             width_int: width,
-            width: BitWidth::create(if width > 0 { width as u32 } else { 1 }),
+            width: bit_width,
         }
     }
 
@@ -108,7 +110,6 @@ pub trait HdlModel: Send + Sync {
 /// Basic HDL model implementation
 /// 
 /// Provides a simple implementation of the HdlModel trait
-#[derive(Debug, Clone)]
 pub struct BasicHdlModel {
     name: String,
     content: String,

@@ -10,7 +10,6 @@ use std::collections::HashMap;
 /// 
 /// Equivalent to Java HdlContent abstract class.
 /// Base class for attribute content that contains a simulatable HDL string.
-#[derive(Debug, Clone)]
 pub struct HdlContent {
     name: String,
     content: String,
@@ -194,7 +193,6 @@ pub trait HdlContentEditor {
 }
 
 /// Basic HDL content editor implementation
-#[derive(Debug)]
 pub struct BasicHdlContentEditor {
     text: String,
     original_text: String,
