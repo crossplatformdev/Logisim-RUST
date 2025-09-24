@@ -14,6 +14,7 @@
 //! which provides the infrastructure.
 
 pub mod base;
+pub mod gray;
 
 // Re-export commonly used components when implemented
 // pub use base::*;
