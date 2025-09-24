@@ -43,25 +43,25 @@ use crate::simulation::Simulation;
 pub enum CircFormatError {
     #[error("XML parsing error: {0}")]
     XmlError(#[from] roxmltree::Error),
-    
+
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
-    
+
     #[error("Invalid circuit format: {0}")]
     InvalidFormat(String),
-    
+
     #[error("Unsupported component: {0}")]
     UnsupportedComponent(String),
-    
+
     #[error("Missing required attribute: {0}")]
     MissingAttribute(String),
-    
+
     #[error("Invalid attribute value: {0}")]
     InvalidAttributeValue(String),
-    
+
     #[error("Component connection error: {0}")]
     ConnectionError(String),
-    
+
     #[error("ROM parsing error: {0}")]
     RomParsingError(String),
 }
@@ -240,7 +240,7 @@ impl RomContents {
                                     hex_val
                                 ))
                             })?;
-                            
+
                             // Add the value repeat_count times
                             for _ in 0..repeat_count {
                                 data.push(value);
@@ -254,7 +254,10 @@ impl RomContents {
                     } else {
                         // Regular hex value
                         let value = u64::from_str_radix(hex_val, 16).map_err(|_| {
-                            CircFormatError::RomParsingError(format!("Invalid hex value: {}", hex_val))
+                            CircFormatError::RomParsingError(format!(
+                                "Invalid hex value: {}",
+                                hex_val
+                            ))
                         })?;
                         data.push(value);
                     }
@@ -270,9 +273,9 @@ impl RomContents {
     }
 
     /// Serialize ROM contents to Logisim format string
-    pub fn to_string(&self) -> String {
+    pub fn to_logisim_format(&self) -> String {
         let mut result = format!("addr/data: {} {}\n", self.addr_width, self.data_width);
-        
+
         // Write data in lines of 8 values each (typical Logisim format)
         const VALUES_PER_LINE: usize = 8;
         for chunk in self.data.chunks(VALUES_PER_LINE) {
@@ -280,8 +283,14 @@ impl RomContents {
             result.push_str(&hex_values.join(" "));
             result.push('\n');
         }
-        
+
         result
+    }
+}
+
+impl std::fmt::Display for RomContents {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_logisim_format())
     }
 }
 
@@ -309,14 +318,8 @@ impl CircParser {
             ));
         }
 
-        let source_version = root
-            .attribute("source")
-            .unwrap_or("unknown")
-            .to_string();
-        let version = root
-            .attribute("version")
-            .unwrap_or("1.0")
-            .to_string();
+        let source_version = root.attribute("source").unwrap_or("unknown").to_string();
+        let version = root.attribute("version").unwrap_or("1.0").to_string();
 
         // Parse libraries
         let mut libraries = Vec::new();
@@ -359,17 +362,14 @@ impl CircParser {
     }
 
     fn parse_library(lib_node: roxmltree::Node) -> CircResult<LibraryConfig> {
-        let name = lib_node
-            .attribute("name")
-            .unwrap_or("unknown")
-            .to_string();
-        let description = lib_node
-            .attribute("desc")
-            .unwrap_or("")
-            .to_string();
+        let name = lib_node.attribute("name").unwrap_or("unknown").to_string();
+        let description = lib_node.attribute("desc").unwrap_or("").to_string();
 
         let mut tools = Vec::new();
-        for tool_node in lib_node.children().filter(|n| n.tag_name().name() == "tool") {
+        for tool_node in lib_node
+            .children()
+            .filter(|n| n.tag_name().name() == "tool")
+        {
             tools.push(Self::parse_tool(tool_node)?);
         }
 
@@ -381,17 +381,13 @@ impl CircParser {
     }
 
     fn parse_tool(tool_node: roxmltree::Node) -> CircResult<ToolConfig> {
-        let name = tool_node
-            .attribute("name")
-            .unwrap_or("unknown")
-            .to_string();
+        let name = tool_node.attribute("name").unwrap_or("unknown").to_string();
 
         let mut attributes = HashMap::new();
         for attr_node in tool_node.children().filter(|n| n.tag_name().name() == "a") {
-            if let (Some(attr_name), Some(attr_value)) = (
-                attr_node.attribute("name"),
-                attr_node.attribute("val")
-            ) {
+            if let (Some(attr_name), Some(attr_value)) =
+                (attr_node.attribute("name"), attr_node.attribute("val"))
+            {
                 attributes.insert(attr_name.to_string(), attr_value.to_string());
             }
         }
@@ -407,24 +403,32 @@ impl CircParser {
 
         // Parse circuit attributes
         let mut attributes = HashMap::new();
-        for attr_node in circuit_node.children().filter(|n| n.tag_name().name() == "a") {
-            if let (Some(attr_name), Some(attr_value)) = (
-                attr_node.attribute("name"),
-                attr_node.attribute("val")
-            ) {
+        for attr_node in circuit_node
+            .children()
+            .filter(|n| n.tag_name().name() == "a")
+        {
+            if let (Some(attr_name), Some(attr_value)) =
+                (attr_node.attribute("name"), attr_node.attribute("val"))
+            {
                 attributes.insert(attr_name.to_string(), attr_value.to_string());
             }
         }
 
         // Parse components
         let mut components = Vec::new();
-        for comp_node in circuit_node.children().filter(|n| n.tag_name().name() == "comp") {
+        for comp_node in circuit_node
+            .children()
+            .filter(|n| n.tag_name().name() == "comp")
+        {
             components.push(Self::parse_component(comp_node)?);
         }
 
         // Parse wires
         let mut wires = Vec::new();
-        for wire_node in circuit_node.children().filter(|n| n.tag_name().name() == "wire") {
+        for wire_node in circuit_node
+            .children()
+            .filter(|n| n.tag_name().name() == "wire")
+        {
             wires.push(Self::parse_wire(wire_node)?);
         }
 
@@ -462,10 +466,9 @@ impl CircParser {
         // Parse component attributes
         let mut attributes = HashMap::new();
         for attr_node in comp_node.children().filter(|n| n.tag_name().name() == "a") {
-            if let (Some(attr_name), Some(attr_value)) = (
-                attr_node.attribute("name"),
-                attr_node.attribute("val")
-            ) {
+            if let (Some(attr_name), Some(attr_value)) =
+                (attr_node.attribute("name"), attr_node.attribute("val"))
+            {
                 attributes.insert(attr_name.to_string(), attr_value.to_string());
             }
         }
@@ -529,10 +532,7 @@ impl CircParser {
     }
 
     fn parse_vhdl(vhdl_node: roxmltree::Node) -> CircResult<VhdlContent> {
-        let name = vhdl_node
-            .attribute("name")
-            .unwrap_or("unnamed")
-            .to_string();
+        let name = vhdl_node.attribute("name").unwrap_or("unnamed").to_string();
         let content = vhdl_node.text().unwrap_or("").to_string();
 
         Ok(VhdlContent { name, content })
@@ -704,7 +704,10 @@ impl CircWriter {
     }
 
     fn write_vhdl(xml: &mut String, vhdl: &VhdlContent) {
-        xml.push_str(&format!("  <vhdl name=\"{}\">{}</vhdl>\n", vhdl.name, vhdl.content));
+        xml.push_str(&format!(
+            "  <vhdl name=\"{}\">{}</vhdl>\n",
+            vhdl.name, vhdl.content
+        ));
     }
 }
 
@@ -781,36 +784,36 @@ impl CircIntegration {
 
             // Create nodes for component pins (simplified approach)
             let comp_location = comp_instance.location;
-            
+
             // Create nodes for standard pin locations relative to component
             // This is a simplified mapping - real Logisim has complex pin layouts
             let pin_offsets = match comp_instance.name.as_str() {
                 "AND Gate" => vec![(-30, 0), (-30, 10), (30, 0)], // A, B, Y
-                _ => vec![(0, 0)], // Default single node
+                _ => vec![(0, 0)],                                // Default single node
             };
 
-            for (_i, (dx, dy)) in pin_offsets.into_iter().enumerate() {
+            for (dx, dy) in pin_offsets.into_iter() {
                 let pin_location = (comp_location.0 + dx, comp_location.1 + dy);
-                if !location_to_node.contains_key(&pin_location) {
+                location_to_node.entry(pin_location).or_insert_with(|| {
                     let node = sim.netlist_mut().create_named_node(
                         BusWidth(1),
                         format!("node_{}_{}", pin_location.0, pin_location.1),
                     );
-                    location_to_node.insert(pin_location, node);
-                }
+                    node
+                });
             }
         }
 
         // Second pass: Create nodes for wire endpoints
         for wire in &circuit.wires {
             for &location in &[wire.from, wire.to] {
-                if !location_to_node.contains_key(&location) {
+                location_to_node.entry(location).or_insert_with(|| {
                     let node = sim.netlist_mut().create_named_node(
                         BusWidth(1),
                         format!("wire_{}_{}", location.0, location.1),
                     );
-                    location_to_node.insert(location, node);
-                }
+                    node
+                });
             }
         }
 
@@ -823,7 +826,9 @@ impl CircIntegration {
             // Connect to nearby nodes (simplified logic)
             if let Some(&node) = location_to_node.get(&comp_location) {
                 // This is oversimplified - real pin mapping would be component-specific
-                let _ = sim.netlist_mut().connect(component_id, "A".to_string(), node);
+                let _ = sim
+                    .netlist_mut()
+                    .connect(component_id, "A".to_string(), node);
             }
         }
 
@@ -835,7 +840,7 @@ impl CircIntegration {
         // This would extract the current simulation state back to .circ format
         // Simplified implementation for now
         let mut circuits = HashMap::new();
-        
+
         circuits.insert(
             "main".to_string(),
             CircuitDefinition {
@@ -880,7 +885,7 @@ mod tests {
     #[test]
     fn test_rom_contents_parsing() {
         let rom_data = "addr/data: 20 35\n2500 10004400 2500 10004400 2500 10004400 2500 10004400\n2500 10004400 2500 10004400 2500 10004400 2500 10004400";
-        
+
         let rom = RomContents::parse_from_string(rom_data).unwrap();
         assert_eq!(rom.addr_width, 20);
         assert_eq!(rom.data_width, 35);
@@ -892,7 +897,7 @@ mod tests {
     #[test]
     fn test_rom_contents_run_length_parsing() {
         let rom_data = "addr/data: 16 8\n12 34 4*ab 56";
-        
+
         let rom = RomContents::parse_from_string(rom_data).unwrap();
         assert_eq!(rom.addr_width, 16);
         assert_eq!(rom.data_width, 8);
@@ -913,8 +918,8 @@ mod tests {
             data_width: 8,
             data: vec![0x12, 0x34, 0x56, 0x78],
         };
-        
-        let serialized = rom.to_string();
+
+        let serialized = rom.to_logisim_format();
         assert!(serialized.contains("addr/data: 16 8"));
         assert!(serialized.contains("12 34 56 78"));
     }
@@ -944,7 +949,7 @@ mod tests {
         assert_eq!(circuit_file.source_version, "test");
         assert_eq!(circuit_file.main_circuit, Some("main".to_string()));
         assert_eq!(circuit_file.circuits.len(), 1);
-        
+
         let main_circuit = &circuit_file.circuits["main"];
         assert_eq!(main_circuit.components.len(), 1);
         assert_eq!(main_circuit.wires.len(), 1);
@@ -964,7 +969,7 @@ mod tests {
 
         let circuit_file = CircParser::parse_string(xml).unwrap();
         let serialized = CircWriter::serialize_to_string(&circuit_file).unwrap();
-        
+
         // Parse the serialized version to ensure it's valid
         let reparsed = CircParser::parse_string(&serialized).unwrap();
         assert_eq!(reparsed.circuits.len(), circuit_file.circuits.len());

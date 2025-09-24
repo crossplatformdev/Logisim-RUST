@@ -40,7 +40,9 @@ impl fmt::Display for BusWidth {
 }
 
 /// Timestamp for simulation events
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub struct Timestamp(pub u64);
 
 impl Timestamp {
@@ -128,16 +130,6 @@ impl Value {
             _ => Value::Unknown,
         }
     }
-
-    /// Logical NOT operation
-    pub fn not(self) -> Value {
-        match self {
-            Value::High => Value::Low,
-            Value::Low => Value::High,
-            Value::Unknown => Value::Unknown,
-            Value::Error => Value::Error,
-        }
-    }
 }
 
 impl fmt::Display for Value {
@@ -147,6 +139,19 @@ impl fmt::Display for Value {
             Value::Low => write!(f, "0"),
             Value::Unknown => write!(f, "X"),
             Value::Error => write!(f, "E"),
+        }
+    }
+}
+
+impl std::ops::Not for Value {
+    type Output = Value;
+
+    fn not(self) -> Value {
+        match self {
+            Value::High => Value::Low,
+            Value::Low => Value::High,
+            Value::Unknown => Value::Unknown,
+            Value::Error => Value::Error,
         }
     }
 }
@@ -232,7 +237,7 @@ impl Signal {
         for (i, &value) in self.values.iter().enumerate() {
             match value {
                 Value::High => result |= 1u64 << i,
-                Value::Low => {}, // bit remains 0
+                Value::Low => {}  // bit remains 0
                 _ => return None, // unknown or error
             }
         }
@@ -282,8 +287,8 @@ mod tests {
         assert_eq!(Value::Low.or(Value::High), Value::High);
         assert_eq!(Value::Low.or(Value::Low), Value::Low);
 
-        assert_eq!(Value::High.not(), Value::Low);
-        assert_eq!(Value::Low.not(), Value::High);
+        assert_eq!(!Value::High, Value::Low);
+        assert_eq!(!Value::Low, Value::High);
     }
 
     #[test]

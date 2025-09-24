@@ -1,0 +1,60 @@
+name: "Rust Format Check"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  analyze_sources:
+    name: "Check for Rust source changes"
+    runs-on: ubuntu-latest
+    outputs:
+      run_fmt: ${{ steps.filter.outputs.rust }}
+    
+    steps:
+    - name: "Checkout sources"
+      uses: actions/checkout@v5
+    
+    - name: "Look for changes in Rust code"
+      uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          rust:
+            - '**/*.rs'
+    
+    - name: "Will format check step run?"
+      run: |
+        found="NO"
+        [[ ${{ steps.filter.outputs.rust }} == 'true' ]] && found="YES"
+        echo "run_fmt=${found}" >> $GITHUB_OUTPUT
+        echo "Format check step will run: ${found}"
+
+  rustfmt:
+    name: "Format Check"
+    runs-on: ubuntu-latest
+    needs: analyze_sources
+    if: needs.analyze_sources.outputs.run_fmt == 'true'
+    
+    steps:
+    - name: "Checkout sources"
+      uses: actions/checkout@v5
+    
+    - name: "Install Rust toolchain"
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt
+    
+    - name: "Check code formatting"
+      run: cargo fmt --all -- --check
+    
+    - name: "Show formatting issues (if any)"
+      if: failure()
+      run: |
+        echo "Formatting issues found. Run 'cargo fmt' to fix them:"
+        cargo fmt --all -- --check --verbose

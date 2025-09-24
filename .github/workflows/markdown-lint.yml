@@ -1,0 +1,69 @@
+name: "Markdown Lint"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  analyze_docs:
+    name: "Check for documentation changes"
+    runs-on: ubuntu-latest
+    outputs:
+      run_lint: ${{ steps.filter.outputs.docs }}
+    
+    steps:
+    - name: "Checkout sources"
+      uses: actions/checkout@v5
+    
+    - name: "Look for changes in documentation"
+      uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          docs:
+            - '**/*.md'
+            - '**/*.markdown'
+            - 'docs/**'
+    
+    - name: "Will markdown lint step run?"
+      run: |
+        found="NO"
+        [[ ${{ steps.filter.outputs.docs }} == 'true' ]] && found="YES"
+        echo "run_lint=${found}" >> $GITHUB_OUTPUT
+        echo "Markdown lint step will run: ${found}"
+
+  markdown_lint:
+    name: "Markdown Linter"
+    runs-on: ubuntu-latest
+    needs: analyze_docs
+    if: needs.analyze_docs.outputs.run_lint == 'true'
+    
+    steps:
+    - name: "Checkout sources"
+      uses: actions/checkout@v5
+    
+    - name: "Setup Node.js"
+      uses: actions/setup-node@v5
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: "Install markdownlint-cli"
+      run: npm install -g markdownlint-cli
+    
+    - name: "Run markdownlint"
+      run: |
+        # Use existing .markdownlint.yaml config if present, otherwise use defaults
+        if [ -f .markdownlint.yaml ]; then
+          markdownlint --config .markdownlint.yaml **/*.md
+        else
+          markdownlint **/*.md
+        fi
+    
+    - name: "Check for broken links (basic)"
+      run: |
+        # Simple grep-based check for obvious broken links
+        echo "Checking for potential broken internal links..."
+        grep -r '\]\(' . --include="*.md" | grep -v 'http' | grep -v 'mailto:' || true
