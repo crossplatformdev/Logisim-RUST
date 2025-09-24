@@ -194,38 +194,114 @@ impl Canvas {
     }
     
     /// Draw the circuit components and wires
-    fn draw_circuit(&self, painter: &Painter, rect: Rect, zoom: f32, simulation: &Simulation) {
-        // TODO: Implement proper circuit rendering
-        // For now, draw a simple placeholder
+    fn draw_circuit(&self, painter: &Painter, rect: Rect, zoom: f32, _simulation: &Simulation) {
+        // TODO: Implement proper circuit rendering from simulation
+        // For now, draw a simple example demonstrating the architecture
         
-        // Draw some example components to test the rendering
-        self.draw_example_components(painter, rect, zoom);
+        // This is a placeholder showing how to render different component types
+        self.draw_example_circuit(painter, rect, zoom);
     }
     
-    /// Draw example components for testing
-    fn draw_example_components(&self, painter: &Painter, _rect: Rect, zoom: f32) {
-        // Draw an AND gate as an example
-        let gate_pos = self.canvas_to_screen(Pos2::new(100.0, 100.0), zoom);
-        let gate_size = Vec2::new(40.0 * zoom, 30.0 * zoom);
+    /// Draw example circuit components demonstrating the rendering system
+    fn draw_example_circuit(&self, painter: &Painter, _rect: Rect, zoom: f32) {
+        // Draw an AND gate
+        self.draw_and_gate(painter, Pos2::new(100.0, 100.0), zoom);
         
-        let gate_rect = Rect::from_min_size(gate_pos, gate_size);
+        // Draw input pins
+        self.draw_input_pin(painter, Pos2::new(50.0, 80.0), zoom, "A");
+        self.draw_input_pin(painter, Pos2::new(50.0, 120.0), zoom, "B");
+        
+        // Draw output pin
+        self.draw_output_pin(painter, Pos2::new(200.0, 100.0), zoom, "Y");
+        
+        // Draw wires
+        self.draw_wire(painter, Pos2::new(70.0, 80.0), Pos2::new(100.0, 90.0), zoom);
+        self.draw_wire(painter, Pos2::new(70.0, 120.0), Pos2::new(100.0, 110.0), zoom);
+        self.draw_wire(painter, Pos2::new(140.0, 100.0), Pos2::new(180.0, 100.0), zoom);
+    }
+    
+    /// Draw an AND gate component
+    fn draw_and_gate(&self, painter: &Painter, pos: Pos2, zoom: f32) {
+        let screen_pos = self.canvas_to_screen(pos, zoom);
+        let size = Vec2::new(40.0 * zoom, 30.0 * zoom);
+        
+        let gate_rect = Rect::from_min_size(screen_pos, size);
+        
+        // Draw gate body (rounded rectangle for AND gate)
         painter.rect_stroke(gate_rect, 2.0, default_stroke());
+        
+        // Draw gate symbol
         painter.text(
             gate_rect.center(),
             egui::Align2::CENTER_CENTER,
             "&",
-            egui::FontId::default(),
+            egui::FontId::proportional(12.0 * zoom),
             Color32::BLACK,
         );
         
-        // Draw some connection points
-        let input1 = gate_pos + Vec2::new(0.0, gate_size.y * 0.3);
-        let input2 = gate_pos + Vec2::new(0.0, gate_size.y * 0.7);
-        let output = gate_pos + Vec2::new(gate_size.x, gate_size.y * 0.5);
+        // Draw input pins
+        let input1 = screen_pos + Vec2::new(0.0, size.y * 0.3);
+        let input2 = screen_pos + Vec2::new(0.0, size.y * 0.7);
+        let output = screen_pos + Vec2::new(size.x, size.y * 0.5);
         
-        painter.circle_filled(input1, 2.0, Color32::BLACK);
-        painter.circle_filled(input2, 2.0, Color32::BLACK);
-        painter.circle_filled(output, 2.0, Color32::BLACK);
+        painter.circle_filled(input1, 2.0 * zoom, Color32::BLACK);
+        painter.circle_filled(input2, 2.0 * zoom, Color32::BLACK);
+        painter.circle_filled(output, 2.0 * zoom, Color32::BLACK);
+    }
+    
+    /// Draw an input pin component
+    fn draw_input_pin(&self, painter: &Painter, pos: Pos2, zoom: f32, label: &str) {
+        let screen_pos = self.canvas_to_screen(pos, zoom);
+        let size = Vec2::new(20.0 * zoom, 15.0 * zoom);
+        
+        // Draw pin body
+        painter.rect_stroke(Rect::from_min_size(screen_pos, size), 1.0, default_stroke());
+        
+        // Draw connection point
+        let connection = screen_pos + Vec2::new(size.x, size.y * 0.5);
+        painter.circle_filled(connection, 2.0 * zoom, Color32::BLACK);
+        
+        // Draw label
+        painter.text(
+            screen_pos + Vec2::new(size.x * 0.5, -10.0 * zoom),
+            egui::Align2::CENTER_BOTTOM,
+            label,
+            egui::FontId::proportional(10.0 * zoom),
+            Color32::BLACK,
+        );
+    }
+    
+    /// Draw an output pin component
+    fn draw_output_pin(&self, painter: &Painter, pos: Pos2, zoom: f32, label: &str) {
+        let screen_pos = self.canvas_to_screen(pos, zoom);
+        let size = Vec2::new(20.0 * zoom, 15.0 * zoom);
+        
+        // Draw pin body
+        painter.rect_stroke(Rect::from_min_size(screen_pos, size), 1.0, default_stroke());
+        
+        // Draw connection point
+        let connection = screen_pos + Vec2::new(0.0, size.y * 0.5);
+        painter.circle_filled(connection, 2.0 * zoom, Color32::BLACK);
+        
+        // Draw label
+        painter.text(
+            screen_pos + Vec2::new(size.x * 0.5, -10.0 * zoom),
+            egui::Align2::CENTER_BOTTOM,
+            label,
+            egui::FontId::proportional(10.0 * zoom),
+            Color32::BLACK,
+        );
+    }
+    
+    /// Draw a wire connection
+    fn draw_wire(&self, painter: &Painter, start: Pos2, end: Pos2, zoom: f32) {
+        let start_screen = self.canvas_to_screen(start, zoom);
+        let end_screen = self.canvas_to_screen(end, zoom);
+        
+        painter.line_segment(
+            [start_screen, end_screen],
+            Stroke::new(2.0 * zoom, Color32::DARK_BLUE),
+        );
     }
     
     /// Draw selection highlights

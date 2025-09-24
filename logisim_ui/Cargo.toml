@@ -36,3 +36,7 @@ version = "0.10"
 name = "logisim"
 path = "src/bin/logisim.rs"
 required-features = ["gui"]
+
+[[bin]]
+name = "demo"
+path = "src/bin/demo.rs"
