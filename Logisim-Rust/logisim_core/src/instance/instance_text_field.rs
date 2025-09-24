@@ -230,7 +230,7 @@ impl InstanceTextField {
 
     /// Checks if a point is within the text field bounds.
     pub fn contains(&self, point: Location) -> bool {
-        self.get_bounds().contains(point)
+        self.get_bounds().contains(point.x, point.y)
     }
 }
 
@@ -285,10 +285,10 @@ mod tests {
         let bounds = field.get_bounds();
         
         // With default font size 12, expect roughly 3 * 7 = 21 width, 12 height
-        assert_eq!(bounds.x(), 50);
-        assert_eq!(bounds.y(), 100);
-        assert!(bounds.width() > 0);
-        assert!(bounds.height() > 0);
+        assert_eq!(bounds.get_x(), 50);
+        assert_eq!(bounds.get_y(), 100);
+        assert!(bounds.get_width() > 0);
+        assert!(bounds.get_height() > 0);
     }
 
     #[test]
@@ -311,12 +311,12 @@ mod tests {
         let right_bounds = right_field.get_bounds();
 
         // Left alignment: text starts at location
-        assert_eq!(left_bounds.x(), 50);
+        assert_eq!(left_bounds.get_x(), 50);
         
         // Center alignment: text centered on location
-        assert!(center_bounds.x() < 50);
+        assert!(center_bounds.get_x() < 50);
         
         // Right alignment: text ends at location
-        assert!(right_bounds.x() < center_bounds.x());
+        assert!(right_bounds.get_x() < center_bounds.get_x());
     }
 }

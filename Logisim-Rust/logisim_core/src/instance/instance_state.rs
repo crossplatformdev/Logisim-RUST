@@ -345,18 +345,17 @@ mod tests {
             &self.attributes
         }
 
-        fn get_attribute_value<T>(&self, attr: &Attribute<T>) -> Option<&T>
-        where
-            T: Clone + PartialEq + 'static,
-        {
-            self.attributes.get_value(attr)
+        fn get_attribute_value_erased(&self, attr: &dyn std::any::Any) -> Option<Box<dyn std::any::Any>> {
+            // Mock implementation
+            let _ = attr;
+            None
         }
 
         fn get_data(&self) -> Option<&dyn InstanceData> {
             self.data.as_deref()
         }
 
-        fn get_data_mut(&mut self) -> Option<&mut dyn InstanceData> {
+        fn get_data_mut(&mut self) -> Option<&mut (dyn InstanceData + '_)> {
             self.data.as_deref_mut()
         }
 

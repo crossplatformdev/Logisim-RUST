@@ -27,13 +27,13 @@ use std::sync::{Arc, Weak};
 ///
 /// # Design
 ///
-/// InstanceComponent serves as the bridge between:
 /// - The generic Component trait (simulation interface)
 /// - The Instance wrapper (metadata and lifecycle)
 /// - The InstanceFactory (creation and configuration)
 ///
 /// It maintains references to its factory and provides access to instance-specific
 /// operations like port management, attribute handling, and rendering integration.
+#[derive(Debug)]
 pub struct InstanceComponent {
     /// Location of this component in the circuit
     location: Location,
@@ -76,7 +76,7 @@ impl InstanceComponent {
     pub fn set_factory(&mut self, factory: Arc<dyn InstanceFactory>) {
         self.bounds = factory
             .get_offset_bounds(&self.attributes)
-            .translate(self.location.x(), self.location.y());
+            .translate(self.location.x, self.location.y);
         self.factory = Some(factory);
     }
 
@@ -180,7 +180,7 @@ impl InstanceComponent {
     ///
     /// True if the point is inside the component bounds.
     pub fn contains(&self, point: Location) -> bool {
-        self.bounds.contains(point)
+        self.bounds.contains(point.x, point.y)
     }
 
     /// Mock constructor for testing (when factory dependencies aren't available).
@@ -203,7 +203,10 @@ impl fmt::Display for InstanceComponent {
         write!(
             f,
             "InstanceComponent(name={}, location={}, bounds={})",
-            self.get_name(),
+            self.factory
+                .as_ref()
+                .map(|f| f.get_name())
+                .unwrap_or("Unknown"),
             self.location,
             self.bounds
         )

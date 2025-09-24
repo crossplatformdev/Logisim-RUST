@@ -388,8 +388,8 @@ mod tests {
         let component_loc = Location::new(100, 200);
         let port_loc = port.location(component_loc);
 
-        assert_eq!(port_loc.x(), 110);
-        assert_eq!(port_loc.y(), 195);
+        assert_eq!(port_loc.x, 110);
+        assert_eq!(port_loc.y, 195);
     }
 
     #[test]

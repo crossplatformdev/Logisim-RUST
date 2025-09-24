@@ -289,7 +289,7 @@ mod tests {
 
     #[test]
     fn test_default_label_location() {
-        let bounds = Bounds::new(10, 20, 30, 40);
+        let bounds = Bounds::create(10, 20, 30, 40);
         
         let north_loc = StdAttr::default_label_location(Direction::North, bounds);
         assert_eq!(north_loc.x, 25); // center x: 10 + 30/2

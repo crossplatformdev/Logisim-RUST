@@ -95,7 +95,7 @@ mod tests {
 
         fn contains(&self, _state: &dyn InstanceState, location: Location) -> bool {
             // Simple bounds check for testing
-            location.x() >= 0 && location.x() <= 100 && location.y() >= 0 && location.y() <= 50
+            location.x >= 0 && location.x <= 100 && location.y >= 0 && location.y <= 50
         }
     }
 

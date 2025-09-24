@@ -228,7 +228,7 @@ impl InstancePainter {
     /// Draws the component's bounding box (for debugging).
     pub fn draw_bounds(&self) {
         let bounds = self.bounds;
-        self.draw_rectangle(bounds.x(), bounds.y(), bounds.width() as u32, bounds.height() as u32);
+        self.draw_rectangle(bounds.get_x(), bounds.get_y(), bounds.get_width() as u32, bounds.get_height() as u32);
     }
 
     /// Draws a connection dot at the specified location.

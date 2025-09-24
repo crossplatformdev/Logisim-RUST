@@ -60,6 +60,7 @@ impl fmt::Display for AttributeId {
 
 /// An attribute definition with metadata
 #[derive(Clone)]
+#[derive(Debug)]
 pub struct Attribute<T: AttributeValue> {
     id: AttributeId,
     display_name: Option<String>,
@@ -152,6 +153,7 @@ impl<T: AttributeValue> Hash for Attribute<T> {
 }
 
 /// Stores attribute values with type safety
+#[derive(Debug)]
 pub struct AttributeSet {
     values: HashMap<AttributeId, Box<dyn Any + Send + Sync>>,
     read_only: HashMap<AttributeId, bool>,
