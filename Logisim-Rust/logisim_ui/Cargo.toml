@@ -30,6 +30,7 @@ indexmap = { version = "2.0", features = ["serde"] }
 # GUI framework dependencies - conditionally included for supported platforms
 # winit/egui requires proper display server setup, so we make these optional
 # and let the build system decide when to include them
+[target.'cfg(not(target_os = "unknown"))'.dependencies]
 egui = { version = "0.30", optional = true }
 eframe = { version = "0.30", default-features = false, features = [
     "accesskit",     # Make egui compatible with screen readers
