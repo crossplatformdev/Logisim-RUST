@@ -1,0 +1,281 @@
+name: "GPL-3.0 License Compliance"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly to check for license compliance issues
+    - cron: '0 8 * * 1'  # Monday at 8:00 AM UTC
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  license_compliance:
+    name: "GPL-3.0 License Compliance Check"
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: "Checkout sources"
+      uses: actions/checkout@v5
+    
+    - name: "Check LICENSE.md exists and is valid"
+      run: |
+        echo "=== Checking LICENSE.md ==="
+        if [ ! -f LICENSE.md ]; then
+          echo "❌ ERROR: LICENSE.md file is missing"
+          exit 1
+        fi
+        echo "✅ LICENSE.md file found"
+        
+        # Check for GPL-3.0 content
+        if ! grep -q "GNU GENERAL PUBLIC LICENSE" LICENSE.md; then
+          echo "❌ ERROR: LICENSE.md does not contain GPL license text"
+          exit 1
+        fi
+        
+        if ! grep -q "Version 3" LICENSE.md; then
+          echo "❌ ERROR: LICENSE.md is not GPL version 3"
+          exit 1
+        fi
+        
+        echo "✅ GPL-3.0 license text verified"
+        
+        # Show license summary
+        echo "=== License Summary ==="
+        head -20 LICENSE.md
+    
+    - name: "Check Cargo.toml license fields"
+      run: |
+        echo "=== Checking Cargo.toml license declarations ==="
+        
+        # Check workspace Cargo.toml doesn't have conflicting license
+        if grep -q '^license.*=' Cargo.toml && ! grep -q 'GPL-3.0' Cargo.toml; then
+          echo "❌ ERROR: Workspace Cargo.toml has non-GPL license"
+          exit 1
+        fi
+        
+        # Check each package Cargo.toml
+        for toml in logisim_core/Cargo.toml logisim_ui/Cargo.toml; do
+          if [ -f "$toml" ]; then
+            echo "Checking $toml..."
+            if ! grep -q 'license.*=.*"GPL-3.0' "$toml"; then
+              echo "❌ ERROR: $toml does not specify GPL-3.0 license"
+              exit 1
+            fi
+            echo "✅ $toml has correct GPL-3.0 license declaration"
+          fi
+        done
+    
+    - name: "Install Rust toolchain"
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: "Cache Rust dependencies"
+      uses: Swatinem/rust-cache@v2
+    
+    - name: "Install cargo-license for dependency checking"
+      run: |
+        cargo install cargo-license
+    
+    - name: "Check dependency licenses"
+      run: |
+        echo "=== Analyzing Dependency Licenses ==="
+        
+        # Generate license report
+        cargo license --json > licenses.json
+        cargo license > licenses.txt
+        
+        echo "=== Dependency License Summary ==="
+        cargo license
+        
+        # Check for problematic licenses
+        echo "=== Checking for GPL-incompatible licenses ==="
+        
+        # List of licenses that are NOT compatible with GPL-3.0
+        INCOMPATIBLE_LICENSES=(
+          "AGPL-1.0"
+          "AGPL-3.0" 
+          "GPL-2.0-only"
+          "LGPL-2.0-only"
+          "LGPL-2.1-only"
+          "LGPL-3.0-only"
+          "CC-BY-SA-4.0"
+          "CDDL-1.0"
+          "EPL-1.0"
+          "EPL-2.0"
+          "MPL-1.1"
+          "MPL-2.0"
+          "OSL-3.0"
+          "QPL-1.0"
+          "Sleepycat"
+        )
+        
+        FOUND_ISSUES=false
+        
+        for license in "${INCOMPATIBLE_LICENSES[@]}"; do
+          if grep -q "$license" licenses.txt; then
+            echo "⚠️  WARNING: Found potentially incompatible license: $license"
+            FOUND_ISSUES=true
+          fi
+        done
+        
+        # Check for proprietary or unknown licenses
+        if grep -qi "proprietary\|commercial\|unlicense" licenses.txt; then
+          echo "⚠️  WARNING: Found proprietary or unclear licenses"
+          FOUND_ISSUES=true
+        fi
+        
+        if [ "$FOUND_ISSUES" = true ]; then
+          echo ""
+          echo "⚠️  License compatibility issues found. Please review:"
+          echo "   - Ensure all dependencies are GPL-3.0 compatible"
+          echo "   - Consider alternative dependencies if needed"
+          echo "   - Document any exceptions or special cases"
+          echo ""
+          echo "For GPL-3.0 compatibility reference, see:"
+          echo "https://www.gnu.org/licenses/gpl-faq.html#WhatDoesCompatMean"
+        else
+          echo "✅ No obvious license compatibility issues found"
+        fi
+    
+    - name: "Check source file license headers"
+      run: |
+        echo "=== Checking Source File License Headers ==="
+        
+        MISSING_HEADERS=()
+        TOTAL_FILES=0
+        
+        # Check Rust source files
+        while IFS= read -r -d '' file; do
+          TOTAL_FILES=$((TOTAL_FILES + 1))
+          
+          # Check if file contains license reference
+          if ! grep -qi "GPL\|license\|copyright\|logisim.*rust" "$file"; then
+            MISSING_HEADERS+=("$file")
+          fi
+        done < <(find . -name "*.rs" -not -path "./target/*" -print0)
+        
+        echo "Checked $TOTAL_FILES Rust source files"
+        
+        if [ ${#MISSING_HEADERS[@]} -gt 0 ]; then
+          echo "⚠️  Files without license headers or references:"
+          for file in "${MISSING_HEADERS[@]}"; do
+            echo "  - $file"
+          done
+          
+          echo ""
+          echo "Consider adding license headers like:"
+          echo "/*"
+          echo " * This file is part of Logisim-RUST."
+          echo " *"
+          echo " * Logisim-RUST is free software: you can redistribute it and/or modify"
+          echo " * it under the terms of the GNU General Public License as published by"
+          echo " * the Free Software Foundation, either version 3 of the License, or"
+          echo " * (at your option) any later version."
+          echo " *"
+          echo " * For more information, see <https://www.gnu.org/licenses/>."
+          echo " */"
+        else
+          echo "✅ All source files have license references"
+        fi
+    
+    - name: "Check for third-party notices"
+      run: |
+        echo "=== Checking for Third-Party Notices ==="
+        
+        # Look for common third-party notice files
+        NOTICE_FILES=(
+          "NOTICE"
+          "NOTICE.txt"
+          "NOTICE.md"
+          "THIRD_PARTY"
+          "THIRD_PARTY.txt"
+          "THIRD_PARTY.md"
+          "ACKNOWLEDGMENTS"
+          "ACKNOWLEDGMENTS.txt"
+          "ACKNOWLEDGMENTS.md"
+        )
+        
+        FOUND_NOTICES=false
+        for notice in "${NOTICE_FILES[@]}"; do
+          if [ -f "$notice" ]; then
+            echo "✅ Found third-party notice file: $notice"
+            FOUND_NOTICES=true
+          fi
+        done
+        
+        if [ "$FOUND_NOTICES" = false ]; then
+          echo "ℹ️  No third-party notice files found"
+          echo "   Consider creating a NOTICE.md file if the project uses"
+          echo "   third-party components that require attribution"
+        fi
+    
+    - name: "Generate compliance report"
+      run: |
+        echo "=== Generating Compliance Report ==="
+        
+        cat > COMPLIANCE_REPORT.md << 'EOF'
+        # GPL-3.0 License Compliance Report
+        
+        Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        Repository: ${{ github.repository }}
+        Commit: ${{ github.sha }}
+        
+        ## License Status
+        
+        ✅ Project licensed under GPL-3.0-or-later
+        ✅ LICENSE.md file present and valid
+        ✅ Package manifests declare GPL-3.0 license
+        
+        ## Dependency Licenses
+        
+        EOF
+        
+        echo '```' >> COMPLIANCE_REPORT.md
+        cargo license >> COMPLIANCE_REPORT.md
+        echo '```' >> COMPLIANCE_REPORT.md
+        
+        cat >> COMPLIANCE_REPORT.md << 'EOF'
+        
+        ## License Compatibility
+        
+        All dependencies have been checked for GPL-3.0 compatibility.
+        See detailed analysis above for any potential issues.
+        
+        ## Notes
+        
+        - This is an automated compliance check
+        - Manual review may be required for complex licensing scenarios
+        - When in doubt, consult with legal experts familiar with GPL licensing
+        
+        For more information about GPL-3.0 compatibility:
+        https://www.gnu.org/licenses/gpl-faq.html
+        EOF
+        
+        echo "✅ Compliance report generated"
+    
+    - name: "Upload compliance artifacts"
+      uses: actions/upload-artifact@v3
+      with:
+        name: license-compliance-report
+        path: |
+          licenses.json
+          licenses.txt
+          COMPLIANCE_REPORT.md
+        retention-days: 30
+    
+    - name: "Summary"
+      run: |
+        echo "=== GPL-3.0 License Compliance Summary ==="
+        echo "✅ LICENSE.md verified"
+        echo "✅ Package licenses verified"
+        echo "✅ Dependency licenses analyzed"
+        echo "✅ Source files checked"
+        echo "✅ Compliance report generated"
+        echo ""
+        echo "🎉 License compliance check completed successfully!"
+        echo ""
+        echo "Note: This automated check covers common compliance requirements."
+        echo "For complex scenarios, consider consulting with legal experts."
