@@ -5,6 +5,6 @@ resolver = "2"
 [workspace.dependencies]
 # Common dependencies can be defined here
 serde = { version = "1.0", features = ["derive"] }
-thiserror = "1.0"
-quick-xml = { version = "0.38", features = ["serialize"] }
+thiserror = "2.0"
+quick-xml = { version = "0.32", features = ["serialize"] }
 roxmltree = "0.20"
