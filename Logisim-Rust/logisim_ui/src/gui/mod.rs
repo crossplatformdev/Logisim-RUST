@@ -2,6 +2,11 @@
 
 pub mod app;
 pub mod frame;
+pub mod generic;
+pub mod startup;
+pub mod i18n;
+pub mod toolbar;
+pub mod properties;
 
 #[cfg(feature = "gui")]
 pub mod canvas;
@@ -29,7 +34,7 @@ pub mod common {
     // Color constants matching the Java implementation
     pub const HALO_COLOR: Color32 = Color32::from_rgb(255, 0, 255);
     pub const DEFAULT_ERROR_COLOR: Color32 = Color32::from_rgb(192, 0, 0);
-    pub const TICK_RATE_COLOR: Color32 = Color32::from_rgba_unmultiplied(0, 0, 92, 92);
+    pub const TICK_RATE_COLOR: Color32 = Color32::from_rgba_premultiplied(0, 0, 92, 92);
     pub const SINGLE_STEP_MSG_COLOR: Color32 = Color32::BLUE;
 
     // Grid and canvas constants

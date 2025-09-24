@@ -17,6 +17,8 @@ thiserror = { workspace = true }
 quick-xml = { version = "0.36", features = ["serialize"] }
 roxmltree = { workspace = true }
 indexmap = { version = "2.0", features = ["serde"] }
+log = "0.4"
+once_cell = "1.19"
 
 [dev-dependencies]
 # Testing dependencies

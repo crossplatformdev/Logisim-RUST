@@ -85,9 +85,8 @@ impl Canvas {
 
         // Handle panning
         if response.dragged_by(egui::PointerButton::Middle) {
-            if let Some(delta) = response.drag_delta() {
-                self.offset += delta / zoom;
-            }
+            let delta = response.drag_delta();
+            self.offset += delta / zoom;
         }
 
         // Handle selection and interaction

@@ -32,6 +32,10 @@
 //! compatibility with existing .circ files.
 
 pub mod gui;
+pub mod main {
+    pub use crate::main_lib::*;
+}
+mod main_lib;
 
 // Re-export main UI types for convenience
 pub use gui::app::LogisimApp;
@@ -60,6 +64,9 @@ pub enum UiError {
 
     #[error("File operation error: {0}")]
     FileError(String),
+
+    #[error("Feature not implemented: {0}")]
+    NotImplemented(String),
 
     #[error("Core simulation error: {0}")]
     CoreError(#[from] logisim_core::simulation::SimulationError),

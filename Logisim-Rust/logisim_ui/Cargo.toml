@@ -23,6 +23,8 @@ gui = ["dep:egui", "dep:eframe"]
 logisim_core = { path = "../logisim_core" }
 serde = { workspace = true }
 thiserror = { workspace = true }
+log = "0.4"
+chrono = "0.4"
 # Additional dependencies for UI functionality
 indexmap = { version = "2.0", features = ["serde"] }
 
@@ -31,9 +33,7 @@ indexmap = { version = "2.0", features = ["serde"] }
 # and let the build system decide when to include them
 egui = { version = "0.30", optional = true }
 eframe = { version = "0.30", default-features = false, features = [
-    "accesskit",     # Make egui compatible with screen readers
     "default_fonts", # Embed the default egui fonts
-    "glow",          # Use glow rendering backend
     "persistence",   # Enable restoring app state when restarting the app
 ], optional = true }
 

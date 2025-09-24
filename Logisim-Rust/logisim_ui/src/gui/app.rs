@@ -167,6 +167,41 @@ pub fn run_app() -> UiResult<()> {
     Ok(())
 }
 
+/// Run with a template file in headless mode
+#[cfg(not(feature = "gui"))]
+pub fn run_app_with_template(template_path: PathBuf) -> UiResult<()> {
+    let mut app = LogisimApp::new();
+    app.load_circuit_file(template_path)?;
+
+    println!("Loaded template file: {}", app.title());
+    if let Some(sim) = app.simulation() {
+        let stats = sim.netlist().stats();
+        println!(
+            "Template has {} nets and {} nodes",
+            stats.net_count, stats.node_count
+        );
+    }
+    Ok(())
+}
+
+/// Run with multiple files in headless mode
+#[cfg(not(feature = "gui"))]
+pub fn run_app_with_files(file_paths: Vec<PathBuf>) -> UiResult<()> {
+    for file_path in file_paths {
+        let mut app = LogisimApp::new();
+        app.load_circuit_file(file_path.clone())?;
+        println!("Loaded circuit file: {}", file_path.display());
+        if let Some(sim) = app.simulation() {
+            let stats = sim.netlist().stats();
+            println!(
+                "Circuit has {} nets and {} nodes",
+                stats.net_count, stats.node_count
+            );
+        }
+    }
+    Ok(())
+}
+
 /// Run with a file in headless mode
 #[cfg(not(feature = "gui"))]
 pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
