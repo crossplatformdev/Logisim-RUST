@@ -8,7 +8,7 @@
  */
 
 //! BitWidth - represents the width of a data bus in bits
-//! 
+//!
 //! Rust port of BitWidth.java (enhanced version of existing BusWidth)
 
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ pub const MAX_WIDTH: u32 = 64;
 pub const MIN_WIDTH: u32 = 1;
 
 /// Represents the width of a bus in bits
-/// 
+///
 /// This extends the existing BusWidth concept with full Java compatibility
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct BitWidth(u32);
@@ -30,7 +30,7 @@ pub struct BitWidth(u32);
 impl BitWidth {
     /// The unknown width (0 bits)
     pub const UNKNOWN: BitWidth = BitWidth(0);
-    
+
     /// Single bit width
     pub const ONE: BitWidth = BitWidth(1);
 
@@ -80,13 +80,9 @@ impl BitWidth {
         if s.is_empty() {
             return Err("Width string cannot be empty".to_string());
         }
-        
-        let trimmed = if s.starts_with('/') {
-            &s[1..]
-        } else {
-            s
-        };
-        
+
+        let trimmed = if s.starts_with('/') { &s[1..] } else { s };
+
         match trimmed.parse::<u32>() {
             Ok(width) => Self::create(width),
             Err(_) => Err(format!("Invalid width format: '{}'", s)),
@@ -94,18 +90,42 @@ impl BitWidth {
     }
 
     /// Common bit widths for convenience
-    pub const fn bit_width_1() -> BitWidth { BitWidth(1) }
-    pub const fn bit_width_2() -> BitWidth { BitWidth(2) }
-    pub const fn bit_width_3() -> BitWidth { BitWidth(3) }
-    pub const fn bit_width_4() -> BitWidth { BitWidth(4) }
-    pub const fn bit_width_5() -> BitWidth { BitWidth(5) }
-    pub const fn bit_width_6() -> BitWidth { BitWidth(6) }
-    pub const fn bit_width_7() -> BitWidth { BitWidth(7) }
-    pub const fn bit_width_8() -> BitWidth { BitWidth(8) }
-    pub const fn bit_width_16() -> BitWidth { BitWidth(16) }
-    pub const fn bit_width_24() -> BitWidth { BitWidth(24) }
-    pub const fn bit_width_32() -> BitWidth { BitWidth(32) }
-    pub const fn bit_width_64() -> BitWidth { BitWidth(64) }
+    pub const fn bit_width_1() -> BitWidth {
+        BitWidth(1)
+    }
+    pub const fn bit_width_2() -> BitWidth {
+        BitWidth(2)
+    }
+    pub const fn bit_width_3() -> BitWidth {
+        BitWidth(3)
+    }
+    pub const fn bit_width_4() -> BitWidth {
+        BitWidth(4)
+    }
+    pub const fn bit_width_5() -> BitWidth {
+        BitWidth(5)
+    }
+    pub const fn bit_width_6() -> BitWidth {
+        BitWidth(6)
+    }
+    pub const fn bit_width_7() -> BitWidth {
+        BitWidth(7)
+    }
+    pub const fn bit_width_8() -> BitWidth {
+        BitWidth(8)
+    }
+    pub const fn bit_width_16() -> BitWidth {
+        BitWidth(16)
+    }
+    pub const fn bit_width_24() -> BitWidth {
+        BitWidth(24)
+    }
+    pub const fn bit_width_32() -> BitWidth {
+        BitWidth(32)
+    }
+    pub const fn bit_width_64() -> BitWidth {
+        BitWidth(64)
+    }
 
     /// Get common bit widths for UI dropdowns
     pub fn get_common_widths() -> Vec<BitWidth> {
@@ -129,7 +149,7 @@ impl BitWidth {
     pub fn get_range_widths(min: u32, max: u32) -> Vec<BitWidth> {
         let max = max.min(MAX_WIDTH);
         let min = min.max(MIN_WIDTH);
-        
+
         if max - min > 12 {
             // Too many options for dropdown, return common ones in range
             Self::get_common_widths()
@@ -137,9 +157,7 @@ impl BitWidth {
                 .filter(|w| w.0 >= min && w.0 <= max)
                 .collect()
         } else {
-            (min..=max)
-                .map(|w| BitWidth(w))
-                .collect()
+            (min..=max).map(|w| BitWidth(w)).collect()
         }
     }
 }
@@ -248,21 +266,15 @@ impl BitWidthAttribute {
     /// Parse a value for this attribute
     pub fn parse(&self, value: &str) -> Result<BitWidth, String> {
         let width = BitWidth::parse(value)?;
-        
+
         if width.0 < self.min_width {
-            return Err(format!(
-                "bit width must be at least {}",
-                self.min_width
-            ));
+            return Err(format!("bit width must be at least {}", self.min_width));
         }
-        
+
         if width.0 > self.max_width {
-            return Err(format!(
-                "bit width must be at most {}",
-                self.max_width
-            ));
+            return Err(format!("bit width must be at most {}", self.max_width));
         }
-        
+
         Ok(width)
     }
 
@@ -293,7 +305,7 @@ mod tests {
     fn test_bit_width_constants() {
         assert_eq!(BitWidth::UNKNOWN.get_width(), 0);
         assert_eq!(BitWidth::ONE.get_width(), 1);
-        
+
         assert!(BitWidth::UNKNOWN.is_unknown());
         assert!(BitWidth::ONE.is_single_bit());
     }
@@ -341,7 +353,7 @@ mod tests {
         let width = BitWidth::new(8);
         let as_u32: u32 = width.into();
         assert_eq!(as_u32, 8);
-        
+
         let from_u32 = BitWidth::from(16u32);
         assert_eq!(from_u32.get_width(), 16);
     }
@@ -350,7 +362,7 @@ mod tests {
     fn test_bit_width_comparisons() {
         let width8 = BitWidth::new(8);
         let width16 = BitWidth::new(16);
-        
+
         assert!(width8 < width16);
         assert!(width8 == 8u32);
         assert!(width8 < 16u32);
@@ -371,7 +383,7 @@ mod tests {
         assert_eq!(range.len(), 4);
         assert_eq!(range[0].get_width(), 1);
         assert_eq!(range[3].get_width(), 4);
-        
+
         // Large range should return filtered common widths
         let large_range = BitWidth::get_range_widths(1, 64);
         assert!(!large_range.is_empty());
@@ -383,7 +395,7 @@ mod tests {
         let bus_width = crate::signal::BusWidth::new(8);
         let bit_width: BitWidth = bus_width.into();
         assert_eq!(bit_width.get_width(), 8);
-        
+
         let back_to_bus: crate::signal::BusWidth = bit_width.into();
         assert_eq!(back_to_bus.as_u32(), 8);
     }
@@ -391,30 +403,26 @@ mod tests {
     #[test]
     fn test_bit_width_attribute() {
         let attr = BitWidthAttribute::new("width".to_string(), "Data Width".to_string());
-        
+
         assert_eq!(attr.get_name(), "width");
         assert_eq!(attr.get_display_name(), "Data Width");
         assert!(attr.get_choices().is_some());
-        
+
         let parsed = attr.parse("8").unwrap();
         assert_eq!(parsed.get_width(), 8);
-        
+
         assert!(attr.parse("999").is_err());
     }
 
     #[test]
     fn test_bit_width_attribute_range() {
-        let attr = BitWidthAttribute::new_with_range(
-            "width".to_string(),
-            "Width".to_string(),
-            2,
-            8
-        );
-        
+        let attr =
+            BitWidthAttribute::new_with_range("width".to_string(), "Width".to_string(), 2, 8);
+
         assert!(attr.parse("1").is_err()); // Below min
         assert!(attr.parse("9").is_err()); // Above max
         assert!(attr.parse("4").is_ok()); // In range
-        
+
         let choices = attr.get_choices().unwrap();
         assert_eq!(choices.len(), 7); // 2, 3, 4, 5, 6, 7, 8
     }

@@ -8,17 +8,16 @@
  */
 
 //! Bounds - immutable rectangular bounding box
-//! 
+//!
 //! Rust port of Bounds.java
 
 use super::{Direction, Location};
-use crate::util::Cache;
 use serde::{Deserialize, Serialize};
 use std::cmp::{max, min};
 use std::fmt;
 
 /// Represents an immutable rectangular bounding box
-/// 
+///
 /// This is analogous to java.awt's Rectangle class but immutable and cached
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Bounds {
@@ -165,9 +164,17 @@ impl Bounds {
         let ret_width = max(self.x + self.width, other.x + other.width) - ret_x;
         let ret_height = max(self.y + self.height, other.y + other.height) - ret_y;
 
-        if ret_x == self.x && ret_y == self.y && ret_width == self.width && ret_height == self.height {
+        if ret_x == self.x
+            && ret_y == self.y
+            && ret_width == self.width
+            && ret_height == self.height
+        {
             self
-        } else if ret_x == other.x && ret_y == other.y && ret_width == other.width && ret_height == other.height {
+        } else if ret_x == other.x
+            && ret_y == other.y
+            && ret_width == other.width
+            && ret_height == other.height
+        {
             other
         } else {
             Self::create(ret_x, ret_y, ret_width, ret_height)
@@ -221,7 +228,11 @@ impl Bounds {
         let ret_width = max(x + width, self.x + self.width) - ret_x;
         let ret_height = max(y + height, self.y + self.height) - ret_y;
 
-        if ret_x == self.x && ret_y == self.y && ret_width == self.width && ret_height == self.height {
+        if ret_x == self.x
+            && ret_y == self.y
+            && ret_width == self.width
+            && ret_height == self.height
+        {
             self
         } else {
             Self::create(ret_x, ret_y, ret_width, ret_height)
@@ -236,7 +247,12 @@ impl Bounds {
         if d == 0 {
             return self;
         }
-        Self::create(self.x - d, self.y - d, self.width + 2 * d, self.height + 2 * d)
+        Self::create(
+            self.x - d,
+            self.y - d,
+            self.width + 2 * d,
+            self.height + 2 * d,
+        )
     }
 
     /// Translate bounds by offset
@@ -341,7 +357,7 @@ mod tests {
     #[test]
     fn test_bounds_contains() {
         let bounds = Bounds::create(10, 20, 30, 40);
-        
+
         assert!(bounds.contains(10, 20));
         assert!(bounds.contains(25, 35));
         assert!(bounds.contains(39, 59));
@@ -354,7 +370,7 @@ mod tests {
         let bounds = Bounds::create(10, 20, 30, 40);
         let inside = Location::new(25, 35);
         let outside = Location::new(50, 70);
-        
+
         assert!(bounds.contains_location(inside));
         assert!(!bounds.contains_location(outside));
     }
@@ -364,7 +380,7 @@ mod tests {
         let outer = Bounds::create(10, 20, 30, 40);
         let inner = Bounds::create(15, 25, 10, 15);
         let overlapping = Bounds::create(35, 55, 10, 15);
-        
+
         assert!(outer.contains_bounds(inner));
         assert!(!outer.contains_bounds(overlapping));
     }
@@ -374,7 +390,7 @@ mod tests {
         let b1 = Bounds::create(10, 20, 30, 40);
         let b2 = Bounds::create(50, 70, 20, 25);
         let union = b1.add_bounds(b2);
-        
+
         assert_eq!(union.get_x(), 10);
         assert_eq!(union.get_y(), 20);
         assert_eq!(union.get_width(), 60);
@@ -384,11 +400,11 @@ mod tests {
     #[test]
     fn test_bounds_add_point() {
         let bounds = Bounds::create(10, 20, 30, 40);
-        
+
         // Point inside - no change
         let same = bounds.add_point(25, 35);
         assert_eq!(same, bounds);
-        
+
         // Point outside - expand
         let expanded = bounds.add_point(50, 70);
         assert_eq!(expanded.get_x(), 10);
@@ -401,7 +417,7 @@ mod tests {
     fn test_bounds_expand() {
         let bounds = Bounds::create(10, 20, 30, 40);
         let expanded = bounds.expand(5);
-        
+
         assert_eq!(expanded.get_x(), 5);
         assert_eq!(expanded.get_y(), 15);
         assert_eq!(expanded.get_width(), 40);
@@ -412,7 +428,7 @@ mod tests {
     fn test_bounds_translate() {
         let bounds = Bounds::create(10, 20, 30, 40);
         let translated = bounds.translate(5, -3);
-        
+
         assert_eq!(translated.get_x(), 15);
         assert_eq!(translated.get_y(), 17);
         assert_eq!(translated.get_width(), 30);
@@ -424,12 +440,12 @@ mod tests {
         let b1 = Bounds::create(10, 20, 30, 40);
         let b2 = Bounds::create(25, 35, 30, 40);
         let intersection = b1.intersect(b2);
-        
+
         assert_eq!(intersection.get_x(), 25);
         assert_eq!(intersection.get_y(), 35);
         assert_eq!(intersection.get_width(), 15);
         assert_eq!(intersection.get_height(), 25);
-        
+
         // Non-intersecting bounds
         let b3 = Bounds::create(100, 100, 10, 10);
         let no_intersection = b1.intersect(b3);
@@ -441,7 +457,7 @@ mod tests {
         let bounds = Bounds::create(1, 0, 2, 3);
         let center_x = 0;
         let center_y = 0;
-        
+
         // 90-degree rotation
         let rotated = bounds.rotate(Direction::East, Direction::North, center_x, center_y);
         assert_eq!(rotated.get_x(), 0);
@@ -454,7 +470,7 @@ mod tests {
     fn test_bounds_empty() {
         assert!(Bounds::EMPTY_BOUNDS.is_empty());
         assert!(!Bounds::create(10, 20, 30, 40).is_empty());
-        
+
         let zero_width = Bounds::create(10, 20, 0, 40);
         assert!(zero_width.is_empty());
     }
@@ -462,16 +478,16 @@ mod tests {
     #[test]
     fn test_bounds_border_contains() {
         let bounds = Bounds::create(10, 10, 20, 20);
-        
+
         // Points on borders
         assert!(bounds.border_contains(10, 15, 0)); // Left border
         assert!(bounds.border_contains(29, 15, 0)); // Right border
         assert!(bounds.border_contains(15, 10, 0)); // Top border
         assert!(bounds.border_contains(15, 29, 0)); // Bottom border
-        
+
         // Points inside
         assert!(!bounds.border_contains(15, 15, 0));
-        
+
         // Points outside
         assert!(!bounds.border_contains(5, 15, 0));
     }
@@ -486,7 +502,7 @@ mod tests {
     fn test_bounds_from_location() {
         let location = Location::new(10, 20);
         let bounds = Bounds::create_from_location(location);
-        
+
         assert_eq!(bounds.get_x(), 10);
         assert_eq!(bounds.get_y(), 20);
         assert_eq!(bounds.get_width(), 1);

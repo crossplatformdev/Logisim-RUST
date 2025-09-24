@@ -52,6 +52,7 @@ pub mod circ_format;
 pub mod circ_parser;
 pub mod circ_serializer;
 pub mod component;
+pub mod components;
 pub mod data;
 pub mod event;
 pub mod file;
@@ -67,7 +68,9 @@ pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
 pub use component::{Component, ComponentId, Pin};
-pub use data::{Direction, Location, Bounds, BitWidth, Attribute, AttributeSet, AttributeValue, StdAttr};
+pub use data::{
+    Attribute, AttributeSet, AttributeValue, BitWidth, Bounds, Direction, Location, StdAttr,
+};
 pub use event::{EventQueue, SimulatorEvent};
 pub use file::{LoadFailedException, Loader, LogisimFile};
 pub use integrations::{FpgaError, PluginError, TclError, VhdlError};
@@ -75,4 +78,6 @@ pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
-pub use util::{StringGetter, StringUtil, CollectionUtil, Cache, StringCache, FileUtil, LocaleManager};
+pub use util::{
+    Cache, CollectionUtil, FileUtil, LocaleManager, StringCache, StringGetter, StringUtil,
+};

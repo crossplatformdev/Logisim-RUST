@@ -8,7 +8,7 @@
  */
 
 //! Location and positioning types
-//! 
+//!
 //! Rust port of Location.java
 
 use super::Direction;
@@ -18,7 +18,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 /// Represents an immutable 2D point/location
-/// 
+///
 /// This is analogous to Java's Point class but immutable and cached
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Location {
@@ -32,7 +32,10 @@ impl Location {
     pub fn create(x: i32, y: i32, snap_to_grid: bool) -> Self {
         let (x_snapped, y_snapped) = if snap_to_grid {
             // Round to 5-unit grid (half-grid base)
-            ((x as f32 / 5.0).round() as i32 * 5, (y as f32 / 5.0).round() as i32 * 5)
+            (
+                (x as f32 / 5.0).round() as i32 * 5,
+                (y as f32 / 5.0).round() as i32 * 5,
+            )
         } else {
             (x, y)
         };
@@ -57,25 +60,28 @@ impl Location {
     /// Parse a location from a string like "(x,y)" or "x,y"
     pub fn parse(value: &str) -> Result<Location, String> {
         let value = value.trim();
-        
+
         // Handle parentheses
         let value = if value.starts_with('(') && value.ends_with(')') {
-            &value[1..value.len()-1]
+            &value[1..value.len() - 1]
         } else {
             value
         };
 
         // Find comma or space separator
-        let separator_pos = value.find(',')
+        let separator_pos = value
+            .find(',')
             .or_else(|| value.find(' '))
             .ok_or_else(|| format!("Invalid location format: '{}'", value))?;
 
         let x_str = value[..separator_pos].trim();
         let y_str = value[separator_pos + 1..].trim();
 
-        let x = x_str.parse::<i32>()
+        let x = x_str
+            .parse::<i32>()
             .map_err(|_| format!("Invalid x coordinate: '{}'", x_str))?;
-        let y = y_str.parse::<i32>()
+        let y = y_str
+            .parse::<i32>()
             .map_err(|_| format!("Invalid y coordinate: '{}'", y_str))?;
 
         Ok(Location::create(x, y, true))
@@ -116,7 +122,12 @@ impl Location {
     }
 
     /// Translate in a given direction with perpendicular offset
-    pub fn translate_direction_with_offset(self, dir: Direction, dist: i32, right: i32) -> Location {
+    pub fn translate_direction_with_offset(
+        self,
+        dir: Direction,
+        dist: i32,
+        right: i32,
+    ) -> Location {
         if dist == 0 && right == 0 {
             return self;
         }
@@ -208,7 +219,7 @@ impl LocationSorting {
         items.sort_by(|a, b| {
             let loc_a = a.get_location();
             let loc_b = b.get_location();
-            
+
             match loc_a.x.cmp(&loc_b.x) {
                 Ordering::Equal => loc_a.y.cmp(&loc_b.y),
                 other => other,
@@ -221,7 +232,7 @@ impl LocationSorting {
         items.sort_by(|a, b| {
             let loc_a = a.get_location();
             let loc_b = b.get_location();
-            
+
             match loc_a.y.cmp(&loc_b.y) {
                 Ordering::Equal => loc_a.x.cmp(&loc_b.x),
                 other => other,
@@ -254,10 +265,19 @@ mod tests {
 
     #[test]
     fn test_location_parse() {
-        assert_eq!(Location::parse("(10,20)").unwrap(), Location::new_snapped(10, 20));
-        assert_eq!(Location::parse("10,20").unwrap(), Location::new_snapped(10, 20));
-        assert_eq!(Location::parse("10 20").unwrap(), Location::new_snapped(10, 20));
-        
+        assert_eq!(
+            Location::parse("(10,20)").unwrap(),
+            Location::new_snapped(10, 20)
+        );
+        assert_eq!(
+            Location::parse("10,20").unwrap(),
+            Location::new_snapped(10, 20)
+        );
+        assert_eq!(
+            Location::parse("10 20").unwrap(),
+            Location::new_snapped(10, 20)
+        );
+
         assert!(Location::parse("invalid").is_err());
         assert!(Location::parse("(10,20").is_err());
     }
@@ -266,7 +286,7 @@ mod tests {
     fn test_manhattan_distance() {
         let loc = Location::new(0, 0);
         assert_eq!(loc.manhattan_distance_to(3, 4), 7);
-        
+
         let other = Location::new(3, 4);
         assert_eq!(loc.manhattan_distance_to_location(other), 7);
     }
@@ -275,10 +295,10 @@ mod tests {
     fn test_translation() {
         let loc = Location::new(10, 20);
         let translated = loc.translate(5, -3);
-        
+
         assert_eq!(translated.x, 15);
         assert_eq!(translated.y, 17);
-        
+
         // No-op translation
         let same = loc.translate(0, 0);
         assert_eq!(same, loc);
@@ -287,15 +307,27 @@ mod tests {
     #[test]
     fn test_direction_translation() {
         let loc = Location::new(10, 10);
-        
-        assert_eq!(loc.translate_direction(Direction::East, 5), Location::new(15, 10));
-        assert_eq!(loc.translate_direction(Direction::West, 5), Location::new(5, 10));
-        assert_eq!(loc.translate_direction(Direction::North, 5), Location::new(10, 5));
-        assert_eq!(loc.translate_direction(Direction::South, 5), Location::new(10, 15));
-        
+
+        assert_eq!(
+            loc.translate_direction(Direction::East, 5),
+            Location::new(15, 10)
+        );
+        assert_eq!(
+            loc.translate_direction(Direction::West, 5),
+            Location::new(5, 10)
+        );
+        assert_eq!(
+            loc.translate_direction(Direction::North, 5),
+            Location::new(10, 5)
+        );
+        assert_eq!(
+            loc.translate_direction(Direction::South, 5),
+            Location::new(10, 15)
+        );
+
         // With offset
         assert_eq!(
-            loc.translate_direction_with_offset(Direction::East, 5, 3), 
+            loc.translate_direction_with_offset(Direction::East, 5, 3),
             Location::new(15, 13)
         );
     }
@@ -305,15 +337,15 @@ mod tests {
         let loc = Location::new(1, 0);
         let center_x = 0;
         let center_y = 0;
-        
+
         // 90-degree rotation
         let rotated = loc.rotate(Direction::East, Direction::North, center_x, center_y);
         assert_eq!(rotated, Location::new(0, -1));
-        
+
         // 180-degree rotation
         let rotated = loc.rotate(Direction::East, Direction::West, center_x, center_y);
         assert_eq!(rotated, Location::new(-1, 0));
-        
+
         // 270-degree rotation
         let rotated = loc.rotate(Direction::East, Direction::South, center_x, center_y);
         assert_eq!(rotated, Location::new(0, 1));
@@ -325,7 +357,7 @@ mod tests {
         let loc2 = Location::new(10, 20);
         let loc3 = Location::new(15, 20);
         let loc4 = Location::new(10, 25);
-        
+
         assert_eq!(loc1, loc2);
         assert!(loc1 < loc3); // Same y, smaller x
         assert!(loc1 < loc4); // Same x, smaller y
@@ -351,10 +383,18 @@ mod tests {
     #[test]
     fn test_sorting() {
         let mut items = vec![
-            TestLocationItem { location: Location::new(20, 10) },
-            TestLocationItem { location: Location::new(10, 20) },
-            TestLocationItem { location: Location::new(10, 10) },
-            TestLocationItem { location: Location::new(20, 20) },
+            TestLocationItem {
+                location: Location::new(20, 10),
+            },
+            TestLocationItem {
+                location: Location::new(10, 20),
+            },
+            TestLocationItem {
+                location: Location::new(10, 10),
+            },
+            TestLocationItem {
+                location: Location::new(20, 20),
+            },
         ];
 
         // Test horizontal sorting

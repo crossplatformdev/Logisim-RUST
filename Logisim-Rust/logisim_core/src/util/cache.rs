@@ -8,14 +8,14 @@
  */
 
 //! Cache utility for immutable object caching
-//! 
+//!
 //! Rust port of Cache.java
 
 use std::hash::{Hash, Hasher};
 
 /// A simple cache that allows immutable objects to be cached in memory
 /// to reduce the creation of duplicate objects.
-/// 
+///
 /// This is equivalent to Java's Cache class but uses Rust's type system
 /// for better memory safety.
 #[derive(Debug)]
@@ -41,7 +41,7 @@ where
         let size = 1 << log_size;
         let mut data = Vec::with_capacity(size);
         data.resize_with(size, || None);
-        
+
         Self {
             data,
             mask: size - 1,
@@ -164,7 +164,7 @@ mod tests {
     fn test_cache_with_log_size() {
         let cache: Cache<String> = Cache::with_log_size(4);
         assert_eq!(cache.capacity(), 16);
-        
+
         let cache: Cache<String> = Cache::with_log_size(15); // Should be clamped to 12
         assert_eq!(cache.capacity(), 4096);
     }
@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn test_get_or_insert() {
         let mut cache = Cache::new();
-        
+
         let value1 = "test".to_string();
         let cached1 = cache.get_or_insert(value1.clone());
         assert_eq!(cached1, value1);
@@ -196,10 +196,10 @@ mod tests {
         let mut cache = Cache::new();
         let value = "test".to_string();
         cache.put(42, value.clone());
-        
+
         let retrieved = cache.get_by_hash(42);
         assert_eq!(retrieved, Some(&value));
-        
+
         let not_found = cache.get_by_hash(99);
         assert_eq!(not_found, None);
     }
@@ -210,7 +210,7 @@ mod tests {
         cache.put(1, "test1".to_string());
         cache.put(2, "test2".to_string());
         assert!(!cache.is_empty());
-        
+
         cache.clear();
         assert!(cache.is_empty());
         assert_eq!(cache.len(), 0);
@@ -219,15 +219,15 @@ mod tests {
     #[test]
     fn test_string_cache() {
         let mut cache = StringCache::new();
-        
+
         let s1 = cache.intern("hello".to_string());
         let s2 = cache.intern_str("hello");
         let s3 = cache.intern("world".to_string());
-        
+
         assert_eq!(s1, "hello");
         assert_eq!(s2, "hello");
         assert_eq!(s3, "world");
-        
+
         assert!(!cache.is_empty());
         cache.clear();
         assert!(cache.is_empty());
@@ -236,15 +236,15 @@ mod tests {
     #[test]
     fn test_cache_with_integers() {
         let mut cache: Cache<i32> = Cache::new();
-        
+
         let val1 = cache.get_or_insert(42);
         let val2 = cache.get_or_insert(42);
         let val3 = cache.get_or_insert(100);
-        
+
         assert_eq!(val1, 42);
         assert_eq!(val2, 42);
         assert_eq!(val3, 100);
-        
+
         assert!(cache.len() >= 1);
     }
 }

@@ -8,7 +8,7 @@
  */
 
 //! Locale management for internationalization
-//! 
+//!
 //! Simplified Rust port of LocaleManager.java
 
 use crate::util::StringGetter;
@@ -68,7 +68,7 @@ impl fmt::Display for LocaleGetter {
 impl StringGetter for LocaleGetter {}
 
 /// Simplified locale manager for Rust
-/// 
+///
 /// This is a basic implementation that focuses on the core functionality
 /// without the full complexity of the Java ResourceBundle system.
 pub struct LocaleManager {
@@ -91,7 +91,10 @@ impl LocaleManager {
 
     /// Get a localized string by key
     pub fn get(&self, key: &str) -> String {
-        self.strings.get(key).cloned().unwrap_or_else(|| key.to_string())
+        self.strings
+            .get(key)
+            .cloned()
+            .unwrap_or_else(|| key.to_string())
     }
 
     /// Get a formatted localized string
@@ -154,7 +157,12 @@ impl LocaleManager {
 
     /// Get all available locales (simplified)
     pub fn get_available_locales(&self) -> Vec<String> {
-        vec!["en".to_string(), "es".to_string(), "fr".to_string(), "de".to_string()]
+        vec![
+            "en".to_string(),
+            "es".to_string(),
+            "fr".to_string(),
+            "de".to_string(),
+        ]
     }
 
     /// Check if a key exists
@@ -171,7 +179,7 @@ impl LocaleManager {
 impl Default for LocaleManager {
     fn default() -> Self {
         let mut manager = Self::new("default".to_string());
-        
+
         // Add some basic English strings
         manager.add_string("ok".to_string(), "OK".to_string());
         manager.add_string("cancel".to_string(), "Cancel".to_string());
@@ -180,7 +188,7 @@ impl Default for LocaleManager {
         manager.add_string("error".to_string(), "Error".to_string());
         manager.add_string("warning".to_string(), "Warning".to_string());
         manager.add_string("info".to_string(), "Information".to_string());
-        
+
         manager
     }
 }
@@ -229,12 +237,12 @@ mod tests {
     #[test]
     fn test_string_operations() {
         let mut manager = LocaleManager::new("test".to_string());
-        
+
         manager.add_string("hello".to_string(), "Hello, World!".to_string());
         assert_eq!(manager.get("hello"), "Hello, World!");
         assert!(manager.has_key("hello"));
         assert!(!manager.has_key("nonexistent"));
-        
+
         let keys = manager.get_keys();
         assert!(keys.contains(&"hello".to_string()));
     }
@@ -242,9 +250,12 @@ mod tests {
     #[test]
     fn test_formatted_strings() {
         let mut manager = LocaleManager::new("test".to_string());
-        
-        manager.add_string("greeting".to_string(), "Hello, {0}! You have {1} messages.".to_string());
-        
+
+        manager.add_string(
+            "greeting".to_string(),
+            "Hello, {0}! You have {1} messages.".to_string(),
+        );
+
         let name = "Alice";
         let count = 5;
         let formatted = manager.get_formatted("greeting", &[&name, &count]);
@@ -254,11 +265,11 @@ mod tests {
     #[test]
     fn test_string_getters() {
         let manager = LocaleManager::new("test".to_string());
-        
+
         let getter = manager.getter("test_key");
         assert_eq!(getter.get_key(), "test_key");
         assert_eq!(getter.to_string(), "test_key"); // Falls back to key
-        
+
         let fixed = manager.fixed_string("Fixed Value");
         assert_eq!(fixed.to_string(), "Fixed Value");
     }
@@ -266,11 +277,11 @@ mod tests {
     #[test]
     fn test_locale_change() {
         let mut manager = LocaleManager::new("test".to_string());
-        
+
         // Test locale change
         manager.set_locale("es".to_string());
         assert_eq!(manager.current_locale(), "es");
-        
+
         // Test available locales
         let locales = manager.get_available_locales();
         assert!(locales.contains(&"en".to_string()));
@@ -280,13 +291,13 @@ mod tests {
     #[test]
     fn test_load_strings() {
         let mut manager = LocaleManager::new("test".to_string());
-        
+
         let mut strings = HashMap::new();
         strings.insert("key1".to_string(), "value1".to_string());
         strings.insert("key2".to_string(), "value2".to_string());
-        
+
         manager.load_strings(strings);
-        
+
         assert_eq!(manager.get("key1"), "value1");
         assert_eq!(manager.get("key2"), "value2");
         assert!(manager.has_key("key1"));
@@ -296,13 +307,13 @@ mod tests {
     #[test]
     fn test_default_manager() {
         let manager = LocaleManager::default();
-        
+
         // Should have some basic strings
         assert_eq!(manager.get("ok"), "OK");
         assert_eq!(manager.get("cancel"), "Cancel");
         assert_eq!(manager.get("yes"), "Yes");
         assert_eq!(manager.get("no"), "No");
-        
+
         assert!(manager.has_key("ok"));
         assert!(manager.has_key("error"));
     }
@@ -311,7 +322,7 @@ mod tests {
     fn test_global_manager() {
         let manager = get_global_locale_manager();
         assert!(manager.has_key("ok"));
-        
+
         manager.add_string("test_global".to_string(), "Global Test".to_string());
         assert_eq!(manager.get("test_global"), "Global Test");
     }

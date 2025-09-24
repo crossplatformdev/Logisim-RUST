@@ -8,7 +8,7 @@
  */
 
 //! Collection utility functions and structures
-//! 
+//!
 //! Rust port of CollectionUtil.java
 
 use std::collections::{HashMap, HashSet};

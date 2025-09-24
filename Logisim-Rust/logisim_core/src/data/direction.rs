@@ -8,7 +8,7 @@
  */
 
 //! Direction enumeration for component orientation
-//! 
+//!
 //! Rust port of Direction.java
 
 use serde::{Deserialize, Serialize};
@@ -111,12 +111,16 @@ impl Direction {
 
 impl fmt::Display for Direction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Direction::East => "east",
-            Direction::North => "north",
-            Direction::West => "west",
-            Direction::South => "south",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Direction::East => "east",
+                Direction::North => "north",
+                Direction::West => "west",
+                Direction::South => "south",
+            }
+        )
     }
 }
 
@@ -150,7 +154,7 @@ mod tests {
         assert_eq!(Direction::parse("NORTH").unwrap(), Direction::North);
         assert_eq!(Direction::parse("West").unwrap(), Direction::West);
         assert_eq!(Direction::parse("south").unwrap(), Direction::South);
-        
+
         assert!(Direction::parse("invalid").is_err());
     }
 
@@ -211,7 +215,7 @@ mod tests {
         assert_eq!(Direction::from(0), Direction::East);
         assert_eq!(Direction::from(1), Direction::North);
         assert_eq!(Direction::from(4), Direction::East); // Wraps around
-        
+
         assert_eq!(usize::from(Direction::West), 2);
     }
 }

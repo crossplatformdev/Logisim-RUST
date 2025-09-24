@@ -8,7 +8,7 @@
  */
 
 //! String utility functions and traits
-//! 
+//!
 //! Rust port of StringUtil.java and StringGetter.java
 
 use std::fmt;
@@ -58,10 +58,10 @@ impl StringUtil {
         } else {
             value
         };
-        
+
         let len = (bits + 3) / 4;
         let hex_str = format!("{:0width$x}", masked_value, width = len as usize);
-        
+
         // Ensure we don't exceed the expected length
         if hex_str.len() > len as usize {
             hex_str[hex_str.len() - len as usize..].to_string()
