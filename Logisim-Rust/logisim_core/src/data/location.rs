@@ -412,3 +412,27 @@ mod tests {
         assert_eq!(items[3].location, Location::new(20, 20));
     }
 }
+
+impl super::AttributeValue for Location {
+    fn to_display_string(&self) -> String {
+        format!("({}, {})", self.x, self.y)
+    }
+
+    fn parse_from_string(s: &str) -> Result<Self, String> {
+        let s = s.trim();
+        if !s.starts_with('(') || !s.ends_with(')') {
+            return Err("Location must be in format (x, y)".to_string());
+        }
+        
+        let inner = &s[1..s.len()-1];
+        let parts: Vec<&str> = inner.split(',').collect();
+        if parts.len() != 2 {
+            return Err("Location must have exactly two coordinates".to_string());
+        }
+        
+        let x = parts[0].trim().parse::<i32>().map_err(|_| "Invalid x coordinate")?;
+        let y = parts[1].trim().parse::<i32>().map_err(|_| "Invalid y coordinate")?;
+        
+        Ok(Location::new(x, y))
+    }
+}

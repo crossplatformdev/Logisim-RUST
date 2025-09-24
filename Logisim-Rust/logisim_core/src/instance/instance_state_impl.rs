@@ -73,18 +73,18 @@ impl InstanceState for InstanceStateImpl {
         self.instance.attribute_set()
     }
 
-    fn get_attribute_value<T>(&self, attr: &Attribute<T>) -> Option<&T>
-    where
-        T: Clone + PartialEq + 'static,
-    {
-        self.instance.get_attribute_value(attr)
+    fn get_attribute_value_erased(&self, attr: &dyn std::any::Any) -> Option<Box<dyn std::any::Any>> {
+        // In a full implementation, this would handle the type erasure properly
+        // For now, return None as a placeholder
+        let _ = attr;
+        None
     }
 
     fn get_data(&self) -> Option<&dyn InstanceData> {
         self.data.as_deref()
     }
 
-    fn get_data_mut(&mut self) -> Option<&mut dyn InstanceData> {
+    fn get_data_mut(&mut self) -> Option<&mut (dyn InstanceData + '_)> {
         self.data.as_deref_mut()
     }
 

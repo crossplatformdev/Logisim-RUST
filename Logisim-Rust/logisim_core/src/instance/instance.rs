@@ -111,7 +111,7 @@ impl Instance {
     /// The attribute value, or None if not set.
     pub fn get_attribute_value<T>(&self, attr: &Attribute<T>) -> Option<&T>
     where
-        T: Clone + PartialEq + 'static,
+        T: Clone + PartialEq + crate::data::AttributeValue + 'static,
     {
         self.component.attribute_set().get_value(attr)
     }

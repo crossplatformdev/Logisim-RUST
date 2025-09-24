@@ -77,5 +77,5 @@ pub use instance_poker_adapter::InstancePokerAdapter;
 pub use instance_state::InstanceState;
 pub use instance_state_impl::InstanceStateImpl;
 pub use instance_text_field::InstanceTextField;
-pub use port::{Port, PortType};
+pub use port::{Port, PortType, PortWidth};
 pub use std_attr::StdAttr;

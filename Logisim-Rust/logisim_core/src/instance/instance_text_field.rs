@@ -49,6 +49,33 @@ impl Default for FontInfo {
     }
 }
 
+impl crate::data::AttributeValue for FontInfo {
+    fn to_display_string(&self) -> String {
+        format!("{} {}pt{}{}", 
+            self.family, 
+            self.size,
+            if self.bold { " Bold" } else { "" },
+            if self.italic { " Italic" } else { "" }
+        )
+    }
+
+    fn parse_from_string(s: &str) -> Result<Self, String> {
+        // Simple parsing - in a full implementation this would be more robust
+        let parts: Vec<&str> = s.split_whitespace().collect();
+        if parts.len() < 2 {
+            return Err("Invalid font format".to_string());
+        }
+        
+        let family = parts[0].to_string();
+        let size_str = parts[1].trim_end_matches("pt");
+        let size = size_str.parse::<u32>().map_err(|_| "Invalid font size")?;
+        let bold = s.contains("Bold");
+        let italic = s.contains("Italic");
+        
+        Ok(FontInfo { family, size, bold, italic })
+    }
+}
+
 /// Text field for component labels and text display.
 ///
 /// This struct manages the display and editing of text associated with components,

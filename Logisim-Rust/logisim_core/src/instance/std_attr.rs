@@ -12,7 +12,7 @@
 //! This module provides commonly used attributes for component instances.
 //! This is equivalent to Java's `StdAttr` class.
 
-use crate::data::{Attribute, BitWidth, Direction, Location};
+use crate::data::{Attribute, AttributeValue, BitWidth, Direction, Location};
 use crate::instance::instance_text_field::FontInfo;
 
 /// Standard attributes commonly used by component instances.
@@ -23,29 +23,44 @@ pub struct StdAttr;
 
 impl StdAttr {
     /// Component label text attribute.
-    pub const LABEL: Attribute<String> = Attribute::new("label", "Label");
+    pub fn label() -> Attribute<String> {
+        Attribute::new("label".to_string())
+    }
 
     /// Component label font attribute.
-    pub const LABEL_FONT: Attribute<FontInfo> = Attribute::new("labelfont", "Label Font");
+    pub fn label_font() -> Attribute<FontInfo> {
+        Attribute::new("labelfont".to_string())
+    }
 
     /// Component label location attribute.
-    pub const LABEL_LOC: Attribute<Location> = Attribute::new("labelloc", "Label Location");
+    pub fn label_loc() -> Attribute<Location> {
+        Attribute::new("labelloc".to_string())
+    }
 
     /// Component facing direction attribute.
-    pub const FACING: Attribute<Direction> = Attribute::new("facing", "Facing");
+    pub fn facing() -> Attribute<Direction> {
+        Attribute::new("facing".to_string())
+    }
 
     /// Component bit width attribute.
-    pub const WIDTH: Attribute<BitWidth> = Attribute::new("width", "Data Bits");
+    pub fn width() -> Attribute<BitWidth> {
+        Attribute::new("width".to_string())
+    }
 
     /// Input/output trigger type attribute.
-    pub const TRIGGER: Attribute<TriggerType> = Attribute::new("trigger", "Trigger");
+    pub fn trigger() -> Attribute<TriggerType> {
+        Attribute::new("trigger".to_string())
+    }
 
     /// Enable input attribute (for components with enable pins).
-    pub const ENABLE: Attribute<bool> = Attribute::new("enable", "Enable");
+    pub fn enable() -> Attribute<bool> {
+        Attribute::new("enable".to_string())
+    }
 
     /// Component appearance attribute.
-    pub const APPEARANCE: Attribute<AppearanceType> = Attribute::new("appearance", "Appearance");
-}
+    pub fn appearance() -> Attribute<AppearanceType> {
+        Attribute::new("appearance".to_string())
+    }
 
 /// Trigger types for sequential components.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -98,6 +113,22 @@ impl Default for TriggerType {
     }
 }
 
+impl AttributeValue for TriggerType {
+    fn to_display_string(&self) -> String {
+        self.display_name().to_string()
+    }
+
+    fn parse_from_string(s: &str) -> Result<Self, String> {
+        match s.to_lowercase().as_str() {
+            "rising" | "rising edge" => Ok(TriggerType::RisingEdge),
+            "falling" | "falling edge" => Ok(TriggerType::FallingEdge),
+            "high" | "high level" => Ok(TriggerType::HighLevel),
+            "low" | "low level" => Ok(TriggerType::LowLevel),
+            _ => Err(format!("Unknown trigger type: {}", s)),
+        }
+    }
+}
+
 /// Appearance types for component rendering.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AppearanceType {
@@ -135,6 +166,21 @@ impl Default for AppearanceType {
     }
 }
 
+impl AttributeValue for AppearanceType {
+    fn to_display_string(&self) -> String {
+        self.display_name().to_string()
+    }
+
+    fn parse_from_string(s: &str) -> Result<Self, String> {
+        match s.to_lowercase().as_str() {
+            "classic" => Ok(AppearanceType::Classic),
+            "modern" => Ok(AppearanceType::Modern),
+            "evolution" => Ok(AppearanceType::Evolution),
+            _ => Err(format!("Unknown appearance type: {}", s)),
+        }
+    }
+}
+
 /// Helper functions for working with standard attributes.
 impl StdAttr {
     /// Gets the default label location for a component.
@@ -150,20 +196,20 @@ impl StdAttr {
     pub fn default_label_location(facing: Direction, bounds: crate::data::Bounds) -> Location {
         match facing {
             Direction::North => Location::new(
-                bounds.x() + bounds.width() / 2,
-                bounds.y() - 5,
+                bounds.get_x() + bounds.get_width() / 2,
+                bounds.get_y() - 5,
             ),
             Direction::South => Location::new(
-                bounds.x() + bounds.width() / 2,
-                bounds.y() + bounds.height() + 15,
+                bounds.get_x() + bounds.get_width() / 2,
+                bounds.get_y() + bounds.get_height() + 15,
             ),
             Direction::East => Location::new(
-                bounds.x() + bounds.width() + 5,
-                bounds.y() + bounds.height() / 2,
+                bounds.get_x() + bounds.get_width() + 5,
+                bounds.get_y() + bounds.get_height() / 2,
             ),
             Direction::West => Location::new(
-                bounds.x() - 5,
-                bounds.y() + bounds.height() / 2,
+                bounds.get_x() - 5,
+                bounds.get_y() + bounds.get_height() / 2,
             ),
         }
     }
@@ -245,19 +291,19 @@ mod tests {
         let bounds = Bounds::new(10, 20, 30, 40);
         
         let north_loc = StdAttr::default_label_location(Direction::North, bounds);
-        assert_eq!(north_loc.x(), 25); // center x: 10 + 30/2
-        assert_eq!(north_loc.y(), 15); // above: 20 - 5
+        assert_eq!(north_loc.x, 25); // center x: 10 + 30/2
+        assert_eq!(north_loc.y, 15); // above: 20 - 5
         
         let south_loc = StdAttr::default_label_location(Direction::South, bounds);
-        assert_eq!(south_loc.x(), 25); // center x: 10 + 30/2
-        assert_eq!(south_loc.y(), 75); // below: 20 + 40 + 15
+        assert_eq!(south_loc.x, 25); // center x: 10 + 30/2
+        assert_eq!(south_loc.y, 75); // below: 20 + 40 + 15
         
         let east_loc = StdAttr::default_label_location(Direction::East, bounds);
-        assert_eq!(east_loc.x(), 45); // right: 10 + 30 + 5
-        assert_eq!(east_loc.y(), 40); // center y: 20 + 40/2
+        assert_eq!(east_loc.x, 45); // right: 10 + 30 + 5
+        assert_eq!(east_loc.y, 40); // center y: 20 + 40/2
         
         let west_loc = StdAttr::default_label_location(Direction::West, bounds);
-        assert_eq!(west_loc.x(), 5); // left: 10 - 5
-        assert_eq!(west_loc.y(), 40); // center y: 20 + 40/2
+        assert_eq!(west_loc.x, 5); // left: 10 - 5
+        assert_eq!(west_loc.y, 40); // center y: 20 + 40/2
     }
 }

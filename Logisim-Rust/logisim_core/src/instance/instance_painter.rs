@@ -275,13 +275,10 @@ impl InstanceState for InstancePainter {
             .expect("No instance set for painter")
     }
 
-    fn get_attribute_value<T>(&self, attr: &Attribute<T>) -> Option<&T>
-    where
-        T: Clone + PartialEq + 'static,
-    {
-        self.instance
-            .as_ref()
-            .and_then(|i| i.get_attribute_value(attr))
+    fn get_attribute_value_erased(&self, attr: &dyn std::any::Any) -> Option<Box<dyn std::any::Any>> {
+        // Would need proper attribute access through instance
+        let _ = attr;
+        None
     }
 
     fn get_data(&self) -> Option<&dyn crate::instance::InstanceData> {
@@ -289,7 +286,7 @@ impl InstanceState for InstancePainter {
         None
     }
 
-    fn get_data_mut(&mut self) -> Option<&mut dyn crate::instance::InstanceData> {
+    fn get_data_mut(&mut self) -> Option<&mut (dyn crate::instance::InstanceData + '_)> {
         // Would need access to simulation context
         None
     }

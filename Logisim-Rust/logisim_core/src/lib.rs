@@ -76,7 +76,7 @@ pub use data::{
 pub use event::{EventQueue, SimulatorEvent};
 pub use file::{LoadFailedException, Loader, LogisimFile};
 pub use instance::{
-    Instance, InstanceComponent, InstanceData, InstanceFactory, InstanceState, Port, PortType,
+    Instance, InstanceComponent, InstanceData, InstanceFactory, InstanceState, Port, PortType, PortWidth,
 };
 pub use integrations::{FpgaError, PluginError, TclError, VhdlError};
 pub use netlist::{NetId, Netlist, NodeId};
