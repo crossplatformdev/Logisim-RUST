@@ -10,6 +10,7 @@ authors = ["Logisim-RUST Contributors"]
 serde = { workspace = true }
 thiserror = { workspace = true }
 quick-xml = { version = "0.36", features = ["serialize"] }
+roxmltree = { workspace = true }
 indexmap = { version = "2.0", features = ["serde"] }
 
 [dev-dependencies]
