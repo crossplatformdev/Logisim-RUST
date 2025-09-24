@@ -26,10 +26,10 @@ jobs:
       with:
         filters: |
           rust:
-            - '**/*.rs'
-            - '**/Cargo.toml'
-            - '**/Cargo.lock'
-            - 'rust-toolchain.toml'
+            - 'Logisim-Rust/**/*.rs'
+            - 'Logisim-Rust/**/Cargo.toml'
+            - 'Logisim-Rust/**/Cargo.lock'
+            - 'Logisim-Rust/rust-toolchain.toml'
     
     - name: "Will build step run?"
       run: |
@@ -69,24 +69,31 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
+        workspaces: "Logisim-Rust -> target"
     
     - name: "Check code formatting"
       run: cargo fmt --all -- --check
+      working-directory: Logisim-Rust
     
     - name: "Run Clippy (no GUI)"
       run: cargo clippy --workspace --all-targets -- -D warnings
+      working-directory: Logisim-Rust
     
     - name: "Build workspace (no GUI)"
       run: cargo build --verbose --workspace
+      working-directory: Logisim-Rust
     
     - name: "Run tests (no GUI)"
       run: cargo test --verbose --workspace
+      working-directory: Logisim-Rust
     
     - name: "Build documentation (no GUI)"
       run: cargo doc --verbose --workspace --no-deps
+      working-directory: Logisim-Rust
     
     - name: "Run doc tests (no GUI)"
       run: cargo test --doc --verbose --workspace
+      working-directory: Logisim-Rust
     
     # GUI-specific builds (only on platforms with display support)
     - name: "Install GUI dependencies (Linux)"
@@ -101,11 +108,13 @@ jobs:
         # Test GUI build in headless mode using xvfb
         sudo apt-get install -y xvfb
         xvfb-run -a cargo build --verbose --features gui --package logisim_ui || echo "GUI build failed as expected without proper display server"
+      working-directory: Logisim-Rust
     
     - name: "Test GUI feature compilation"
       run: |
         # Just check that GUI features compile without actually running GUI tests
         cargo check --features gui --package logisim_ui
+      working-directory: Logisim-Rust
 
   coverage:
     name: "Code Coverage"
@@ -122,15 +131,18 @@ jobs:
     
     - name: "Cache Rust dependencies"
       uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "Logisim-Rust -> target"
     
     - name: "Install cargo-tarpaulin"
       run: cargo install cargo-tarpaulin
     
     - name: "Generate code coverage"
       run: cargo tarpaulin --verbose --workspace --timeout 120 --out xml
+      working-directory: Logisim-Rust
     
     - name: "Upload to codecov.io"
       uses: codecov/codecov-action@v5
       with:
-        file: cobertura.xml
+        file: Logisim-Rust/cobertura.xml
         fail_ci_if_error: false

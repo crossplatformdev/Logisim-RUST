@@ -1,1 +1,22 @@
-*.svg binary
+# Repository-wide .gitattributes
+
+# Rust files
+Logisim-Rust/**/*.rs text eol=lf
+Logisim-Rust/**/Cargo.toml text eol=lf
+Logisim-Rust/**/Cargo.lock text eol=lf
+
+# Java files  
+Logisim-Evolution/**/*.java text eol=lf
+Logisim-Evolution/**/*.gradle text eol=lf
+Logisim-Evolution/**/*.kts text eol=lf
+Logisim-Evolution/**/*.xml text eol=lf
+Logisim-Evolution/**/*.properties text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+gradlew text eol=lf
+justfile text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf

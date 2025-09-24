@@ -35,18 +35,23 @@ jobs:
     
     - name: "Check code formatting"
       run: cargo fmt --all -- --check
+      working-directory: Logisim-Rust
     
     - name: "Run Clippy"
       run: cargo clippy --workspace --all-targets -- -D warnings
+      working-directory: Logisim-Rust
     
     - name: "Build workspace"
       run: cargo build --verbose --workspace
+      working-directory: Logisim-Rust
     
     - name: "Run tests"
       run: cargo test --verbose --workspace
+      working-directory: Logisim-Rust
     
     - name: "Build documentation"
       run: cargo doc --verbose --workspace --no-deps
+      working-directory: Logisim-Rust
 
   experimental_features:
     name: "Test Experimental Features"

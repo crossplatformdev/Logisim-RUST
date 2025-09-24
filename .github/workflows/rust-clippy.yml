@@ -28,8 +28,8 @@ jobs:
         list-files: 'escape'
         filters: |
           rust:
-            - '**/*.rs'
-            - '**/Cargo.toml'
+            - 'Logisim-Rust/**/*.rs'
+            - 'Logisim-Rust/**/Cargo.toml'
     
     - name: "Will Clippy step run?"
       run: |
@@ -55,10 +55,14 @@ jobs:
     
     - name: "Cache Rust dependencies"
       uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "Logisim-Rust -> target"
     
     - name: "Run Clippy (deny warnings)"
       run: cargo clippy --workspace --all-targets -- -D warnings
+      working-directory: Logisim-Rust
     
     - name: "Run Clippy (pedantic for review)"
       run: cargo clippy --workspace --all-targets -- -W clippy::pedantic
+      working-directory: Logisim-Rust
       continue-on-error: true

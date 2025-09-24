@@ -1,52 +1,67 @@
-[![Logisim-evolution](docs/img/logisim-evolution-logo.png)](https://github.com/logisim-evolution/logisim-evolution)
+# Logisim-RUST Repository
 
----
+This repository contains two related but separate implementations of the Logisim digital logic simulator:
 
-# Logisim-evolution #
+## Projects
 
-* **Table of contents**
-  * [Features](#features)
-  * [Requirements](#requirements)
-  * **[Downloads](#download)**
-    * [Package Manager](#package-manager)
-    * [Nightly builds (unstable)](#nightly-builds)
-  * [Pictures of Logisim-evolution](docs/pics.md)
-  * [More Information](docs/docs.md)
-  * [Bug reports & feature requests](https://github.com/logisim-evolution/logisim-evolution/issues)
-  * [For developers](docs/developers.md)
-  * [How to contribute](docs/developers.md#how-to-contribute)
-  * [Credits](docs/credits.md)
+### 🦀 [Logisim-Rust](./Logisim-Rust/) - Modern Rust Implementation
 
----
+A modern, high-performance Rust implementation of Logisim with native GUI using egui.
 
-## Features ##
+**Key Features:**
+- Memory-safe Rust implementation
+- Native performance
+- Cross-platform (Windows, macOS, Linux, Web)
+- Modern GUI with egui
+- Headless simulation mode
 
-`Logisim-evolution` is educational software for designing and simulating digital logic circuits.
-`Logisim-evolution` is [free](#license), [open-source](https://github.com/logisim-evolution), and [cross-platform](#requirements).
+**Quick Start:**
+```bash
+cd Logisim-Rust
+cargo build --workspace --features gui
+```
 
-Project highlights:
+### ☕ [Logisim-Evolution](./Logisim-Evolution/) - Java Implementation
 
-* easy to use circuit designer,
-* logic circuit simulations,
-* chronogram (to see the evolution of signals in your circuit),
-* electronic board integration (schematics can be simulated on real hardware),
-* VHDL components (components behavior can be specified in VHDL!),
-* TCL/TK console (interfaces between the circuit and the user),
-* huge library of components (LEDs, TTLs, switches, SoCs),
-* allows for custom libraries to be [loaded on startup](docs/automatic_library_import.md)
-* supports [multiple languages](docs/docs.md#translations),
-* and more!
+The original Java-based Logisim-Evolution digital logic simulator.
 
-[![Logisim-evolution](docs/img/logisim-evolution-01-small.png)](docs/pics.md)
-[![Logisim-evolution](docs/img/logisim-evolution-02-small.png)](docs/pics.md)
-[![Logisim-evolution](docs/img/logisim-evolution-03-small.png)](docs/pics.md)
+**Key Features:**
+- Mature Java implementation
+- Rich feature set
+- Swing/AWT GUI
+- FPGA integration
+- Extensive component library
 
----
+**Quick Start:**
+```bash
+cd Logisim-Evolution  
+./gradlew build
+```
 
-## Requirements ##
+## Documentation
 
-`Logisim-evolution` is a Java application; therefore, it can run on any operating system supporting the Java runtime enviroment.
-It requires [Java 21 (or newer)](https://adoptium.net/temurin/releases/).
+- **[Logisim-Rust Documentation](./Logisim-Rust/BUILD.md)** - Rust implementation build and usage
+- **[Logisim-Evolution Documentation](./Logisim-Evolution/docs/)** - Java implementation documentation
+
+## Migration Notes
+
+The Rust implementation aims to maintain compatibility with Logisim-Evolution while providing:
+- Better performance through native compilation
+- Memory safety through Rust's ownership system
+- Modern cross-platform GUI
+- Web target support
+
+See [Migration Notes](./Logisim-Rust/docs/MIGRATION_NOTES.md) for detailed migration information.
+
+## Contributing
+
+Each subproject has its own contribution guidelines:
+- **Rust**: See [Logisim-Rust/BUILD.md](./Logisim-Rust/BUILD.md#contributing)
+- **Java**: See [Logisim-Evolution/docs/developers.md](./Logisim-Evolution/docs/developers.md)
+
+## License
+
+Both projects are licensed under GPL-3.0. See [LICENSE.md](./LICENSE.md) for details.
 
 ---
 

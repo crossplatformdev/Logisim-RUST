@@ -49,7 +49,7 @@ brew install just
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/crossplatformdev/Logisim-RUST.git
-cd Logisim-RUST
+cd Logisim-RUST/Logisim-Rust
 ```
 
 ### 2. Build and Test (Headless Mode)
