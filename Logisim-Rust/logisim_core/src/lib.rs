@@ -52,6 +52,7 @@ pub mod circ_format;
 pub mod circ_parser;
 pub mod circ_serializer;
 pub mod component;
+pub mod data;
 pub mod event;
 pub mod file;
 pub mod integrations;
@@ -59,12 +60,16 @@ pub mod netlist;
 pub mod prefs;
 pub mod signal;
 pub mod simulation;
+pub mod util;
 
 // Re-export core types for convenience
 pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
 pub use component::{Component, ComponentId, Pin};
+pub use data::{
+    Attribute, AttributeSet, AttributeValue, BitWidth, Bounds, Direction, Location, StdAttr,
+};
 pub use event::{EventQueue, SimulatorEvent};
 pub use file::{LoadFailedException, Loader, LogisimFile};
 pub use integrations::{FpgaError, PluginError, TclError, VhdlError};
@@ -72,3 +77,6 @@ pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
+pub use util::{
+    Cache, CollectionUtil, FileUtil, LocaleManager, StringCache, StringGetter, StringUtil,
+};
