@@ -112,6 +112,7 @@ impl PortWidth {
             PortWidth::Fixed(width) => Ok(*width),
             PortWidth::Attribute(attr) => {
                 attrs.get_value(attr)
+                    .copied()
                     .ok_or_else(|| format!("Width attribute {:?} not found", attr))
             }
         }
@@ -224,8 +225,8 @@ impl Port {
     /// The absolute location of this port.
     pub fn location(&self, component_loc: Location) -> Location {
         Location::new(
-            component_loc.x() + self.dx,
-            component_loc.y() + self.dy,
+            component_loc.x + self.dx,
+            component_loc.y + self.dy,
         )
     }
 

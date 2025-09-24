@@ -34,7 +34,6 @@ use std::sync::{Arc, Weak};
 ///
 /// It maintains references to its factory and provides access to instance-specific
 /// operations like port management, attribute handling, and rendering integration.
-#[derive(Debug)]
 pub struct InstanceComponent {
     /// Location of this component in the circuit
     location: Location,
@@ -63,7 +62,7 @@ impl InstanceComponent {
         Self {
             location,
             attributes,
-            bounds: Bounds::new(0, 0, 0, 0), // Will be computed when factory is set
+            bounds: Bounds::create(0, 0, 0, 0), // Will be computed when factory is set
             instance: Weak::new(),
             factory: None,
         }
@@ -143,7 +142,7 @@ impl InstanceComponent {
         if let Some(factory) = &self.factory {
             self.bounds = factory
                 .get_offset_bounds(&self.attributes)
-                .translate(self.location.x(), self.location.y());
+                .translate(self.location.x, self.location.y);
         }
     }
 
@@ -166,8 +165,8 @@ impl InstanceComponent {
         self.location = new_location;
         
         // Translate bounds by the difference
-        let dx = new_location.x() - old_location.x();
-        let dy = new_location.y() - old_location.y();
+        let dx = new_location.x - old_location.x;
+        let dy = new_location.y - old_location.y;
         self.bounds = self.bounds.translate(dx, dy);
     }
 

@@ -61,6 +61,7 @@ impl StdAttr {
     pub fn appearance() -> Attribute<AppearanceType> {
         Attribute::new("appearance".to_string())
     }
+}
 
 /// Trigger types for sequential components.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
