@@ -7,9 +7,11 @@ pub mod location;
 pub mod direction;
 pub mod bounds;
 pub mod bit_width;
+pub mod attributes;
 
 // Re-export commonly used types
 pub use location::*;
 pub use direction::*;
 pub use bounds::*;
 pub use bit_width::*;
+pub use attributes::*;

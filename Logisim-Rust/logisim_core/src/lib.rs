@@ -67,7 +67,7 @@ pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
 pub use component::{Component, ComponentId, Pin};
-pub use data::{Direction, Location, Bounds, BitWidth};
+pub use data::{Direction, Location, Bounds, BitWidth, Attribute, AttributeSet, AttributeValue, StdAttr};
 pub use event::{EventQueue, SimulatorEvent};
 pub use file::{LoadFailedException, Loader, LogisimFile};
 pub use integrations::{FpgaError, PluginError, TclError, VhdlError};
