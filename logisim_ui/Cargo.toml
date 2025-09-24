@@ -14,16 +14,19 @@ gui = ["dep:egui", "dep:eframe"]
 logisim_core = { path = "../logisim_core" }
 serde = { workspace = true }
 thiserror = { workspace = true }
-# GUI framework - using egui for cross-platform compatibility (optional)
+# Additional dependencies for UI functionality
+indexmap = { version = "2.0", features = ["serde"] }
+
+# GUI framework dependencies - conditionally included for supported platforms
+# winit/egui requires proper display server setup, so we make these optional
+# and let the build system decide when to include them
 egui = { version = "0.30", optional = true }
 eframe = { version = "0.30", default-features = false, features = [
-    "accesskit",     # Make egui comptaible with screen readers
+    "accesskit",     # Make egui compatible with screen readers
     "default_fonts", # Embed the default egui fonts
     "glow",          # Use glow rendering backend
     "persistence",   # Enable restoring app state when restarting the app
 ], optional = true }
-# Additional dependencies for UI functionality
-indexmap = { version = "2.0", features = ["serde"] }
 
 [dev-dependencies]
 # Testing dependencies
