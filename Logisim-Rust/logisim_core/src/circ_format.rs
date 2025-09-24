@@ -35,7 +35,6 @@ use thiserror::Error;
 
 use crate::component::{Component, ComponentId};
 use crate::netlist::NodeId;
-use crate::signal::BusWidth;
 use crate::simulation::Simulation;
 
 /// Errors that can occur during .circ file processing
@@ -753,7 +752,8 @@ impl CircIntegration {
         circuit: &CircuitDefinition,
         _all_circuits: &HashMap<String, CircuitDefinition>,
     ) -> CircResult<()> {
-        use crate::component::{AndGate, ClockedLatch};
+        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel};
+        use crate::signal::{BusWidth, Value};
 
         // Create a mapping from locations to node IDs for wire connections
         let mut location_to_node: HashMap<(i32, i32), NodeId> = HashMap::new();
@@ -766,7 +766,65 @@ impl CircIntegration {
             // Create appropriate component based on name
             let component: Box<dyn Component> = match comp_instance.name.as_str() {
                 "AND Gate" => Box::new(AndGate::new(component_id)),
+                "OR Gate" => Box::new(OrGate::new(component_id)),
+                "NOT Gate" => Box::new(NotGate::new(component_id)),
+                "NAND Gate" => Box::new(NandGate::new(component_id)),
+                "NOR Gate" => Box::new(NorGate::new(component_id)),
+                "XOR Gate" => Box::new(XorGate::new(component_id)),
+                "XNOR Gate" => Box::new(XnorGate::new(component_id)),
+                "Pin" => {
+                    // Determine if it's input or output based on attributes
+                    let is_output = comp_instance.attributes.get("output")
+                        .map(|v| v == "true")
+                        .unwrap_or(false);
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(1));
+                    
+                    if is_output {
+                        Box::new(PinComponent::new_output(component_id, width))
+                    } else {
+                        Box::new(PinComponent::new_input(component_id, width))
+                    }
+                }
                 "Clocked Latch" => Box::new(ClockedLatch::new(component_id)),
+                "Constant" => {
+                    let value_str = comp_instance.attributes.get("value")
+                        .map(|v| v.as_str())
+                        .unwrap_or("0");
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(1));
+                    
+                    let value = if value_str == "1" || value_str.to_lowercase() == "true" {
+                        Value::High
+                    } else if value_str == "0" || value_str.to_lowercase() == "false" {
+                        Value::Low
+                    } else {
+                        Value::Unknown
+                    };
+                    
+                    Box::new(Constant::new(component_id, value, width))
+                }
+                "Probe" => {
+                    let width = comp_instance.attributes.get("radix")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(1));
+                    Box::new(Probe::new(component_id, width))
+                }
+                "Tunnel" => {
+                    let label = comp_instance.attributes.get("label")
+                        .map(|l| l.clone())
+                        .unwrap_or_else(|| format!("tunnel_{}", component_id.as_u64()));
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(1));
+                    Box::new(Tunnel::new(component_id, label, width))
+                }
                 "ROM" => {
                     // Create a ROM component (simplified for now)
                     // TODO: Implement proper ROM component with contents

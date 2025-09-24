@@ -7,6 +7,7 @@ use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::Not;
 
 /// Unique identifier for a component
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -441,6 +442,831 @@ impl Propagator for ClockedLatch {
         }
 
         UpdateResult::new()
+    }
+}
+
+/// A Pin component for input/output connections
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PinComponent {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    direction: PinDirection,
+    width: BusWidth,
+}
+
+impl PinComponent {
+    /// Create a new input pin
+    pub fn new_input(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("".to_string(), Pin::new_output("", width));
+
+        PinComponent {
+            id,
+            pins,
+            direction: PinDirection::Input,
+            width,
+        }
+    }
+
+    /// Create a new output pin
+    pub fn new_output(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("".to_string(), Pin::new_input("", width));
+
+        PinComponent {
+            id,
+            pins,
+            direction: PinDirection::Output,
+            width,
+        }
+    }
+}
+
+impl Component for PinComponent {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Pin"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        // Pins are simple pass-through - they just connect signals
+        UpdateResult::new()
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for pins
+    }
+}
+
+impl Propagator for PinComponent {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        _current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal.clone());
+        }
+
+        let mut result = UpdateResult::new();
+        result.add_output("".to_string(), signal);
+        result
+    }
+}
+
+/// OR Gate implementation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl OrGate {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
+        pins.insert("B".to_string(), Pin::new_input("B", BusWidth(1)));
+        pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
+
+        OrGate { id, pins }
+    }
+}
+
+impl Component for OrGate {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "OR"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let a = self
+            .pins
+            .get("A")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+        let b = self
+            .pins
+            .get("B")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+
+        let output = a.or(b);
+        let output_signal = Signal::new_single(output);
+
+        let mut result = UpdateResult::new();
+        result.add_output("Y".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+
+        if let Some(pin) = self.pins.get_mut("Y") {
+            let _ = pin.set_signal(output_signal);
+        }
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        1
+    }
+}
+
+impl Propagator for OrGate {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// NOT Gate implementation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NotGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl NotGate {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
+        pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
+
+        NotGate { id, pins }
+    }
+}
+
+impl Component for NotGate {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "NOT"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let a = self
+            .pins
+            .get("A")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+
+        let output = a.not();
+        let output_signal = Signal::new_single(output);
+
+        let mut result = UpdateResult::new();
+        result.add_output("Y".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+
+        if let Some(pin) = self.pins.get_mut("Y") {
+            let _ = pin.set_signal(output_signal);
+        }
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        1
+    }
+}
+
+impl Propagator for NotGate {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// NAND Gate implementation  
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NandGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl NandGate {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
+        pins.insert("B".to_string(), Pin::new_input("B", BusWidth(1)));
+        pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
+
+        NandGate { id, pins }
+    }
+}
+
+impl Component for NandGate {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "NAND"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let a = self
+            .pins
+            .get("A")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+        let b = self
+            .pins
+            .get("B")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+
+        let output = a.and(b).not();
+        let output_signal = Signal::new_single(output);
+
+        let mut result = UpdateResult::new();
+        result.add_output("Y".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+
+        if let Some(pin) = self.pins.get_mut("Y") {
+            let _ = pin.set_signal(output_signal);
+        }
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        1
+    }
+}
+
+impl Propagator for NandGate {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// NOR Gate implementation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NorGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl NorGate {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
+        pins.insert("B".to_string(), Pin::new_input("B", BusWidth(1)));
+        pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
+
+        NorGate { id, pins }
+    }
+}
+
+impl Component for NorGate {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "NOR"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let a = self
+            .pins
+            .get("A")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+        let b = self
+            .pins
+            .get("B")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+
+        let output = a.or(b).not();
+        let output_signal = Signal::new_single(output);
+
+        let mut result = UpdateResult::new();
+        result.add_output("Y".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+
+        if let Some(pin) = self.pins.get_mut("Y") {
+            let _ = pin.set_signal(output_signal);
+        }
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        1
+    }
+}
+
+impl Propagator for NorGate {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// XOR Gate implementation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct XorGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl XorGate {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
+        pins.insert("B".to_string(), Pin::new_input("B", BusWidth(1)));
+        pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
+
+        XorGate { id, pins }
+    }
+}
+
+impl Component for XorGate {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "XOR"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let a = self
+            .pins
+            .get("A")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+        let b = self
+            .pins
+            .get("B")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+
+        let output = a.xor(b);
+        let output_signal = Signal::new_single(output);
+
+        let mut result = UpdateResult::new();
+        result.add_output("Y".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+
+        if let Some(pin) = self.pins.get_mut("Y") {
+            let _ = pin.set_signal(output_signal);
+        }
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        1
+    }
+}
+
+impl Propagator for XorGate {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// XNOR Gate implementation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct XnorGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl XnorGate {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
+        pins.insert("B".to_string(), Pin::new_input("B", BusWidth(1)));
+        pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
+
+        XnorGate { id, pins }
+    }
+}
+
+impl Component for XnorGate {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "XNOR"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let a = self
+            .pins
+            .get("A")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+        let b = self
+            .pins
+            .get("B")
+            .unwrap()
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
+
+        let output = a.xor(b).not();
+        let output_signal = Signal::new_single(output);
+
+        let mut result = UpdateResult::new();
+        result.add_output("Y".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+
+        if let Some(pin) = self.pins.get_mut("Y") {
+            let _ = pin.set_signal(output_signal);
+        }
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        1
+    }
+}
+
+impl Propagator for XnorGate {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// Constant value component
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Constant {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    value: Value,
+    width: BusWidth,
+}
+
+impl Constant {
+    pub fn new(id: ComponentId, value: Value, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("Y".to_string(), Pin::new_output("Y", width));
+
+        Constant { id, pins, value, width }
+    }
+}
+
+impl Component for Constant {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Constant"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let output_signal = if self.width.is_single_bit() {
+            Signal::new_single(self.value)
+        } else {
+            Signal::new_uniform(self.width, self.value)
+        };
+
+        let mut result = UpdateResult::new();
+        result.add_output("Y".to_string(), output_signal.clone());
+
+        if let Some(pin) = self.pins.get_mut("Y") {
+            let _ = pin.set_signal(output_signal);
+        }
+
+        result
+    }
+
+    fn reset(&mut self) {
+        // Constants maintain their value on reset
+        self.update(Timestamp(0));
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for constants
+    }
+}
+
+impl Propagator for Constant {
+    fn propagate(
+        &mut self,
+        _input_pin: &str,
+        _signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        // Constants don't have inputs, they always output their fixed value
+        self.update(current_time)
+    }
+}
+
+/// Probe component for monitoring signals
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Probe {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+}
+
+impl Probe {
+    pub fn new(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("IN".to_string(), Pin::new_input("IN", width));
+
+        Probe { id, pins, width }
+    }
+}
+
+impl Component for Probe {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Probe"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        // Probes just monitor the input signal
+        UpdateResult::new()
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for probes
+    }
+}
+
+impl Propagator for Probe {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        _current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        UpdateResult::new()
+    }
+}
+
+/// Tunnel component for connecting signals by name
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Tunnel {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    label: String,
+    width: BusWidth,
+}
+
+impl Tunnel {
+    pub fn new(id: ComponentId, label: String, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("".to_string(), Pin::new_inout("", width));
+
+        Tunnel { id, pins, label, width }
+    }
+}
+
+impl Component for Tunnel {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Tunnel"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        // Tunnels are pass-through components for named connections
+        UpdateResult::new()
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for tunnels
+    }
+}
+
+impl Propagator for Tunnel {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        _current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal.clone());
+        }
+
+        let mut result = UpdateResult::new();
+        result.add_output("".to_string(), signal);
+        result
     }
 }
 
