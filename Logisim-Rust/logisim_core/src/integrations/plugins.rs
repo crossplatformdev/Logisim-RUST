@@ -54,16 +54,20 @@ pub struct PluginDependency {
 pub trait PluginLibrary: Send + Sync {
     /// Get library information
     fn info(&self) -> &PluginInfo;
-    
+
     /// Get available components in this library
     fn components(&self) -> Vec<ComponentInfo>;
-    
+
     /// Create a component instance
-    fn create_component(&self, component_type: &str, id: ComponentId) -> PluginResult<Box<dyn Component>>;
-    
+    fn create_component(
+        &self,
+        component_type: &str,
+        id: ComponentId,
+    ) -> PluginResult<Box<dyn Component>>;
+
     /// Initialize the plugin
     fn initialize(&mut self) -> PluginResult<()>;
-    
+
     /// Cleanup the plugin
     fn cleanup(&mut self) -> PluginResult<()>;
 }
@@ -105,13 +109,13 @@ impl PluginManager {
     pub fn discover_plugins(&mut self) -> PluginResult<Vec<PluginInfo>> {
         // Stub implementation - maintains API compatibility
         log::warn!("Plugin discovery not implemented in current version");
-        
+
         // In full implementation, would:
         // 1. Scan search paths for plugin files (.dll, .so, .dylib, .wasm)
         // 2. Load plugin metadata without fully loading
         // 3. Resolve dependencies
         // 4. Return list of available plugins
-        
+
         Err(PluginError::NotImplemented)
     }
 
@@ -119,13 +123,13 @@ impl PluginManager {
     pub fn load_plugin(&mut self, _plugin_name: &str) -> PluginResult<()> {
         // Stub implementation - maintains API compatibility
         log::warn!("Plugin loading not implemented in current version");
-        
+
         // In full implementation, would:
         // 1. Load dynamic library
         // 2. Get plugin entry point
         // 3. Initialize plugin
         // 4. Register components
-        
+
         Err(PluginError::NotImplemented)
     }
 
@@ -158,7 +162,12 @@ impl PluginManager {
     }
 
     /// Create component from plugin
-    pub fn create_component(&self, _plugin_name: &str, _component_type: &str, _id: ComponentId) -> PluginResult<Box<dyn Component>> {
+    pub fn create_component(
+        &self,
+        _plugin_name: &str,
+        _component_type: &str,
+        _id: ComponentId,
+    ) -> PluginResult<Box<dyn Component>> {
         // Stub implementation - maintains API compatibility
         log::warn!("Plugin component creation not implemented in current version");
         Err(PluginError::NotImplemented)
@@ -190,13 +199,13 @@ impl CustomLibraryLoader {
     pub fn load_jar_library(&mut self, _jar_path: PathBuf) -> PluginResult<()> {
         // Stub implementation - maintains API compatibility
         log::warn!("JAR library loading not implemented in current version");
-        
+
         // In full implementation, would:
         // 1. Extract JAR contents
         // 2. Parse component definitions
         // 3. Convert to Rust plugin format
         // 4. Load as native plugin
-        
+
         Err(PluginError::NotImplemented)
     }
 
@@ -209,15 +218,15 @@ impl CustomLibraryLoader {
 
     /// Load a WebAssembly plugin
     pub fn load_wasm_plugin(&mut self, _wasm_path: PathBuf) -> PluginResult<()> {
-        // Stub implementation - maintains API compatibility  
+        // Stub implementation - maintains API compatibility
         log::warn!("WebAssembly plugin loading not implemented in current version");
-        
+
         // In full implementation, would:
         // 1. Load WASM module
         // 2. Instantiate WASM runtime
         // 3. Bind component interface
         // 4. Register WASM components
-        
+
         Err(PluginError::NotImplemented)
     }
 
@@ -331,7 +340,7 @@ mod tests {
     #[test]
     fn test_plugin_system_unavailable() {
         assert!(!is_plugin_system_available());
-        
+
         let caps = get_plugin_capabilities();
         assert!(!caps.native_plugins);
         assert!(!caps.jar_plugins);
@@ -343,12 +352,12 @@ mod tests {
     #[test]
     fn test_dev_utils_not_implemented() {
         use dev_utils::*;
-        
+
         assert!(matches!(
             generate_plugin_template("test", PathBuf::from("/tmp")),
             Err(PluginError::NotImplemented)
         ));
-        
+
         assert!(matches!(
             validate_plugin(PathBuf::from("/tmp/plugin")),
             Err(PluginError::NotImplemented)

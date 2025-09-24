@@ -3907,9 +3907,15 @@ impl BitAdder {
         let mut pins = HashMap::new();
         pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
         pins.insert("B".to_string(), Pin::new_input("B", BusWidth(1)));
-        pins.insert("CarryIn".to_string(), Pin::new_input("CarryIn", BusWidth(1)));
+        pins.insert(
+            "CarryIn".to_string(),
+            Pin::new_input("CarryIn", BusWidth(1)),
+        );
         pins.insert("Sum".to_string(), Pin::new_output("Sum", BusWidth(1)));
-        pins.insert("CarryOut".to_string(), Pin::new_output("CarryOut", BusWidth(1)));
+        pins.insert(
+            "CarryOut".to_string(),
+            Pin::new_output("CarryOut", BusWidth(1)),
+        );
 
         Self { id, pins }
     }
@@ -3943,7 +3949,10 @@ impl Component for BitAdder {
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let a = self.pins["A"].signal.as_single().unwrap_or(Value::Unknown);
         let b = self.pins["B"].signal.as_single().unwrap_or(Value::Unknown);
-        let carry_in = self.pins["CarryIn"].signal.as_single().unwrap_or(Value::Unknown);
+        let carry_in = self.pins["CarryIn"]
+            .signal
+            .as_single()
+            .unwrap_or(Value::Unknown);
 
         let (sum, carry_out) = match (a, b, carry_in) {
             (Value::Low, Value::Low, Value::Low) => (Value::Low, Value::Low),
@@ -4020,7 +4029,7 @@ impl Component for Negator {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let input_signal = &self.pins["Input"].signal;
-        
+
         let output_value = if let Some(value) = input_signal.as_single() {
             match value {
                 Value::Low => Value::High,
@@ -4033,7 +4042,11 @@ impl Component for Negator {
             let input_val = input_signal.to_u64().unwrap_or(0) as u32;
             let max_val = (1u32 << self.width.0) - 1;
             let negated = (!input_val + 1) & max_val;
-            if negated == 0 { Value::Low } else { Value::High }
+            if negated == 0 {
+                Value::Low
+            } else {
+                Value::High
+            }
         };
 
         let mut outputs = HashMap::new();
@@ -4098,7 +4111,7 @@ impl Component for Buffer {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let input_signal = self.pins["Input"].signal.clone();
-        
+
         let mut outputs = HashMap::new();
         outputs.insert("Output".to_string(), input_signal);
 
@@ -4127,12 +4140,26 @@ pub struct BitExtender {
 }
 
 impl BitExtender {
-    pub fn new(id: ComponentId, input_width: BusWidth, output_width: BusWidth, signed_extend: bool) -> Self {
+    pub fn new(
+        id: ComponentId,
+        input_width: BusWidth,
+        output_width: BusWidth,
+        signed_extend: bool,
+    ) -> Self {
         let mut pins = HashMap::new();
         pins.insert("Input".to_string(), Pin::new_input("Input", input_width));
-        pins.insert("Output".to_string(), Pin::new_output("Output", output_width));
+        pins.insert(
+            "Output".to_string(),
+            Pin::new_output("Output", output_width),
+        );
 
-        Self { id, pins, input_width, output_width, signed_extend }
+        Self {
+            id,
+            pins,
+            input_width,
+            output_width,
+            signed_extend,
+        }
     }
 }
 
@@ -4163,7 +4190,7 @@ impl Component for BitExtender {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let input_value = self.pins["Input"].signal.to_u64().unwrap_or(0) as u32;
-        
+
         let output_value = if self.signed_extend && self.input_width.0 > 0 {
             // Sign extend
             let sign_bit = 1u32 << (self.input_width.0 - 1);
@@ -4214,9 +4241,18 @@ impl BitSelector {
         let output_width = BusWidth(select_bits.len() as u32);
         let mut pins = HashMap::new();
         pins.insert("Input".to_string(), Pin::new_input("Input", input_width));
-        pins.insert("Output".to_string(), Pin::new_output("Output", output_width));
+        pins.insert(
+            "Output".to_string(),
+            Pin::new_output("Output", output_width),
+        );
 
-        Self { id, pins, input_width, output_width, select_bits }
+        Self {
+            id,
+            pins,
+            input_width,
+            output_width,
+            select_bits,
+        }
     }
 }
 
@@ -4247,7 +4283,7 @@ impl Component for BitSelector {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let input_value = self.pins["Input"].signal.to_u64().unwrap_or(0) as u32;
-        
+
         let mut output_value = 0u32;
         for (i, &bit_index) in self.select_bits.iter().enumerate() {
             if bit_index < self.input_width.0 {
@@ -4288,14 +4324,25 @@ impl PriorityEncoder {
     pub fn new(id: ComponentId, input_count: u32) -> Self {
         let output_width = BusWidth((input_count as f32).log2().ceil() as u32);
         let mut pins = HashMap::new();
-        
+
         for i in 0..input_count {
-            pins.insert(format!("I{}", i), Pin::new_input(&format!("I{}", i), BusWidth(1)));
+            pins.insert(
+                format!("I{}", i),
+                Pin::new_input(&format!("I{}", i), BusWidth(1)),
+            );
         }
-        pins.insert("Output".to_string(), Pin::new_output("Output", output_width));
+        pins.insert(
+            "Output".to_string(),
+            Pin::new_output("Output", output_width),
+        );
         pins.insert("Valid".to_string(), Pin::new_output("Valid", BusWidth(1)));
 
-        Self { id, pins, input_count, output_width }
+        Self {
+            id,
+            pins,
+            input_count,
+            output_width,
+        }
     }
 }
 
@@ -4327,7 +4374,7 @@ impl Component for PriorityEncoder {
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let mut encoded_value = 0u32;
         let mut valid = false;
-        
+
         // Find highest priority (highest index) active input
         for i in (0..self.input_count).rev() {
             let input_name = format!("I{}", i);
@@ -4342,7 +4389,10 @@ impl Component for PriorityEncoder {
 
         let mut outputs = HashMap::new();
         outputs.insert("Output".to_string(), Signal::new_single(Value::Unknown));
-        outputs.insert("Valid".to_string(), Signal::new_single(if valid { Value::High } else { Value::Low }));
+        outputs.insert(
+            "Valid".to_string(),
+            Signal::new_single(if valid { Value::High } else { Value::Low }),
+        );
 
         UpdateResult {
             outputs,
@@ -4376,9 +4426,9 @@ impl Rom {
         pins.insert("Data".to_string(), Pin::new_output("Data", data_width));
         pins.insert("OE".to_string(), Pin::new_input("OE", BusWidth(1)));
 
-        Self { 
-            id, 
-            pins, 
+        Self {
+            id,
+            pins,
             data: vec![0; size],
             addr_width,
             data_width,
@@ -4420,7 +4470,7 @@ impl Component for Rom {
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let oe = self.pins["OE"].signal.as_single().unwrap_or(Value::Low);
         let address = self.pins["Address"].signal.to_u64().unwrap_or(0) as usize;
-        
+
         let output_value = if oe == Value::High && address < self.data.len() {
             Value::Unknown
         } else {
@@ -4461,9 +4511,9 @@ impl Random {
         pins.insert("Enable".to_string(), Pin::new_input("Enable", BusWidth(1)));
         pins.insert("Output".to_string(), Pin::new_output("Output", width));
 
-        Self { 
-            id, 
-            pins, 
+        Self {
+            id,
+            pins,
             width,
             seed,
             state: seed,
@@ -4498,11 +4548,15 @@ impl Component for Random {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let enable = self.pins["Enable"].signal.as_single().unwrap_or(Value::Low);
-        
+
         let output_value = if enable == Value::High {
             // Simple linear congruential generator
             self.state = self.state.wrapping_mul(1103515245).wrapping_add(12345);
-            let mask = if self.width.0 >= 32 { u32::MAX } else { (1u32 << self.width.0) - 1 };
+            let mask = if self.width.0 >= 32 {
+                u32::MAX
+            } else {
+                (1u32 << self.width.0) - 1
+            };
             Value::Unknown
         } else {
             Value::Unknown
@@ -4542,9 +4596,9 @@ impl DFlipFlop {
         pins.insert("Q".to_string(), Pin::new_output("Q", BusWidth(1)));
         pins.insert("QN".to_string(), Pin::new_output("QN", BusWidth(1)));
 
-        Self { 
-            id, 
-            pins, 
+        Self {
+            id,
+            pins,
             stored_value: Value::Low,
         }
     }
@@ -4610,7 +4664,7 @@ impl Component for DFlipFlop {
             let d_value = self.pins["D"].signal.as_single().unwrap_or(Value::Unknown);
             let state_changed = self.stored_value != d_value;
             self.stored_value = d_value;
-            
+
             let q_not = match self.stored_value {
                 Value::High => Value::Low,
                 Value::Low => Value::High,
@@ -4631,8 +4685,6 @@ impl Component for DFlipFlop {
         }
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -4723,5 +4775,346 @@ mod tests {
         let output = result.outputs.get("Q").unwrap();
         assert_eq!(output.as_single(), Some(Value::High));
         assert_eq!(latch.stored_value, Value::High);
+    }
+}
+
+/// Even Parity Gate - outputs High if input has even number of 1s
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvenParityGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    input_count: u32,
+}
+
+impl EvenParityGate {
+    /// Create a new even parity gate
+    pub fn new(id: ComponentId, input_count: u32) -> Self {
+        let mut pins = HashMap::new();
+
+        // Add input pins
+        for i in 0..input_count {
+            pins.insert(
+                format!("Input{}", i),
+                Pin::new_input(&format!("Input{}", i), BusWidth(1)),
+            );
+        }
+
+        pins.insert("Output".to_string(), Pin::new_output("Output", BusWidth(1)));
+
+        Self {
+            id,
+            pins,
+            input_count,
+        }
+    }
+}
+
+impl Component for EvenParityGate {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Even Parity Gate"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut high_count = 0;
+        let mut has_unknown = false;
+
+        // Count high inputs
+        for i in 0..self.input_count {
+            let pin_name = format!("Input{}", i);
+            match self.pins[&pin_name]
+                .signal
+                .as_single()
+                .unwrap_or(Value::Unknown)
+            {
+                Value::High => high_count += 1,
+                Value::Unknown | Value::Error => has_unknown = true,
+                Value::Low => {}
+            }
+        }
+
+        let output = if has_unknown {
+            Value::Unknown
+        } else if high_count % 2 == 0 {
+            Value::High // Even parity
+        } else {
+            Value::Low // Odd parity
+        };
+
+        let mut outputs = HashMap::new();
+        outputs.insert("Output".to_string(), Signal::new_single(output));
+
+        UpdateResult {
+            outputs,
+            delay: 1,
+            state_changed: true,
+        }
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+}
+
+/// Odd Parity Gate - outputs High if input has odd number of 1s
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OddParityGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    input_count: u32,
+}
+
+impl OddParityGate {
+    /// Create a new odd parity gate
+    pub fn new(id: ComponentId, input_count: u32) -> Self {
+        let mut pins = HashMap::new();
+
+        // Add input pins
+        for i in 0..input_count {
+            pins.insert(
+                format!("Input{}", i),
+                Pin::new_input(&format!("Input{}", i), BusWidth(1)),
+            );
+        }
+
+        pins.insert("Output".to_string(), Pin::new_output("Output", BusWidth(1)));
+
+        Self {
+            id,
+            pins,
+            input_count,
+        }
+    }
+}
+
+impl Component for OddParityGate {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Odd Parity Gate"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut high_count = 0;
+        let mut has_unknown = false;
+
+        // Count high inputs
+        for i in 0..self.input_count {
+            let pin_name = format!("Input{}", i);
+            match self.pins[&pin_name]
+                .signal
+                .as_single()
+                .unwrap_or(Value::Unknown)
+            {
+                Value::High => high_count += 1,
+                Value::Unknown | Value::Error => has_unknown = true,
+                Value::Low => {}
+            }
+        }
+
+        let output = if has_unknown {
+            Value::Unknown
+        } else if high_count % 2 == 1 {
+            Value::High // Odd parity
+        } else {
+            Value::Low // Even parity
+        };
+
+        let mut outputs = HashMap::new();
+        outputs.insert("Output".to_string(), Signal::new_single(output));
+
+        UpdateResult {
+            outputs,
+            delay: 1,
+            state_changed: true,
+        }
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+}
+
+/// Button - Input component that can be pressed to generate signals
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Button {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    is_pressed: bool,
+}
+
+impl Button {
+    /// Create a new button
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("Output".to_string(), Pin::new_output("Output", BusWidth(1)));
+
+        Self {
+            id,
+            pins,
+            is_pressed: false,
+        }
+    }
+
+    /// Press the button
+    pub fn press(&mut self) {
+        self.is_pressed = true;
+    }
+
+    /// Release the button
+    pub fn release(&mut self) {
+        self.is_pressed = false;
+    }
+
+    /// Check if button is pressed
+    pub fn is_pressed(&self) -> bool {
+        self.is_pressed
+    }
+}
+
+impl Component for Button {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Button"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let output_value = if self.is_pressed {
+            Value::High
+        } else {
+            Value::Low
+        };
+
+        let mut outputs = HashMap::new();
+        outputs.insert("Output".to_string(), Signal::new_single(output_value));
+
+        UpdateResult {
+            outputs,
+            delay: 0, // Immediate response
+            state_changed: true,
+        }
+    }
+
+    fn reset(&mut self) {
+        self.is_pressed = false;
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+}
+
+/// Switch - Toggle input component
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Switch {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    is_on: bool,
+}
+
+impl Switch {
+    /// Create a new switch
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("Output".to_string(), Pin::new_output("Output", BusWidth(1)));
+
+        Self {
+            id,
+            pins,
+            is_on: false,
+        }
+    }
+
+    /// Turn switch on
+    pub fn turn_on(&mut self) {
+        self.is_on = true;
+    }
+
+    /// Turn switch off
+    pub fn turn_off(&mut self) {
+        self.is_on = false;
+    }
+
+    /// Toggle switch state
+    pub fn toggle(&mut self) {
+        self.is_on = !self.is_on;
+    }
+
+    /// Check if switch is on
+    pub fn is_on(&self) -> bool {
+        self.is_on
+    }
+}
+
+impl Component for Switch {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Switch"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let output_value = if self.is_on { Value::High } else { Value::Low };
+
+        let mut outputs = HashMap::new();
+        outputs.insert("Output".to_string(), Signal::new_single(output_value));
+
+        UpdateResult {
+            outputs,
+            delay: 0, // Immediate response
+            state_changed: true,
+        }
+    }
+
+    fn reset(&mut self) {
+        self.is_on = false;
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
     }
 }

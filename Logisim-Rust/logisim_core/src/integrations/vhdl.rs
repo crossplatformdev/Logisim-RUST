@@ -133,15 +133,12 @@ pub struct SimulationResults {
 }
 
 /// Integration point for circuit-to-VHDL conversion
-pub fn generate_circuit_vhdl(
-    simulation: &Simulation,
-    entity_name: String,
-) -> VhdlResult<String> {
+pub fn generate_circuit_vhdl(simulation: &Simulation, entity_name: String) -> VhdlResult<String> {
     log::info!("Attempting VHDL generation for circuit: {}", entity_name);
-    
+
     // Create generator
     let mut generator = VhdlGenerator::new(entity_name);
-    
+
     // This would iterate through simulation components in full implementation
     // For now, return not implemented error
     generator.generate_vhdl()
@@ -164,7 +161,7 @@ pub fn get_tool_info() -> Option<VhdlToolInfo> {
 #[derive(Debug, Clone)]
 pub struct VhdlToolInfo {
     pub simulator: Option<String>,
-    pub synthesizer: Option<String>,  
+    pub synthesizer: Option<String>,
     pub version: Option<String>,
     pub supported_standards: Vec<String>,
 }

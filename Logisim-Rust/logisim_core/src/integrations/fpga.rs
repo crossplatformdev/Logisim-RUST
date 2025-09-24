@@ -135,19 +135,29 @@ impl FpgaSynthesis {
     }
 
     /// Create a new project
-    pub fn create_project(&mut self, name: String, board_name: String, tool: SynthesisTool) -> FpgaResult<()> {
-        let board = self.available_boards
+    pub fn create_project(
+        &mut self,
+        name: String,
+        board_name: String,
+        tool: SynthesisTool,
+    ) -> FpgaResult<()> {
+        let board = self
+            .available_boards
             .get(&board_name)
             .ok_or_else(|| FpgaError::BoardNotFound(board_name.clone()))?
             .clone();
-        
+
         let project = FpgaProject::new(name.clone(), board, tool);
         self.projects.insert(name, project);
         Ok(())
     }
 
     /// Generate HDL for circuit
-    pub fn generate_hdl(&self, _simulation: &Simulation, _project_name: &str) -> FpgaResult<String> {
+    pub fn generate_hdl(
+        &self,
+        _simulation: &Simulation,
+        _project_name: &str,
+    ) -> FpgaResult<String> {
         // Stub implementation - maintains API compatibility
         log::warn!("FPGA HDL generation not implemented in current version");
         Err(FpgaError::NotImplemented)
@@ -246,13 +256,13 @@ impl BoardDatabase {
     pub fn load_standard_boards(&mut self) -> FpgaResult<()> {
         // Stub implementation - maintains API compatibility
         log::warn!("Standard board loading not implemented in current version");
-        
+
         // In full implementation, would load popular development boards:
         // - Xilinx: Zynq, Artix, Kintex, Virtex series
-        // - Intel/Altera: Cyclone, Arria, Stratix series  
+        // - Intel/Altera: Cyclone, Arria, Stratix series
         // - Lattice: ECP5, MachXO, CrossLink series
         // - Microsemi: SmartFusion, IGLOO series
-        
+
         Err(FpgaError::NotImplemented)
     }
 
@@ -301,11 +311,15 @@ pub fn synthesize_circuit(
     board_name: String,
     tool: SynthesisTool,
 ) -> FpgaResult<SynthesisResults> {
-    log::info!("Attempting FPGA synthesis for board: {} with tool: {:?}", board_name, tool);
-    
+    log::info!(
+        "Attempting FPGA synthesis for board: {} with tool: {:?}",
+        board_name,
+        tool
+    );
+
     // Create synthesis manager
     let synthesis = FpgaSynthesis::new();
-    
+
     // This would run full synthesis pipeline in real implementation
     synthesis.synthesize("circuit")
 }
@@ -334,14 +348,17 @@ mod tests {
     #[test]
     fn test_pin_mapping() {
         let mut board_pins = HashMap::new();
-        board_pins.insert("A0".to_string(), PinDef {
-            name: "A0".to_string(),
-            pin_number: "A1".to_string(),
-            io_standard: "LVCMOS33".to_string(),
-            direction: PinDirection::Input,
-            drive_strength: None,
-            slew_rate: None,
-        });
+        board_pins.insert(
+            "A0".to_string(),
+            PinDef {
+                name: "A0".to_string(),
+                pin_number: "A1".to_string(),
+                io_standard: "LVCMOS33".to_string(),
+                direction: PinDirection::Input,
+                drive_strength: None,
+                slew_rate: None,
+            },
+        );
 
         let board = FpgaBoardDef {
             name: "test".to_string(),
@@ -354,8 +371,10 @@ mod tests {
         };
 
         let mut project = FpgaProject::new("test".to_string(), board, SynthesisTool::Vivado);
-        
-        assert!(project.map_pin("input".to_string(), "A0".to_string()).is_ok());
+
+        assert!(project
+            .map_pin("input".to_string(), "A0".to_string())
+            .is_ok());
         assert!(matches!(
             project.map_pin("invalid".to_string(), "B0".to_string()),
             Err(FpgaError::InvalidPinMapping(_))

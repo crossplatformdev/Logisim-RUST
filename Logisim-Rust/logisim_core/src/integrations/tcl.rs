@@ -111,10 +111,14 @@ impl TclValue {
             TclValue::Float(f) => f.to_string(),
             TclValue::Boolean(b) => b.to_string(),
             TclValue::List(items) => {
-                format!("{{{}}}", items.iter()
-                    .map(|v| v.to_string())
-                    .collect::<Vec<_>>()
-                    .join(" "))
+                format!(
+                    "{{{}}}",
+                    items
+                        .iter()
+                        .map(|v| v.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                )
             }
             TclValue::Null => String::new(),
         }
@@ -154,16 +158,16 @@ impl LogisimTcl {
     /// Create a new Logisim TCL integration
     pub fn new() -> Self {
         let mut interpreter = TclInterpreter::new();
-        
+
         // Register Logisim-specific commands (stubs)
         interpreter.register_command("get_signal".to_string(), |_args| {
             Err(TclError::NotImplemented)
         });
-        
+
         interpreter.register_command("set_signal".to_string(), |_args| {
             Err(TclError::NotImplemented)
         });
-        
+
         interpreter.register_command("step_simulation".to_string(), |_args| {
             Err(TclError::NotImplemented)
         });
@@ -240,7 +244,10 @@ impl TclComponent {
     }
 
     /// Execute component logic via TCL
-    pub fn execute_logic(&mut self, _inputs: &HashMap<String, TclValue>) -> TclResult<HashMap<String, TclValue>> {
+    pub fn execute_logic(
+        &mut self,
+        _inputs: &HashMap<String, TclValue>,
+    ) -> TclResult<HashMap<String, TclValue>> {
         // Stub implementation - maintains API compatibility
         log::warn!("TCL component execution not implemented in current version");
         Err(TclError::NotImplemented)
@@ -278,10 +285,10 @@ mod tests {
     fn test_variable_operations() {
         let mut interpreter = TclInterpreter::new();
         let val = TclValue::String("test".to_string());
-        
+
         interpreter.set_variable("test_var".to_string(), val.clone());
         assert_eq!(interpreter.get_variable("test_var").unwrap(), &val);
-        
+
         assert!(matches!(
             interpreter.get_variable("nonexistent"),
             Err(TclError::VariableNotFound(_))
