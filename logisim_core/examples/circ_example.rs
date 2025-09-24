@@ -1,14 +1,14 @@
 //! Example usage of .circ format support in logisim_core
 //!
 //! This example demonstrates how to:
-//! 1. Load a .circ file 
+//! 1. Load a .circ file
 //! 2. Analyze its contents
 //! 3. Extract ROM data
 //! 4. Round-trip serialize back to .circ format
-//! 
+//!
 //! Run with: cargo run --example circ_example
 
-use logisim_core::circ_format::{CircParser, CircWriter, CircIntegration, RomContents};
+use logisim_core::circ_format::{CircIntegration, CircParser, CircWriter, RomContents};
 use std::collections::HashMap;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -16,33 +16,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create a sample .circ content for demonstration
     let sample_circ = create_sample_circ();
-    
+
     // 1. Parse the .circ content
     println!("1. Parsing .circ content...");
     let circuit_file = CircParser::parse_string(&sample_circ)?;
-    
+
     println!("   Source: {}", circuit_file.source_version);
     println!("   Version: {}", circuit_file.version);
     println!("   Libraries: {}", circuit_file.libraries.len());
     println!("   Circuits: {}", circuit_file.circuits.len());
-    
+
     // 2. Analyze circuit contents
     println!("\n2. Analyzing circuit contents...");
     for (circuit_name, circuit) in &circuit_file.circuits {
-        println!("   Circuit '{}': {} components, {} wires", 
-                 circuit_name, circuit.components.len(), circuit.wires.len());
-        
+        println!(
+            "   Circuit '{}': {} components, {} wires",
+            circuit_name,
+            circuit.components.len(),
+            circuit.wires.len()
+        );
+
         // Count component types
         let mut component_counts = HashMap::new();
         for component in &circuit.components {
             *component_counts.entry(component.name.clone()).or_insert(0) += 1;
         }
-        
+
         for (comp_type, count) in component_counts {
             println!("     - {} x {}", count, comp_type);
         }
     }
-    
+
     // 3. Extract and analyze ROM contents
     println!("\n3. Analyzing ROM contents...");
     let mut found_rom = false;
@@ -50,29 +54,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for component in &circuit.components {
             if component.name == "ROM" {
                 found_rom = true;
-                println!("   Found ROM at location ({}, {})", 
-                         component.location.0, component.location.1);
-                
+                println!(
+                    "   Found ROM at location ({}, {})",
+                    component.location.0, component.location.1
+                );
+
                 // Extract ROM attributes
                 for (attr_name, attr_value) in &component.attributes {
-                    println!("     {}: {}", attr_name, 
-                             if attr_value.len() > 50 {
-                                 format!("{}... ({} chars)", &attr_value[..50], attr_value.len())
-                             } else {
-                                 attr_value.clone()
-                             });
+                    println!(
+                        "     {}: {}",
+                        attr_name,
+                        if attr_value.len() > 50 {
+                            format!("{}... ({} chars)", &attr_value[..50], attr_value.len())
+                        } else {
+                            attr_value.clone()
+                        }
+                    );
                 }
-                
+
                 // Parse ROM contents if available
                 if let Some(contents_str) = component.attributes.get("contents") {
                     match RomContents::parse_from_string(contents_str) {
                         Ok(rom_data) => {
-                            println!("     ROM Data: {}-bit address, {}-bit data, {} entries",
-                                     rom_data.addr_width, rom_data.data_width, rom_data.data.len());
-                            
+                            println!(
+                                "     ROM Data: {}-bit address, {}-bit data, {} entries",
+                                rom_data.addr_width,
+                                rom_data.data_width,
+                                rom_data.data.len()
+                            );
+
                             // Show first few entries
-                            println!("     First entries: {:?}", 
-                                     &rom_data.data[..std::cmp::min(8, rom_data.data.len())]);
+                            println!(
+                                "     First entries: {:?}",
+                                &rom_data.data[..std::cmp::min(8, rom_data.data.len())]
+                            );
                         }
                         Err(e) => {
                             println!("     ROM parsing error: {}", e);
@@ -82,27 +97,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    
+
     if !found_rom {
         println!("   No ROM components found");
     }
-    
+
     // 4. Round-trip serialization test
     println!("\n4. Testing round-trip serialization...");
     let serialized = CircWriter::serialize_to_string(&circuit_file)?;
     println!("   Serialized XML length: {} characters", serialized.len());
-    
+
     // Parse the serialized version to verify it's valid
     let reparsed = CircParser::parse_string(&serialized)?;
-    println!("   Reparsed successfully: {} circuits preserved", reparsed.circuits.len());
-    
+    println!(
+        "   Reparsed successfully: {} circuits preserved",
+        reparsed.circuits.len()
+    );
+
     // Compare key properties
     let circuits_match = reparsed.circuits.len() == circuit_file.circuits.len();
     let libraries_match = reparsed.libraries.len() == circuit_file.libraries.len();
-    
+
     println!("   Circuits match: {}", circuits_match);
     println!("   Libraries match: {}", libraries_match);
-    
+
     // 5. Attempt to load into simulation
     println!("\n5. Testing simulation integration...");
     match CircIntegration::circuit_file_to_simulation(&circuit_file) {
@@ -115,7 +133,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("   This is normal - not all components are implemented yet");
         }
     }
-    
+
     println!("\n=== Example completed successfully! ===");
     Ok(())
 }
@@ -188,7 +206,7 @@ dddd eeee ffff 0123 4567 8901 2345 6789</a>\n\
     <wire from=\"(220,160)\" to=\"(300,160)\"/>\n\
   </circuit>\n\
 </project>";
-    
+
     xml_content.to_string()
 }
 
@@ -208,14 +226,14 @@ mod tests {
     fn test_sample_circ_parsing() {
         let sample = create_sample_circ();
         let circuit_file = CircParser::parse_string(&sample).unwrap();
-        
+
         assert_eq!(circuit_file.circuits.len(), 1);
         assert!(circuit_file.circuits.contains_key("example_circuit"));
-        
+
         let circuit = &circuit_file.circuits["example_circuit"];
         assert!(circuit.components.len() > 0);
         assert!(circuit.wires.len() > 0);
-        
+
         // Should have ROM component
         let has_rom = circuit.components.iter().any(|c| c.name == "ROM");
         assert!(has_rom);
@@ -225,17 +243,17 @@ mod tests {
     fn test_rom_data_extraction() {
         let sample = create_sample_circ();
         let circuit_file = CircParser::parse_string(&sample).unwrap();
-        
+
         let circuit = &circuit_file.circuits["example_circuit"];
         let rom_component = circuit.components.iter().find(|c| c.name == "ROM").unwrap();
-        
+
         let contents = rom_component.attributes.get("contents").unwrap();
         let rom_data = RomContents::parse_from_string(contents).unwrap();
-        
+
         assert_eq!(rom_data.addr_width, 8);
         assert_eq!(rom_data.data_width, 16);
         assert!(rom_data.data.len() > 0);
-        
+
         // Check that run-length encoding worked
         assert_eq!(rom_data.data[0], 0x1234);
         assert_eq!(rom_data.data[1], 0x5678);

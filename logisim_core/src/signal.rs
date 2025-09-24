@@ -145,7 +145,7 @@ impl fmt::Display for Value {
 
 impl std::ops::Not for Value {
     type Output = Value;
-    
+
     fn not(self) -> Value {
         match self {
             Value::High => Value::Low,
