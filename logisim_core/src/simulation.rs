@@ -49,6 +49,9 @@ impl Default for SimulationConfig {
     }
 }
 
+/// Callback for signal change events (used by chronogram)
+pub type SignalChangeCallback = Box<dyn FnMut(NodeId, Timestamp, &Signal) + Send + Sync>;
+
 /// Statistics collected during simulation
 #[derive(Debug, Clone, Default)]
 pub struct SimulationStats {
@@ -65,7 +68,6 @@ pub struct SimulationStats {
 }
 
 /// Main simulation engine
-#[derive(Debug)]
 pub struct Simulation {
     /// Event queue for scheduling simulation events
     event_queue: EventQueue,
@@ -81,6 +83,8 @@ pub struct Simulation {
     clock_state: Value,
     /// Previous clock state for edge detection
     prev_clock_state: Value,
+    /// Signal change callbacks for external observers (e.g., chronogram)
+    signal_callbacks: Vec<SignalChangeCallback>,
 }
 
 impl Simulation {
@@ -94,6 +98,7 @@ impl Simulation {
             stats: SimulationStats::default(),
             clock_state: Value::Low,
             prev_clock_state: Value::Low,
+            signal_callbacks: Vec::new(),
         }
     }
 
@@ -107,6 +112,7 @@ impl Simulation {
             stats: SimulationStats::default(),
             clock_state: Value::Low,
             prev_clock_state: Value::Low,
+            signal_callbacks: Vec::new(),
         }
     }
 
@@ -155,6 +161,21 @@ impl Simulation {
     /// Check if there are events pending in the queue
     pub fn has_pending_events(&self) -> bool {
         !self.event_queue.is_empty()
+    }
+
+    /// Add a signal change callback (for chronogram or other observers)
+    pub fn add_signal_callback(&mut self, callback: SignalChangeCallback) {
+        self.signal_callbacks.push(callback);
+    }
+
+    /// Get all node IDs that have signals (for chronogram signal selection)
+    pub fn get_all_node_ids(&self) -> Vec<NodeId> {
+        self.netlist.get_all_node_ids()
+    }
+
+    /// Get the current signal value for a node
+    pub fn get_node_signal(&self, node_id: NodeId) -> Option<Signal> {
+        self.netlist.get_signal(node_id).cloned()
     }
 
     /// Reset the simulation to initial state
@@ -310,6 +331,11 @@ impl Simulation {
         self.netlist
             .set_node_signal(node_id, new_signal.clone())
             .map_err(|e| SimulationError::NetlistError(e.to_string()))?;
+
+        // Trigger signal change callbacks (for chronogram, etc.)
+        for callback in &mut self.signal_callbacks {
+            callback(node_id, time, &new_signal);
+        }
 
         // Get all components affected by this signal change
         let affected_components = self.netlist.get_affected_components(node_id);

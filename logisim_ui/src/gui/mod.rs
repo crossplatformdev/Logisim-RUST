@@ -6,6 +6,8 @@ pub mod frame;
 #[cfg(feature = "gui")]
 pub mod canvas;
 #[cfg(feature = "gui")]
+pub mod chronogram;
+#[cfg(feature = "gui")]
 pub mod menu;
 #[cfg(feature = "gui")]
 pub mod project_explorer;
