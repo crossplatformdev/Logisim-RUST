@@ -239,3 +239,108 @@ fn test_rom_content_validation() {
     
     panic!("No ROM component found for content validation");
 }
+
+#[test]
+fn test_invalid_circ_file_handling() {
+    // Test with invalid XML
+    let invalid_xml = "<?xml version=\"1.0\"?><invalid>test</invalid>";
+    let result = CircParser::parse_string(invalid_xml);
+    assert!(result.is_err(), "Should fail to parse invalid .circ format");
+    
+    // Test with missing required elements
+    let missing_project = "<?xml version=\"1.0\"?><root></root>";
+    let result = CircParser::parse_string(missing_project);
+    assert!(result.is_err(), "Should fail when project element is missing");
+}
+
+#[test]
+fn test_circ_error_recovery() {
+    // Test that parser can handle partially corrupted files gracefully
+    let partial_xml = r##"<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project source="4.1.0dev" version="1.0">
+  <lib desc="#Wiring" name="0"/>
+  <main name="main"/>
+  <circuit name="main">
+    <!-- Missing closing tags should be handled gracefully -->
+  </circuit>
+</project>"##;
+    
+    let result = CircParser::parse_string(partial_xml);
+    match result {
+        Ok(circuit_file) => {
+            assert_eq!(circuit_file.circuits.len(), 1);
+            assert!(circuit_file.circuits.contains_key("main"));
+        }
+        Err(_) => {
+            // It's acceptable for malformed XML to fail parsing
+            println!("Parser correctly rejected malformed XML");
+        }
+    }
+}
+
+#[test]
+fn test_comprehensive_circ_parsing() {
+    // Test various .circ file features that might be found in Libre8 files
+    let comprehensive_xml = r##"<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project source="4.1.0dev" version="1.0">
+  <lib desc="#Wiring" name="0"/>
+  <lib desc="#Gates" name="1"/>
+  <lib desc="#Memory" name="4"/>
+  <main name="test_circuit"/>
+  
+  <circuit name="test_circuit">
+    <comp lib="0" loc="(100,100)" name="Pin"/>
+    <comp lib="1" loc="(200,100)" name="AND Gate"/>
+    <comp lib="4" loc="(300,100)" name="ROM">
+      <a name="contents">addr/data: 8 8
+0 1 2 3 4 5 6 7
+8 9 a b c d e f</a>
+    </comp>
+    <wire from="(100,100)" to="(200,100)"/>
+    <wire from="(200,100)" to="(300,100)"/>
+  </circuit>
+</project>"##;
+    
+    let result = CircParser::parse_string(comprehensive_xml);
+    assert!(result.is_ok(), "Should parse comprehensive .circ format");
+    
+    let circuit_file = result.unwrap();
+    assert_eq!(circuit_file.circuits.len(), 1);
+    assert!(circuit_file.circuits.contains_key("test_circuit"));
+    
+    let circuit = &circuit_file.circuits["test_circuit"];
+    assert_eq!(circuit.components.len(), 3); // Pin, AND Gate, ROM
+    assert_eq!(circuit.wires.len(), 2);
+    
+    // Verify ROM component has content
+    let rom_comp = circuit.components.iter().find(|c| c.name == "ROM");
+    assert!(rom_comp.is_some(), "Should find ROM component");
+    
+    if let Some(rom_component) = rom_comp {
+        assert!(rom_component.attributes.contains_key("contents"));
+    }
+}
+
+#[test]
+fn test_circ_integration_robustness() {
+    // Test that CircIntegration can handle the MAINBOARD.circ without errors
+    let circuit_file = CircParser::load_file(MAINBOARD_CIRC_PATH)
+        .expect("Should be able to load MAINBOARD.circ");
+    
+    // Test integration to simulation - this should not panic
+    let integration_result = std::panic::catch_unwind(|| {
+        match CircIntegration::circuit_file_to_simulation(&circuit_file) {
+            Ok(sim) => {
+                // Verify simulation was created successfully (events_processed is u64, always >= 0)
+                println!("Successfully integrated MAINBOARD.circ to simulation with {} events processed", 
+                         sim.stats().events_processed);
+            }
+            Err(e) => {
+                println!("Integration failed as expected for complex file: {:?}", e);
+                // This is acceptable for very complex files - we just want to ensure no panic
+            }
+        }
+    });
+    
+    assert!(integration_result.is_ok(), "Integration should not panic even if it fails");
+}

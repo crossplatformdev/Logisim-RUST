@@ -270,7 +270,7 @@ impl RomContents {
     }
 
     /// Serialize ROM contents to Logisim format string
-    pub fn to_string(&self) -> String {
+    pub fn to_logisim_format(&self) -> String {
         let mut result = format!("addr/data: {} {}\n", self.addr_width, self.data_width);
         
         // Write data in lines of 8 values each (typical Logisim format)
@@ -282,6 +282,12 @@ impl RomContents {
         }
         
         result
+    }
+}
+
+impl std::fmt::Display for RomContents {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_logisim_format())
     }
 }
 
@@ -789,28 +795,28 @@ impl CircIntegration {
                 _ => vec![(0, 0)], // Default single node
             };
 
-            for (_i, (dx, dy)) in pin_offsets.into_iter().enumerate() {
+            for (dx, dy) in pin_offsets.into_iter() {
                 let pin_location = (comp_location.0 + dx, comp_location.1 + dy);
-                if !location_to_node.contains_key(&pin_location) {
+                location_to_node.entry(pin_location).or_insert_with(|| {
                     let node = sim.netlist_mut().create_named_node(
                         BusWidth(1),
                         format!("node_{}_{}", pin_location.0, pin_location.1),
                     );
-                    location_to_node.insert(pin_location, node);
-                }
+                    node
+                });
             }
         }
 
         // Second pass: Create nodes for wire endpoints
         for wire in &circuit.wires {
             for &location in &[wire.from, wire.to] {
-                if !location_to_node.contains_key(&location) {
+                location_to_node.entry(location).or_insert_with(|| {
                     let node = sim.netlist_mut().create_named_node(
                         BusWidth(1),
                         format!("wire_{}_{}", location.0, location.1),
                     );
-                    location_to_node.insert(location, node);
-                }
+                    node
+                });
             }
         }
 
@@ -914,7 +920,7 @@ mod tests {
             data: vec![0x12, 0x34, 0x56, 0x78],
         };
         
-        let serialized = rom.to_string();
+        let serialized = rom.to_logisim_format();
         assert!(serialized.contains("addr/data: 16 8"));
         assert!(serialized.contains("12 34 56 78"));
     }
