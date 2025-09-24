@@ -9,8 +9,8 @@ use crate::gui::chronogram::{
     timeline::Timeline,
     waveform::{Waveform, WaveformColors},
 };
-use egui::{Color32, Pos2, Rect, ScrollArea, Ui, Vec2};
-use logisim_core::{signal::Timestamp, Simulation};
+use egui::{Color32, Pos2, Rect, ScrollArea, Ui, UiBuilder, Vec2};
+use logisim_core::{signal::{BusWidth, Timestamp}, Simulation};
 use std::collections::HashMap;
 
 /// Main chronogram panel containing all UI elements
@@ -104,7 +104,7 @@ impl ChronogramPanel {
         let remaining_rect = ui.available_rect_before_wrap();
 
         // Split panel between signal names (left) and waveforms (right)
-        ui.allocate_ui_at_rect(remaining_rect, |ui| {
+        ui.allocate_new_ui(UiBuilder::new().max_rect(remaining_rect), |ui| {
             ui.horizontal(|ui| {
                 // Left panel - signal names and controls
                 let left_width = self.split_position;
@@ -187,7 +187,7 @@ impl ChronogramPanel {
 
     /// Render the signal list on the left side
     fn render_signal_list(&mut self, ui: &mut Ui, rect: Rect) {
-        ui.allocate_ui_at_rect(rect, |ui| {
+        ui.allocate_new_ui(UiBuilder::new().max_rect(rect), |ui| {
             ui.vertical(|ui| {
                 // Header
                 ui.horizontal(|ui| {
@@ -199,9 +199,10 @@ impl ChronogramPanel {
 
                 // Signal list
                 ScrollArea::vertical()
-                    .id_source("signal_list")
+                    .id_salt("signal_list")
                     .show(ui, |ui| {
-                        for (i, signal_info) in self.model.signals().iter().enumerate() {
+                        let signals: Vec<_> = self.model.signals().iter().cloned().collect();
+                        for (i, signal_info) in signals.iter().enumerate() {
                             self.render_signal_row(ui, i, signal_info);
                         }
                     });
@@ -230,7 +231,7 @@ impl ChronogramPanel {
             ui.painter().rect_filled(row_rect, 0.0, bg_color);
         }
 
-        ui.allocate_ui_at_rect(row_rect, |ui| {
+        ui.allocate_new_ui(UiBuilder::new().max_rect(row_rect), |ui| {
             ui.horizontal(|ui| {
                 // Signal name
                 ui.set_min_width(100.0);
@@ -271,7 +272,7 @@ impl ChronogramPanel {
 
     /// Render the waveform area on the right side
     fn render_waveform_area(&mut self, ui: &mut Ui, rect: Rect) {
-        ui.allocate_ui_at_rect(rect, |ui| {
+        ui.allocate_new_ui(UiBuilder::new().max_rect(rect), |ui| {
             ui.vertical(|ui| {
                 // Timeline header
                 let header_rect =
@@ -281,8 +282,8 @@ impl ChronogramPanel {
 
                 // Handle timeline interactions
                 if let Some(hover_pos) = timeline_response.hover_pos() {
-                    if ui.input(|i| i.scroll_delta().y != 0.0) {
-                        let scroll_delta = ui.input(|i| i.scroll_delta().y);
+                    if ui.input(|i| i.smooth_scroll_delta.y != 0.0) {
+                        let scroll_delta = ui.input(|i| i.smooth_scroll_delta.y);
                         self.timeline
                             .handle_zoom(scroll_delta, hover_pos.x - header_rect.left());
                     }
@@ -295,7 +296,7 @@ impl ChronogramPanel {
                 );
 
                 ScrollArea::vertical()
-                    .id_source("waveforms")
+                    .id_salt("waveforms")
                     .show_viewport(ui, |ui, viewport| {
                         let mut y_offset = 0.0;
 
@@ -403,7 +404,8 @@ impl ChronogramPanel {
     /// Record current simulation state (enhanced implementation)
     fn record_simulation_state(&mut self, simulation: &Simulation, time: Timestamp) {
         // Extract current values of all tracked signals from the simulation
-        for signal_info in self.model.signals() {
+        let signals: Vec<_> = self.model.signals().iter().cloned().collect();
+        for signal_info in signals {
             if let Some(current_signal) = simulation.get_node_signal(signal_info.id) {
                 self.model
                     .record_signal_change(signal_info.id, time, current_signal);

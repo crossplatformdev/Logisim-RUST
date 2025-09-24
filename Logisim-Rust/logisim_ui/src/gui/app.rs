@@ -2,7 +2,7 @@
 
 use crate::{UiError, UiResult};
 #[cfg(feature = "gui")]
-use eframe::egui;
+use eframe::egui::{self, IconData};
 use logisim_core::{circ_format::CircIntegration, Simulation};
 use std::path::PathBuf;
 
@@ -113,15 +113,16 @@ pub fn run_app() -> UiResult<()> {
             .with_min_inner_size([800.0, 600.0])
             .with_icon(
                 // TODO: Add proper icon
-                eframe::IconData::default(),
+                IconData::default(),
             ),
         ..Default::default()
     };
 
     let app = LogisimApp::new();
+    let app_title = app.title().to_string();
 
     eframe::run_native(
-        &app.title(),
+        &app_title,
         options,
         Box::new(|_cc| {
             // Set up custom fonts if needed
@@ -149,9 +150,10 @@ pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
 
     let mut app = LogisimApp::new();
     app.load_circuit_file(file_path)?;
+    let app_title = app.title().to_string();
 
     eframe::run_native(
-        &app.title(),
+        &app_title,
         options,
         Box::new(move |_cc| Ok(Box::new(app))),
     )
