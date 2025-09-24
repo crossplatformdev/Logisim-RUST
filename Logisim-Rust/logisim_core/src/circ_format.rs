@@ -752,7 +752,7 @@ impl CircIntegration {
         circuit: &CircuitDefinition,
         _all_circuits: &HashMap<String, CircuitDefinition>,
     ) -> CircResult<()> {
-        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel, Splitter, Led, Multiplexer, Demultiplexer, Clock, Ram, ControlledBuffer, Register, Counter, Text, Adder, Divider};
+        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel, Splitter, Led, Multiplexer, Demultiplexer, Clock, Ram, ControlledBuffer, Register, Counter, Text, Adder, Divider, Decoder};
         use crate::signal::{BusWidth, Value};
 
         // Create a mapping from locations to node IDs for wire connections
@@ -918,6 +918,12 @@ impl CircIntegration {
                         .map(BusWidth)
                         .unwrap_or(BusWidth(8));
                     Box::new(Divider::new(component_id, width))
+                }
+                "Decoder" => {
+                    let select = comp_instance.attributes.get("select")
+                        .and_then(|s| s.parse::<u32>().ok())
+                        .unwrap_or(2); // Default 2-bit decoder (4 outputs)
+                    Box::new(Decoder::new(component_id, BusWidth(select)))
                 }
                 "ROM" => {
                     // Create a ROM component (simplified for now)

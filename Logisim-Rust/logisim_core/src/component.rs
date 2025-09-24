@@ -2581,6 +2581,129 @@ impl Propagator for Divider {
     }
 }
 
+/// Decoder component for address decoding
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Decoder {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    input_width: BusWidth,
+    output_count: u32,
+}
+
+impl Decoder {
+    pub fn new(id: ComponentId, input_width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        let output_count = 1u32 << input_width.as_u32(); // 2^n outputs
+        
+        // Address input
+        pins.insert("ADDR".to_string(), Pin::new_input("ADDR", input_width));
+        
+        // Enable input (optional)
+        pins.insert("EN".to_string(), Pin::new_input("EN", BusWidth(1)));
+        
+        // Output pins (one for each possible address)
+        for i in 0..output_count {
+            pins.insert(format!("OUT{}", i), Pin::new_output(&format!("OUT{}", i), BusWidth(1)));
+        }
+
+        Decoder { id, pins, input_width, output_count }
+    }
+}
+
+impl Component for Decoder {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Decoder"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        let enable = self.pins.get("EN")
+            .map(|pin| pin.signal.as_single().unwrap_or(Value::High))
+            .unwrap_or(Value::High);
+        
+        if enable == Value::High {
+            let addr_signal = &self.pins.get("ADDR").unwrap().signal;
+            let selected_output = self.signal_to_address(addr_signal);
+            
+            // Set all outputs
+            for i in 0..self.output_count {
+                let output_value = if i == selected_output {
+                    Value::High
+                } else {
+                    Value::Low
+                };
+                
+                result.add_output(format!("OUT{}", i), Signal::new_single(output_value));
+                
+                if let Some(pin) = self.pins.get_mut(&format!("OUT{}", i)) {
+                    let _ = pin.set_signal(Signal::new_single(output_value));
+                }
+            }
+        } else {
+            // Disabled - all outputs low
+            for i in 0..self.output_count {
+                result.add_output(format!("OUT{}", i), Signal::new_single(Value::Low));
+                
+                if let Some(pin) = self.pins.get_mut(&format!("OUT{}", i)) {
+                    let _ = pin.set_signal(Signal::new_single(Value::Low));
+                }
+            }
+        }
+        
+        result.set_delay(self.propagation_delay());
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        2 // 2 time units for decoder
+    }
+}
+
+impl Decoder {
+    fn signal_to_address(&self, signal: &Signal) -> u32 {
+        let mut address = 0u32;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            if bit == Value::High {
+                address |= 1 << i;
+            }
+        }
+        address % self.output_count
+    }
+}
+
+impl Propagator for Decoder {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
