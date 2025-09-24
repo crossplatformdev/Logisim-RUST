@@ -2721,6 +2721,622 @@ impl Propagator for Decoder {
     }
 }
 
+/// Subtractor component for arithmetic subtraction
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Subtractor {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+}
+
+impl Subtractor {
+    pub fn new(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", width));
+        pins.insert("B".to_string(), Pin::new_input("B", width));
+        pins.insert("BIN".to_string(), Pin::new_input("BIN", BusWidth(1))); // Borrow in
+        pins.insert("DIFF".to_string(), Pin::new_output("DIFF", width));
+        pins.insert("BOUT".to_string(), Pin::new_output("BOUT", BusWidth(1))); // Borrow out
+
+        Subtractor { id, pins, width }
+    }
+}
+
+impl Component for Subtractor {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Subtractor"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        let a_signal = &self.pins.get("A").unwrap().signal;
+        let b_signal = &self.pins.get("B").unwrap().signal;
+        let bin = self.pins.get("BIN").unwrap().signal.as_single().unwrap_or(Value::Low);
+        
+        let a_value = self.signal_to_number(a_signal);
+        let b_value = self.signal_to_number(b_signal);
+        let bin_value = if bin == Value::High { 1 } else { 0 };
+        
+        // Subtraction: A - B - BIN
+        let diff = a_value.wrapping_sub(b_value).wrapping_sub(bin_value);
+        let borrow_out = if a_value < (b_value + bin_value) { Value::High } else { Value::Low };
+        
+        let diff_values = self.number_to_values(diff);
+        let diff_signal = if diff_values.len() == 1 {
+            Signal::new_single(diff_values[0])
+        } else {
+            Signal::new_bus(diff_values)
+        };
+        
+        result.add_output("DIFF".to_string(), diff_signal.clone());
+        result.add_output("BOUT".to_string(), Signal::new_single(borrow_out));
+        result.set_delay(self.propagation_delay());
+        
+        if let Some(pin) = self.pins.get_mut("DIFF") {
+            let _ = pin.set_signal(diff_signal);
+        }
+        if let Some(pin) = self.pins.get_mut("BOUT") {
+            let _ = pin.set_signal(Signal::new_single(borrow_out));
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        3 // 3 time units for subtractor
+    }
+}
+
+impl Subtractor {
+    fn signal_to_number(&self, signal: &Signal) -> u32 {
+        let mut number = 0u32;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            if bit == Value::High && i < 32 {
+                number |= 1 << i;
+            }
+        }
+        number
+    }
+    
+    fn number_to_values(&self, number: u32) -> Vec<Value> {
+        let mut values = Vec::new();
+        for i in 0..self.width.as_u32() {
+            let bit = (number >> i) & 1;
+            values.push(if bit == 1 { Value::High } else { Value::Low });
+        }
+        values
+    }
+}
+
+impl Propagator for Subtractor {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// Power component for circuit power supply
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Power {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl Power {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("OUT".to_string(), Pin::new_output("OUT", BusWidth(1)));
+
+        Power { id, pins }
+    }
+}
+
+impl Component for Power {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Power"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        let power_signal = Signal::new_single(Value::High);
+        result.add_output("OUT".to_string(), power_signal.clone());
+        
+        if let Some(pin) = self.pins.get_mut("OUT") {
+            let _ = pin.set_signal(power_signal);
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        // Power stays on during reset
+        self.update(Timestamp(0));
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for power
+    }
+}
+
+impl Propagator for Power {
+    fn propagate(
+        &mut self,
+        _input_pin: &str,
+        _signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        // Power doesn't have inputs
+        self.update(current_time)
+    }
+}
+
+/// Ground component for circuit ground reference
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Ground {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl Ground {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("OUT".to_string(), Pin::new_output("OUT", BusWidth(1)));
+
+        Ground { id, pins }
+    }
+}
+
+impl Component for Ground {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Ground"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        let ground_signal = Signal::new_single(Value::Low);
+        result.add_output("OUT".to_string(), ground_signal.clone());
+        
+        if let Some(pin) = self.pins.get_mut("OUT") {
+            let _ = pin.set_signal(ground_signal);
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        // Ground stays at low during reset
+        self.update(Timestamp(0));
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for ground
+    }
+}
+
+impl Propagator for Ground {
+    fn propagate(
+        &mut self,
+        _input_pin: &str,
+        _signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        // Ground doesn't have inputs
+        self.update(current_time)
+    }
+}
+
+/// Shift Register component for bit shifting and storage
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShiftRegister {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+    shift_type: String, // "left", "right", "logical", "arithmetic"
+    stored_data: Vec<Value>,
+}
+
+impl ShiftRegister {
+    pub fn new(id: ComponentId, width: BusWidth, shift_type: String) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("D".to_string(), Pin::new_input("D", width)); // Data input
+        pins.insert("CLK".to_string(), Pin::new_input("CLK", BusWidth(1))); // Clock
+        pins.insert("EN".to_string(), Pin::new_input("EN", BusWidth(1))); // Enable
+        pins.insert("CLR".to_string(), Pin::new_input("CLR", BusWidth(1))); // Clear
+        pins.insert("SIN".to_string(), Pin::new_input("SIN", BusWidth(1))); // Shift input
+        pins.insert("Q".to_string(), Pin::new_output("Q", width)); // Data output
+        pins.insert("SOUT".to_string(), Pin::new_output("SOUT", BusWidth(1))); // Shift output
+
+        ShiftRegister { 
+            id, 
+            pins, 
+            width,
+            shift_type,
+            stored_data: vec![Value::Unknown; width.as_u32() as usize],
+        }
+    }
+}
+
+impl Component for ShiftRegister {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Shift Register"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        // Output current stored data
+        let output_signal = if self.stored_data.len() == 1 {
+            Signal::new_single(self.stored_data[0])
+        } else {
+            Signal::new_bus(self.stored_data.clone())
+        };
+        
+        let shift_out = self.stored_data.get(0).cloned().unwrap_or(Value::Unknown);
+        
+        result.add_output("Q".to_string(), output_signal.clone());
+        result.add_output("SOUT".to_string(), Signal::new_single(shift_out));
+        result.set_delay(self.propagation_delay());
+        
+        if let Some(pin) = self.pins.get_mut("Q") {
+            let _ = pin.set_signal(output_signal);
+        }
+        if let Some(pin) = self.pins.get_mut("SOUT") {
+            let _ = pin.set_signal(Signal::new_single(shift_out));
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        self.stored_data = vec![Value::Unknown; self.width.as_u32() as usize];
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        3 // 3 time units for shift register
+    }
+
+    fn is_sequential(&self) -> bool {
+        true
+    }
+
+    fn clock_edge(&mut self, edge: ClockEdge, _current_time: Timestamp) -> UpdateResult {
+        if edge == ClockEdge::Rising {
+            let enable = self.pins.get("EN")
+                .map(|pin| pin.signal.as_single().unwrap_or(Value::High))
+                .unwrap_or(Value::High);
+            let clear = self.pins.get("CLR")
+                .map(|pin| pin.signal.as_single().unwrap_or(Value::Low))
+                .unwrap_or(Value::Low);
+            
+            if clear == Value::High {
+                self.stored_data = vec![Value::Low; self.width.as_u32() as usize];
+            } else if enable == Value::High {
+                let shift_in = self.pins.get("SIN")
+                    .map(|pin| pin.signal.as_single().unwrap_or(Value::Low))
+                    .unwrap_or(Value::Low);
+                
+                // Perform shift operation (simplified - right shift)
+                self.stored_data.insert(0, shift_in);
+                if self.stored_data.len() > self.width.as_u32() as usize {
+                    self.stored_data.truncate(self.width.as_u32() as usize);
+                }
+            }
+            
+            return self.update(Timestamp(0));
+        }
+        
+        UpdateResult::new()
+    }
+}
+
+impl Propagator for ShiftRegister {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal.clone());
+        }
+
+        // For clock input, check for edges
+        if input_pin == "CLK" {
+            if let Some(new_value) = signal.as_single() {
+                if new_value == Value::High {
+                    return self.clock_edge(ClockEdge::Rising, current_time);
+                }
+            }
+        }
+
+        UpdateResult::new()
+    }
+}
+
+/// Multiplier component for arithmetic multiplication
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Multiplier {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+}
+
+impl Multiplier {
+    pub fn new(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", width));
+        pins.insert("B".to_string(), Pin::new_input("B", width));
+        pins.insert("PRODUCT".to_string(), Pin::new_output("PRODUCT", BusWidth(width.as_u32() * 2))); // Double width output
+
+        Multiplier { id, pins, width }
+    }
+}
+
+impl Component for Multiplier {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Multiplier"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        let a_signal = &self.pins.get("A").unwrap().signal;
+        let b_signal = &self.pins.get("B").unwrap().signal;
+        
+        let a_value = self.signal_to_number(a_signal) as u64;
+        let b_value = self.signal_to_number(b_signal) as u64;
+        
+        let product = a_value * b_value;
+        let product_values = self.number_to_values(product);
+        
+        let product_signal = if product_values.len() == 1 {
+            Signal::new_single(product_values[0])
+        } else {
+            Signal::new_bus(product_values)
+        };
+        
+        result.add_output("PRODUCT".to_string(), product_signal.clone());
+        result.set_delay(self.propagation_delay());
+        
+        if let Some(pin) = self.pins.get_mut("PRODUCT") {
+            let _ = pin.set_signal(product_signal);
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        6 // 6 time units for multiplier (more complex operation)
+    }
+}
+
+impl Multiplier {
+    fn signal_to_number(&self, signal: &Signal) -> u32 {
+        let mut number = 0u32;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            if bit == Value::High && i < 32 {
+                number |= 1 << i;
+            }
+        }
+        number
+    }
+    
+    fn number_to_values(&self, number: u64) -> Vec<Value> {
+        let mut values = Vec::new();
+        let output_width = self.width.as_u32() * 2;
+        for i in 0..output_width {
+            let bit = (number >> i) & 1;
+            values.push(if bit == 1 { Value::High } else { Value::Low });
+        }
+        values
+    }
+}
+
+impl Propagator for Multiplier {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// Comparator component for value comparison
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Comparator {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+}
+
+impl Comparator {
+    pub fn new(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", width));
+        pins.insert("B".to_string(), Pin::new_input("B", width));
+        pins.insert("EQ".to_string(), Pin::new_output("EQ", BusWidth(1))); // A == B
+        pins.insert("GT".to_string(), Pin::new_output("GT", BusWidth(1))); // A > B
+        pins.insert("LT".to_string(), Pin::new_output("LT", BusWidth(1))); // A < B
+
+        Comparator { id, pins, width }
+    }
+}
+
+impl Component for Comparator {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Comparator"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        let a_signal = &self.pins.get("A").unwrap().signal;
+        let b_signal = &self.pins.get("B").unwrap().signal;
+        
+        let a_value = self.signal_to_number(a_signal);
+        let b_value = self.signal_to_number(b_signal);
+        
+        let eq = if a_value == b_value { Value::High } else { Value::Low };
+        let gt = if a_value > b_value { Value::High } else { Value::Low };
+        let lt = if a_value < b_value { Value::High } else { Value::Low };
+        
+        result.add_output("EQ".to_string(), Signal::new_single(eq));
+        result.add_output("GT".to_string(), Signal::new_single(gt));
+        result.add_output("LT".to_string(), Signal::new_single(lt));
+        result.set_delay(self.propagation_delay());
+        
+        if let Some(pin) = self.pins.get_mut("EQ") {
+            let _ = pin.set_signal(Signal::new_single(eq));
+        }
+        if let Some(pin) = self.pins.get_mut("GT") {
+            let _ = pin.set_signal(Signal::new_single(gt));
+        }
+        if let Some(pin) = self.pins.get_mut("LT") {
+            let _ = pin.set_signal(Signal::new_single(lt));
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        2 // 2 time units for comparator
+    }
+}
+
+impl Comparator {
+    fn signal_to_number(&self, signal: &Signal) -> u32 {
+        let mut number = 0u32;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            if bit == Value::High && i < 32 {
+                number |= 1 << i;
+            }
+        }
+        number
+    }
+}
+
+impl Propagator for Comparator {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

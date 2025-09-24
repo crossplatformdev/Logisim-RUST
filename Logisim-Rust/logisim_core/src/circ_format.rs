@@ -752,7 +752,7 @@ impl CircIntegration {
         circuit: &CircuitDefinition,
         _all_circuits: &HashMap<String, CircuitDefinition>,
     ) -> CircResult<()> {
-        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel, Splitter, Led, Multiplexer, Demultiplexer, Clock, Ram, ControlledBuffer, Register, Counter, Text, Adder, Divider, Decoder};
+        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel, Splitter, Led, Multiplexer, Demultiplexer, Clock, Ram, ControlledBuffer, Register, Counter, Text, Adder, Divider, Decoder, Subtractor, Power, Ground, ShiftRegister, Multiplier, Comparator};
         use crate::signal::{BusWidth, Value};
 
         // Create a mapping from locations to node IDs for wire connections
@@ -924,6 +924,43 @@ impl CircIntegration {
                         .and_then(|s| s.parse::<u32>().ok())
                         .unwrap_or(2); // Default 2-bit decoder (4 outputs)
                     Box::new(Decoder::new(component_id, BusWidth(select)))
+                }
+                "Subtractor" => {
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    Box::new(Subtractor::new(component_id, width))
+                }
+                "Power" => {
+                    Box::new(Power::new(component_id))
+                }
+                "Ground" => {
+                    Box::new(Ground::new(component_id))
+                }
+                "Shift Register" => {
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    let shift_type = comp_instance.attributes.get("shift")
+                        .map(|s| s.clone())
+                        .unwrap_or_else(|| "right".to_string());
+                    Box::new(ShiftRegister::new(component_id, width, shift_type))
+                }
+                "Multiplier" => {
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    Box::new(Multiplier::new(component_id, width))
+                }
+                "Comparator" => {
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    Box::new(Comparator::new(component_id, width))
                 }
                 "ROM" => {
                     // Create a ROM component (simplified for now)
