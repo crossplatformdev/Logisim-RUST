@@ -263,6 +263,11 @@ impl Signal {
         }
         Signal { values, width }
     }
+
+    /// Create multi-bit signal from u64 value (alias for from_u64)
+    pub fn new_multi(width: BusWidth, value: u64) -> Self {
+        Self::from_u64(value, width)
+    }
 }
 
 impl fmt::Display for Signal {

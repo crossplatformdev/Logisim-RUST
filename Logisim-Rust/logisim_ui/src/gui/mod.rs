@@ -4,6 +4,9 @@ pub mod app;
 pub mod frame;
 pub mod generic;
 pub mod startup;
+pub mod i18n;
+pub mod toolbar;
+pub mod properties;
 
 #[cfg(feature = "gui")]
 pub mod canvas;
