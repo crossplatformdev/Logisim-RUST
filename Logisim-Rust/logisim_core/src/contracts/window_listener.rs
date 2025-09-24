@@ -12,7 +12,7 @@
 pub use super::window_focus_listener::{WindowEvent, WindowEventType};
 
 /// Base contract for window listeners with default no-op implementations
-/// 
+///
 /// Dummy implementation of window listener interface. The main purpose of this trait
 /// is to provide default (empty) implementation of interface methods as, unfortunately
 /// many UI frameworks' interfaces do not come with default implementation even they easily could.

@@ -36,7 +36,7 @@ pub struct MouseModifiers {
 }
 
 /// Base contract for mouse input listeners with default no-op implementations
-/// 
+///
 /// Dummy implementation of mouse input listener interface. The main purpose of this trait
 /// is to provide default (empty) implementation of interface methods as, unfortunately
 /// many UI frameworks' interfaces do not come with default implementation even they easily could.
@@ -45,7 +45,7 @@ pub struct MouseModifiers {
 pub trait BaseMouseInputListenerContract {
     /// Called when the mouse is clicked
     fn mouse_clicked(&mut self, _mouse_event: &MouseEvent) {
-        // no-op implementation  
+        // no-op implementation
     }
 
     /// Called when a mouse button is pressed

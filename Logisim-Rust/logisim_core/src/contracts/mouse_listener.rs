@@ -9,10 +9,10 @@
 
 //! Mouse event listener contract
 
-pub use super::mouse_input_listener::{MouseEvent, MouseButton, MouseModifiers};
+pub use super::mouse_input_listener::{MouseButton, MouseEvent, MouseModifiers};
 
 /// Base contract for mouse listeners with default no-op implementations
-/// 
+///
 /// Dummy implementation of mouse listener interface. The main purpose of this trait
 /// is to provide default (empty) implementation of interface methods as, unfortunately
 /// many UI frameworks' interfaces do not come with default implementation even they easily could.

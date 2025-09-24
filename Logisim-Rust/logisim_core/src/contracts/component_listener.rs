@@ -60,7 +60,10 @@ mod tests {
         let mut listener = TestListener;
         let event = ComponentEvent {
             component_id: 1,
-            event_type: ComponentEventType::Resized { width: 100, height: 200 },
+            event_type: ComponentEventType::Resized {
+                width: 100,
+                height: 200,
+            },
         };
 
         // Should not panic - all methods have default implementations

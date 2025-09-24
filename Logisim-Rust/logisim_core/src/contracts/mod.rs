@@ -10,7 +10,7 @@
 //! Contract interfaces for event handling
 //!
 //! This module provides default trait implementations for various UI event handlers,
-//! allowing implementors to only override the methods they need rather than 
+//! allowing implementors to only override the methods they need rather than
 //! implementing all methods of the parent trait.
 
 pub mod component_listener;
