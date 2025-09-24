@@ -20,6 +20,18 @@ pub struct HdlContent {
     listener_ids: HashMap<usize, usize>,
 }
 
+impl std::fmt::Debug for HdlContent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HdlContent")
+            .field("name", &self.name)
+            .field("content", &self.content)
+            .field("inputs", &self.inputs)
+            .field("outputs", &self.outputs)
+            .field("listener_count", &self.listeners.len())
+            .finish()
+    }
+}
+
 impl HdlContent {
     /// Create new HDL content
     pub fn new(name: String) -> Self {
@@ -137,7 +149,7 @@ impl HdlModel for HdlContent {
 /// 
 /// Provides attribute-specific functionality for HDL content.
 /// This would be used by component attribute systems.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct HdlContentAttribute {
     content: HdlContent,
     attribute_name: String,

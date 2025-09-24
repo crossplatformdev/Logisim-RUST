@@ -6,45 +6,56 @@
 use crate::data::{Attribute, AttributeSet, AttributeValue};
 use crate::hdl::content::HdlContent;
 use crate::hdl::model::HdlModel;
-use std::collections::HashMap;
 
 /// HDL content attribute value
 /// 
 /// Wrapper for HDL content that implements AttributeValue.
+#[derive(Debug, Clone)]
 pub struct HdlContentValue {
-    content: Box<dyn HdlModel>,
+    content_name: String,
+    content_text: String,
 }
 
 impl HdlContentValue {
     /// Create new HDL content value
     pub fn new(content: Box<dyn HdlModel>) -> Self {
-        Self { content }
+        Self { 
+            content_name: content.get_name().to_string(),
+            content_text: content.get_content().to_string(),
+        }
     }
 
-    /// Get the content
-    pub fn get_content(&self) -> &dyn HdlModel {
-        self.content.as_ref()
+    /// Get the content name
+    pub fn get_content_name(&self) -> &str {
+        &self.content_name
     }
 
-    /// Set the content (requires mutable reference)
+    /// Get the content text
+    pub fn get_content_text(&self) -> &str {
+        &self.content_text
+    }
+
+    /// Set the content from HDL model
     pub fn set_content(&mut self, content: Box<dyn HdlModel>) {
-        self.content = content;
+        self.content_name = content.get_name().to_string();
+        self.content_text = content.get_content().to_string();
     }
 }
 
 impl AttributeValue for HdlContentValue {
     fn to_display_string(&self) -> String {
-        format!("{} ({})", self.content.get_name(), self.content.get_content())
+        format!("{} ({})", self.content_name, self.content_text)
     }
 
     fn to_standard_string(&self) -> String {
-        self.content.get_content().to_string()
+        self.content_text.clone()
     }
 
     fn parse_from_string(s: &str) -> Result<Self, String> {
-        let mut content = HdlContent::new("parsed".to_string());
-        content.set_content(s.to_string());
-        Ok(Self::new(Box::new(content)))
+        Ok(Self {
+            content_name: "parsed".to_string(),
+            content_text: s.to_string(),
+        })
     }
 }
 
@@ -75,7 +86,7 @@ impl HdlContentAttribute {
 /// 
 /// Wrapper around AttributeSet with VHDL-specific convenience methods.
 /// Equivalent to Java VhdlEntityAttributes.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct VhdlEntityAttributes {
     attribute_set: AttributeSet,
     content_attr: Attribute<HdlContentValue>,
@@ -127,7 +138,7 @@ impl Default for VhdlEntityAttributes {
 /// 
 /// Wrapper around AttributeSet with BLIF-specific convenience methods.
 /// Equivalent to Java BlifCircuitAttributes.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BlifCircuitAttributes {
     attribute_set: AttributeSet,
     content_attr: Attribute<HdlContentValue>,
@@ -179,7 +190,7 @@ impl Default for BlifCircuitAttributes {
 /// 
 /// Base attributes for generic HDL interface components.
 /// Equivalent to Java GenericInterfaceComponent attributes.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GenericInterfaceAttributes {
     attribute_set: AttributeSet,
     interface_type_attr: Attribute<String>,
@@ -295,11 +306,11 @@ mod tests {
         let content = HdlContent::new("test".to_string());
         let mut value = HdlContentValue::new(Box::new(content));
         
-        assert_eq!(value.get_content().get_name(), "test");
+        assert_eq!(value.get_content_name(), "test");
         
         let new_content = HdlContent::new("new_test".to_string());
         value.set_content(Box::new(new_content));
-        assert_eq!(value.get_content().get_name(), "new_test");
+        assert_eq!(value.get_content_name(), "new_test");
     }
 
     #[test]
@@ -312,7 +323,7 @@ mod tests {
         assert_eq!(serialized, "entity test is end;");
         
         let parsed = HdlContentValue::parse_from_string(&serialized).unwrap();
-        assert_eq!(parsed.get_content().get_content(), "entity test is end;");
+        assert_eq!(parsed.get_content_text(), "entity test is end;");
     }
 
     #[test]
@@ -321,12 +332,12 @@ mod tests {
         
         // Test content access
         assert!(attrs.get_content().is_some());
-        assert_eq!(attrs.get_content().unwrap().get_content().get_name(), "entity");
+        assert_eq!(attrs.get_content().unwrap().get_content_name(), "entity");
         
         // Test content setting
         let new_content = HdlContentValue::new(Box::new(HdlContent::new("new_entity".to_string())));
         assert!(attrs.set_content(new_content).is_ok());
-        assert_eq!(attrs.get_content().unwrap().get_content().get_name(), "new_entity");
+        assert_eq!(attrs.get_content().unwrap().get_content_name(), "new_entity");
     }
 
     #[test]
@@ -334,11 +345,11 @@ mod tests {
         let mut attrs = BlifCircuitAttributes::new();
         
         assert!(attrs.get_content().is_some());
-        assert_eq!(attrs.get_content().unwrap().get_content().get_name(), "circuit");
+        assert_eq!(attrs.get_content().unwrap().get_content_name(), "circuit");
         
         let new_content = HdlContentValue::new(Box::new(HdlContent::new("new_circuit".to_string())));
         assert!(attrs.set_content(new_content).is_ok());
-        assert_eq!(attrs.get_content().unwrap().get_content().get_name(), "new_circuit");
+        assert_eq!(attrs.get_content().unwrap().get_content_name(), "new_circuit");
     }
 
     #[test]

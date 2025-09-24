@@ -244,7 +244,7 @@ mod tests {
         assert_eq!(port.get_name(), "clk");
         assert_eq!(port.get_type(), "std_logic");
         assert_eq!(port.get_width_int(), 1);
-        assert_eq!(port.get_width(), BitWidth::create(1));
+        assert_eq!(port.get_width(), BitWidth::create(1).unwrap());
     }
 
     #[test]
@@ -291,7 +291,7 @@ mod tests {
         let model = BasicHdlModel::new("test".to_string());
         assert!(model.compare_content(""));
         
-        let mut model2 = model.clone();
+        let mut model2 = BasicHdlModel::new("test".to_string());
         model2.set_content("different content".to_string());
         assert!(!model.compare_model(&model2));
     }

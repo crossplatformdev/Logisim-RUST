@@ -289,7 +289,6 @@ impl HdlFileFilter {
 mod tests {
     use super::*;
     use crate::hdl::content::BasicHdlContentEditor;
-    use std::fs;
     use tempfile::TempDir;
 
     #[test]
