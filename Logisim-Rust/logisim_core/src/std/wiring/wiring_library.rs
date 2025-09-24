@@ -115,6 +115,9 @@ impl WiringLibrary {
         // Register Power component
         self.register_factory(Box::new(crate::std::wiring::power::PowerFactory));
         
+        // Register Clock component
+        self.register_factory(Box::new(crate::std::wiring::clock::ClockFactory));
+        
         // TODO: Register other wiring components as they are implemented
     }
 }
@@ -146,8 +149,8 @@ mod tests {
         let library = WiringLibrary::new();
         let infos = library.get_component_infos();
         
-        // Should have at least 4 components registered
-        assert!(infos.len() >= 4);
+        // Should have at least 5 components registered
+        assert!(infos.len() >= 5);
         
         // Check that all expected components are registered
         let component_ids: Vec<&str> = infos.iter().map(|info| info.id.as_str()).collect();
@@ -155,6 +158,7 @@ mod tests {
         assert!(component_ids.contains(&"Constant"));
         assert!(component_ids.contains(&"Ground"));
         assert!(component_ids.contains(&"Power"));
+        assert!(component_ids.contains(&"Clock"));
     }
     
     #[test]
@@ -178,8 +182,12 @@ mod tests {
         assert!(power.is_some());
         assert_eq!(power.unwrap().name(), "Power");
         
+        let clock = library.create_component("Clock", ComponentId(5));
+        assert!(clock.is_some());
+        assert_eq!(clock.unwrap().name(), "Clock");
+        
         // Test invalid component ID
-        let invalid = library.create_component("NonExistent", ComponentId(5));
+        let invalid = library.create_component("NonExistent", ComponentId(6));
         assert!(invalid.is_none());
     }
 }

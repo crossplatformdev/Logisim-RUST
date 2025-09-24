@@ -12,6 +12,7 @@
 //! This module contains all the wiring-related components such as pins,
 //! tunnels, splitters, clocks, and power/ground components.
 
+pub mod clock;
 pub mod constant;
 pub mod ground;
 pub mod pin;
@@ -19,6 +20,7 @@ pub mod power;
 pub mod wiring_library;
 
 // Export wiring components
+pub use clock::*;
 pub use constant::*;
 pub use ground::*;
 pub use pin::*;
