@@ -38,16 +38,21 @@ jobs:
         # queries: security-extended,security-and-quality
 
     - name: "Install Rust toolchain"
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@v1
+      with:
+        toolchain: stable
 
     - name: "Cache Rust dependencies"
       uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "Logisim-Rust -> target"
 
     # Build the project for CodeQL analysis
     # Note: Excluding GUI features to avoid winit platform compatibility issues in headless CI
     - name: "Build project"
       run: |
         cargo build --verbose --workspace
+      working-directory: Logisim-Rust
 
     - name: "Perform CodeQL Analysis"
       uses: github/codeql-action/analyze@v3

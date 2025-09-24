@@ -804,12 +804,12 @@ impl CircIntegration {
         circuit_file: &CircuitFile,
     ) -> CircResult<()> {
         use crate::component::{
-            Adder, AndGate, BitAdder, BitExtender, BitSelector, Buffer, Clock, ClockedLatch, 
-            Comparator, Constant, ControlledBuffer, Counter, DFlipFlop, Decoder, Demultiplexer, 
-            Divider, Ground, HexDigitDisplay, Keyboard, Led, Multiplexer, Multiplier, NandGate, 
-            Negator, NorGate, NotGate, OrGate, PinComponent, Power, PriorityEncoder, Probe, 
-            Ram, Random, Register, RgbVideo, Rom, ShiftRegister, Splitter, Subtractor, Telnet, 
-            Text, Tty, Tunnel, XnorGate, XorGate,
+            Adder, AndGate, BitAdder, BitExtender, BitSelector, Buffer, Clock, ClockedLatch,
+            Comparator, Constant, ControlledBuffer, Counter, DFlipFlop, Decoder, Demultiplexer,
+            Divider, Ground, HexDigitDisplay, Keyboard, Led, Multiplexer, Multiplier, NandGate,
+            Negator, NorGate, NotGate, OrGate, PinComponent, Power, PriorityEncoder, Probe, Ram,
+            Random, Register, RgbVideo, Rom, ShiftRegister, Splitter, Subtractor, Telnet, Text,
+            Tty, Tunnel, XnorGate, XorGate,
         };
         use crate::signal::{BusWidth, Value};
 
@@ -1114,7 +1114,12 @@ impl CircIntegration {
                         .get("type")
                         .map(|t| t == "sign")
                         .unwrap_or(false);
-                    Box::new(BitExtender::new(component_id, input_width, output_width, signed))
+                    Box::new(BitExtender::new(
+                        component_id,
+                        input_width,
+                        output_width,
+                        signed,
+                    ))
                 }
                 "Bit Selector" => {
                     let input_width = comp_instance
@@ -1124,7 +1129,11 @@ impl CircIntegration {
                         .unwrap_or(8);
                     // Default to selecting first bit if no range specified
                     let select_bits: Vec<u32> = vec![0];
-                    Box::new(BitSelector::new(component_id, BusWidth(input_width), select_bits))
+                    Box::new(BitSelector::new(
+                        component_id,
+                        BusWidth(input_width),
+                        select_bits,
+                    ))
                 }
                 "Priority Encoder" => {
                     let input_count = comp_instance

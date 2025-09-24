@@ -56,7 +56,7 @@ impl Canvas {
     }
 
     /// Set the current simulation
-    pub fn set_simulation(&mut self, simulation: &Simulation) {
+    pub fn set_simulation(&mut self, _simulation: &Simulation) {
         // Note: We'll need to implement proper state management here
         // For now, we just track that we have a simulation
         self.simulation = None; // TODO: Properly handle simulation reference

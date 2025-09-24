@@ -70,10 +70,14 @@ jobs:
         done
     
     - name: "Install Rust toolchain"
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@v1
+      with:
+        toolchain: stable
     
     - name: "Cache Rust dependencies"
       uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "Logisim-Rust -> target"
     
     - name: "Install cargo-license for dependency checking"
       run: |
@@ -92,6 +96,7 @@ jobs:
         
         # Check for problematic licenses
         echo "=== Checking for GPL-incompatible licenses ==="
+      working-directory: Logisim-Rust
         
         # List of licenses that are NOT compatible with GPL-3.0
         INCOMPATIBLE_LICENSES=(
@@ -255,6 +260,7 @@ jobs:
         EOF
         
         echo "✅ Compliance report generated"
+      working-directory: Logisim-Rust
     
     - name: "Upload compliance artifacts"
       uses: actions/upload-artifact@v3

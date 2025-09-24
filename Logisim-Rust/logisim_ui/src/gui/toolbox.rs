@@ -1,6 +1,6 @@
 //! Toolbox implementation - equivalent to the Java Toolbox class
 
-use eframe::egui::{self, CollapsibleHeader, Ui};
+use eframe::egui::{self, CollapsingHeader, Ui};
 
 /// Component toolbox for selecting tools and components
 pub struct Toolbox {
@@ -73,7 +73,7 @@ impl Toolbox {
         ui.heading("Toolbox");
 
         // Basic tools
-        CollapsibleHeader::new("Tools")
+        CollapsingHeader::new("Tools")
             .default_open(true)
             .show(ui, |ui| {
                 self.tool_button(ui, ToolType::Edit, "🔗", "Edit/Select");
@@ -82,7 +82,7 @@ impl Toolbox {
             });
 
         // I/O components
-        CollapsibleHeader::new("Input/Output")
+        CollapsingHeader::new("Input/Output")
             .default_open(true)
             .show(ui, |ui| {
                 self.tool_button(ui, ToolType::InputPin, "▶", "Input Pin");
@@ -92,7 +92,7 @@ impl Toolbox {
             });
 
         // Logic gates
-        CollapsibleHeader::new("Gates")
+        CollapsingHeader::new("Gates")
             .default_open(true)
             .show(ui, |ui| {
                 self.tool_button(ui, ToolType::AndGate, "&", "AND Gate");
@@ -105,7 +105,7 @@ impl Toolbox {
             });
 
         // Plexers
-        CollapsibleHeader::new("Plexers")
+        CollapsingHeader::new("Plexers")
             .default_open(false)
             .show(ui, |ui| {
                 self.tool_button(ui, ToolType::Splitter, "⊢", "Splitter");
@@ -114,7 +114,7 @@ impl Toolbox {
             });
 
         // Memory
-        CollapsibleHeader::new("Memory")
+        CollapsingHeader::new("Memory")
             .default_open(false)
             .show(ui, |ui| {
                 self.tool_button(ui, ToolType::Rom, "ROM", "ROM");
@@ -124,7 +124,7 @@ impl Toolbox {
             });
 
         // Flip-flops and latches
-        CollapsibleHeader::new("Flip-Flops")
+        CollapsingHeader::new("Flip-Flops")
             .default_open(false)
             .show(ui, |ui| {
                 self.tool_button(ui, ToolType::DFlipFlop, "D", "D Flip-Flop");
