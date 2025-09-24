@@ -221,6 +221,7 @@ pub struct AttributeEvent {
 }
 
 impl AttributeEvent {
+    #[allow(dead_code)]
     fn new(attribute_id: AttributeId) -> Self {
         Self { attribute_id }
     }

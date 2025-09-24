@@ -237,7 +237,7 @@ impl ComponentFactoryRegistry {
         // Add to category index
         self.categories
             .entry(category)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(name.clone());
         
         // Register the factory

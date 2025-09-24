@@ -59,7 +59,7 @@ impl StringUtil {
             value
         };
 
-        let len = (bits + 3) / 4;
+        let len = bits.div_ceil(4);
         let hex_str = format!("{:0width$x}", masked_value, width = len as usize);
 
         // Ensure we don't exceed the expected length
@@ -99,9 +99,7 @@ impl StringUtil {
 
     /// Resize string to fit within maximum width (simplified version)
     pub fn resize_string(value: &str, max_width: usize) -> String {
-        if value.len() <= max_width {
-            value.to_string()
-        } else if value.len() < 4 {
+        if value.len() <= max_width || value.len() < 4 {
             value.to_string()
         } else {
             let truncated_len = max_width.saturating_sub(3);
