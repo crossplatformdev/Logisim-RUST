@@ -5,7 +5,10 @@ use eframe::egui::{self, CentralPanel, Context, ScrollArea, SidePanel, TopBottom
 use logisim_core::Simulation;
 
 #[cfg(feature = "gui")]
-use super::{canvas::Canvas, chronogram::ChronogramPanel, menu::MenuBar, project_explorer::ProjectExplorer, toolbox::Toolbox};
+use super::{
+    canvas::Canvas, chronogram::ChronogramPanel, menu::MenuBar, project_explorer::ProjectExplorer,
+    toolbox::Toolbox,
+};
 
 /// Main application frame containing all UI components
 pub struct MainFrame {
@@ -100,11 +103,11 @@ impl MainFrame {
         // Top menu bar
         TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             self.menu_bar.show(ui);
-            
+
             // Check if chronogram should be shown (triggered from menu)
             if ui.button("📊 Chronogram").clicked() {
                 self.show_chronogram = !self.show_chronogram;
-                
+
                 // Start/stop recording based on chronogram visibility
                 if let Some(simulation) = &self.simulation {
                     if self.show_chronogram {

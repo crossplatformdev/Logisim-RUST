@@ -17,28 +17,28 @@ pub use waveform::Waveform;
 pub mod constants {
     /// Height of each signal waveform in pixels
     pub const SIGNAL_HEIGHT: f32 = 30.0;
-    
+
     /// Height of the timeline header in pixels
     pub const HEADER_HEIGHT: f32 = 20.0;
-    
+
     /// Gap between signal traces
     pub const GAP: f32 = 2.0;
-    
+
     /// Initial split pane position
     pub const INITIAL_SPLIT: f32 = 150.0;
-    
+
     /// Height of waveform area
     pub const WAVE_HEIGHT: f32 = SIGNAL_HEIGHT;
-    
+
     /// Extra space for timeline
     pub const EXTRA_SPACE: f32 = 40.0;
-    
+
     /// Cursor gap in pixels
     pub const CURSOR_GAP: f32 = 20.0;
-    
+
     /// Timeline spacing
     pub const TIMELINE_SPACING: f32 = 80.0;
-    
+
     /// Default tick width for time scaling
     pub const DEFAULT_TICK_WIDTH: f32 = 10.0;
 }

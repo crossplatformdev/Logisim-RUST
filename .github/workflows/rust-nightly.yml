@@ -37,16 +37,16 @@ jobs:
       run: cargo fmt --all -- --check
     
     - name: "Run Clippy"
-      run: cargo clippy --all-targets --all-features -- -D warnings
+      run: cargo clippy --workspace --all-targets -- -D warnings
     
     - name: "Build workspace"
-      run: cargo build --verbose --all-features
+      run: cargo build --verbose --workspace
     
     - name: "Run tests"
-      run: cargo test --verbose --all-features
+      run: cargo test --verbose --workspace
     
     - name: "Build documentation"
-      run: cargo doc --verbose --all-features --no-deps
+      run: cargo doc --verbose --workspace --no-deps
 
   experimental_features:
     name: "Test Experimental Features"
@@ -67,10 +67,10 @@ jobs:
       run: |
         # Test building with various unstable features
         # This helps us prepare for future Rust versions
-        cargo build --all-features
-        cargo test --all-features
+        cargo build --workspace
+        cargo test --workspace
     
     - name: "Check for future incompatibilities"
       run: |
         # Run with future-incompat-report to catch upcoming breaking changes
-        cargo check --future-incompat-report --all-features
+        cargo check --future-incompat-report --workspace

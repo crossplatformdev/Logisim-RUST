@@ -6,6 +6,10 @@ description = "UI/GUI components for Logisim-RUST digital logic designer and sim
 license = "GPL-3.0-or-later"
 authors = ["Logisim-RUST Contributors"]
 
+[[bin]]
+name = "logisim-rust"
+path = "src/main.rs"
+
 [features]
 default = []  # No default features to ensure CI/CD compatibility
 gui = ["dep:egui", "dep:eframe"]
