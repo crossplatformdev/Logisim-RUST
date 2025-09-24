@@ -136,7 +136,7 @@ impl Timeline {
 
             // Calculate time ticks
             let (start_time, end_time) = self.visible_time_range();
-            let time_span = end_time.as_u64() - start_time.as_u64();
+            let _time_span = end_time.as_u64() - start_time.as_u64();
 
             // Determine tick spacing based on zoom level
             let target_tick_pixels = 50.0; // Target pixels between major ticks

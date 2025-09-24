@@ -22,7 +22,7 @@ impl ProjectExplorer {
     }
 
     /// Set the current simulation
-    pub fn set_simulation(&mut self, simulation: &Simulation) {
+    pub fn set_simulation(&mut self, _simulation: &Simulation) {
         // TODO: Properly handle simulation reference - for now just track the stats
         self.simulation = None; // We'll implement proper state tracking later
     }

@@ -4030,27 +4030,26 @@ impl Component for Negator {
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let input_signal = &self.pins["Input"].signal;
 
-        let output_value = if let Some(value) = input_signal.as_single() {
-            match value {
+        let output_signal = if let Some(value) = input_signal.as_single() {
+            let inverted_value = match value {
                 Value::Low => Value::High,
                 Value::High => Value::Low,
                 _ => Value::Unknown,
-            }
+            };
+            Signal::new_single(inverted_value)
         } else {
             // For multi-bit values, perform two's complement
-            let input_signal = &self.pins["Input"].signal;
-            let input_val = input_signal.to_u64().unwrap_or(0) as u32;
-            let max_val = (1u32 << self.width.0) - 1;
-            let negated = (!input_val + 1) & max_val;
-            if negated == 0 {
-                Value::Low
+            if let Some(input_val) = input_signal.to_u64() {
+                let max_val = (1u64 << self.width.0) - 1;
+                let negated = (!input_val + 1) & max_val;
+                Signal::from_u64(negated, self.width)
             } else {
-                Value::High
+                Signal::new_single(Value::Unknown)
             }
         };
 
         let mut outputs = HashMap::new();
-        outputs.insert("Output".to_string(), Signal::new_single(output_value));
+        outputs.insert("Output".to_string(), output_signal);
 
         UpdateResult {
             outputs,
@@ -4071,7 +4070,6 @@ impl Component for Negator {
 pub struct Buffer {
     id: ComponentId,
     pins: HashMap<String, Pin>,
-    width: BusWidth,
 }
 
 impl Buffer {
@@ -4080,7 +4078,7 @@ impl Buffer {
         pins.insert("Input".to_string(), Pin::new_input("Input", width));
         pins.insert("Output".to_string(), Pin::new_output("Output", width));
 
-        Self { id, pins, width }
+        Self { id, pins }
     }
 }
 
@@ -4207,7 +4205,7 @@ impl Component for BitExtender {
             input_value
         };
 
-        let output_signal = Signal::new_single(Value::Unknown);
+        let output_signal = Signal::from_u64(output_value as u64, self.output_width);
 
         let mut outputs = HashMap::new();
         outputs.insert("Output".to_string(), output_signal);
@@ -4292,7 +4290,7 @@ impl Component for BitSelector {
             }
         }
 
-        let output_signal = Signal::new_single(Value::Unknown);
+        let output_signal = Signal::from_u64(output_value as u64, self.output_width);
 
         let mut outputs = HashMap::new();
         outputs.insert("Output".to_string(), output_signal);
@@ -4328,7 +4326,7 @@ impl PriorityEncoder {
         for i in 0..input_count {
             pins.insert(
                 format!("I{}", i),
-                Pin::new_input(&format!("I{}", i), BusWidth(1)),
+                Pin::new_input(format!("I{}", i), BusWidth(1)),
             );
         }
         pins.insert(
@@ -4388,7 +4386,10 @@ impl Component for PriorityEncoder {
         }
 
         let mut outputs = HashMap::new();
-        outputs.insert("Output".to_string(), Signal::new_single(Value::Unknown));
+        outputs.insert(
+            "Output".to_string(),
+            Signal::from_u64(encoded_value as u64, self.output_width),
+        );
         outputs.insert(
             "Valid".to_string(),
             Signal::new_single(if valid { Value::High } else { Value::Low }),
@@ -4471,14 +4472,14 @@ impl Component for Rom {
         let oe = self.pins["OE"].signal.as_single().unwrap_or(Value::Low);
         let address = self.pins["Address"].signal.to_u64().unwrap_or(0) as usize;
 
-        let output_value = if oe == Value::High && address < self.data.len() {
-            Value::Unknown
+        let output_signal = if oe == Value::High && address < self.data.len() {
+            Signal::from_u64(self.data[address] as u64, self.data_width)
         } else {
-            Value::High
+            Signal::new_uniform(self.data_width, Value::Unknown)
         };
 
         let mut outputs = HashMap::new();
-        outputs.insert("Data".to_string(), Signal::new_single(output_value));
+        outputs.insert("Data".to_string(), output_signal);
 
         UpdateResult {
             outputs,
@@ -4549,7 +4550,7 @@ impl Component for Random {
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let enable = self.pins["Enable"].signal.as_single().unwrap_or(Value::Low);
 
-        let output_value = if enable == Value::High {
+        let output_signal = if enable == Value::High {
             // Simple linear congruential generator
             self.state = self.state.wrapping_mul(1103515245).wrapping_add(12345);
             let mask = if self.width.0 >= 32 {
@@ -4557,13 +4558,13 @@ impl Component for Random {
             } else {
                 (1u32 << self.width.0) - 1
             };
-            Value::Unknown
+            Signal::from_u64((self.state & mask) as u64, self.width)
         } else {
-            Value::Unknown
+            Signal::new_uniform(self.width, Value::Unknown)
         };
 
         let mut outputs = HashMap::new();
-        outputs.insert("Output".to_string(), Signal::new_single(output_value));
+        outputs.insert("Output".to_string(), output_signal);
 
         UpdateResult {
             outputs,
@@ -4577,551 +4578,6 @@ impl Component for Random {
             pin.signal = Signal::unknown(pin.width);
         }
         self.state = self.seed;
-    }
-}
-
-/// FullAdder - Single-bit full adder
-#[derive(Debug, Clone)]
-pub struct FullAdder {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-}
-
-impl FullAdder {
-    pub fn new(id: ComponentId) -> Self {
-        let mut pins = HashMap::new();
-        pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
-        pins.insert("B".to_string(), Pin::new_input("B", BusWidth(1)));
-        pins.insert("CarryIn".to_string(), Pin::new_input("CarryIn", BusWidth(1)));
-        pins.insert("Sum".to_string(), Pin::new_output("Sum", BusWidth(1)));
-        pins.insert("CarryOut".to_string(), Pin::new_output("CarryOut", BusWidth(1)));
-
-        Self { id, pins }
-    }
-}
-
-impl Component for FullAdder {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "FullAdder"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn get_pin(&self, name: &str) -> Option<&Pin> {
-        self.pins.get(name)
-    }
-
-    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
-        self.pins.get_mut(name)
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let a = self.pins["A"].signal.as_single().unwrap_or(Value::Low);
-        let b = self.pins["B"].signal.as_single().unwrap_or(Value::Low);
-        let carry_in = self.pins["CarryIn"].signal.as_single().unwrap_or(Value::Low);
-
-        let a_val = if a == Value::High { 1 } else { 0 };
-        let b_val = if b == Value::High { 1 } else { 0 };
-        let c_val = if carry_in == Value::High { 1 } else { 0 };
-
-        let sum_bits = a_val + b_val + c_val;
-        let sum = if (sum_bits & 1) == 1 { Value::High } else { Value::Low };
-        let carry_out = if sum_bits >= 2 { Value::High } else { Value::Low };
-
-        let mut outputs = HashMap::new();
-        outputs.insert("Sum".to_string(), Signal::new_single(sum));
-        outputs.insert("CarryOut".to_string(), Signal::new_single(carry_out));
-
-        UpdateResult {
-            outputs,
-            delay: 2,
-            state_changed: false,
-        }
-    }
-
-    fn reset(&mut self) {
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
-    }
-}
-
-/// HalfAdder - Single-bit half adder
-#[derive(Debug, Clone)]
-pub struct HalfAdder {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-}
-
-impl HalfAdder {
-    pub fn new(id: ComponentId) -> Self {
-        let mut pins = HashMap::new();
-        pins.insert("A".to_string(), Pin::new_input("A", BusWidth(1)));
-        pins.insert("B".to_string(), Pin::new_input("B", BusWidth(1)));
-        pins.insert("Sum".to_string(), Pin::new_output("Sum", BusWidth(1)));
-        pins.insert("Carry".to_string(), Pin::new_output("Carry", BusWidth(1)));
-
-        Self { id, pins }
-    }
-}
-
-impl Component for HalfAdder {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "HalfAdder"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn get_pin(&self, name: &str) -> Option<&Pin> {
-        self.pins.get(name)
-    }
-
-    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
-        self.pins.get_mut(name)
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let a = self.pins["A"].signal.as_single().unwrap_or(Value::Low);
-        let b = self.pins["B"].signal.as_single().unwrap_or(Value::Low);
-
-        let sum = if (a == Value::High) != (b == Value::High) {
-            Value::High
-        } else {
-            Value::Low
-        };
-        let carry = if a == Value::High && b == Value::High {
-            Value::High
-        } else {
-            Value::Low
-        };
-
-        let mut outputs = HashMap::new();
-        outputs.insert("Sum".to_string(), Signal::new_single(sum));
-        outputs.insert("Carry".to_string(), Signal::new_single(carry));
-
-        UpdateResult {
-            outputs,
-            delay: 1,
-            state_changed: false,
-        }
-    }
-
-    fn reset(&mut self) {
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
-    }
-}
-
-/// SevenSegmentDisplay - Seven-segment display driver
-#[derive(Debug, Clone)]
-pub struct SevenSegmentDisplay {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-}
-
-impl SevenSegmentDisplay {
-    pub fn new(id: ComponentId) -> Self {
-        let mut pins = HashMap::new();
-        pins.insert("Input".to_string(), Pin::new_input("Input", BusWidth(4)));
-        pins.insert("A".to_string(), Pin::new_output("A", BusWidth(1)));
-        pins.insert("B".to_string(), Pin::new_output("B", BusWidth(1)));
-        pins.insert("C".to_string(), Pin::new_output("C", BusWidth(1)));
-        pins.insert("D".to_string(), Pin::new_output("D", BusWidth(1)));
-        pins.insert("E".to_string(), Pin::new_output("E", BusWidth(1)));
-        pins.insert("F".to_string(), Pin::new_output("F", BusWidth(1)));
-        pins.insert("G".to_string(), Pin::new_output("G", BusWidth(1)));
-
-        Self { id, pins }
-    }
-    
-    fn get_segment_pattern(&self, value: u64) -> [Value; 7] {
-        // Standard 7-segment display patterns for hex digits
-        match value & 0xF {
-            0x0 => [Value::High, Value::High, Value::High, Value::High, Value::High, Value::High, Value::Low],  // 0
-            0x1 => [Value::Low, Value::High, Value::High, Value::Low, Value::Low, Value::Low, Value::Low],       // 1
-            0x2 => [Value::High, Value::High, Value::Low, Value::High, Value::High, Value::Low, Value::High],    // 2
-            0x3 => [Value::High, Value::High, Value::High, Value::High, Value::Low, Value::Low, Value::High],    // 3
-            0x4 => [Value::Low, Value::High, Value::High, Value::Low, Value::Low, Value::High, Value::High],     // 4
-            0x5 => [Value::High, Value::Low, Value::High, Value::High, Value::Low, Value::High, Value::High],    // 5
-            0x6 => [Value::High, Value::Low, Value::High, Value::High, Value::High, Value::High, Value::High],   // 6
-            0x7 => [Value::High, Value::High, Value::High, Value::Low, Value::Low, Value::Low, Value::Low],      // 7
-            0x8 => [Value::High, Value::High, Value::High, Value::High, Value::High, Value::High, Value::High],  // 8
-            0x9 => [Value::High, Value::High, Value::High, Value::High, Value::Low, Value::High, Value::High],   // 9
-            0xA => [Value::High, Value::High, Value::High, Value::Low, Value::High, Value::High, Value::High],   // A
-            0xB => [Value::Low, Value::Low, Value::High, Value::High, Value::High, Value::High, Value::High],    // B
-            0xC => [Value::High, Value::Low, Value::Low, Value::High, Value::High, Value::High, Value::Low],     // C
-            0xD => [Value::Low, Value::High, Value::High, Value::High, Value::High, Value::Low, Value::High],    // D
-            0xE => [Value::High, Value::Low, Value::Low, Value::High, Value::High, Value::High, Value::High],    // E
-            0xF => [Value::High, Value::Low, Value::Low, Value::Low, Value::High, Value::High, Value::High],     // F
-            _ => [Value::Low; 7], // Should not reach here
-        }
-    }
-}
-
-impl Component for SevenSegmentDisplay {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "SevenSegmentDisplay"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn get_pin(&self, name: &str) -> Option<&Pin> {
-        self.pins.get(name)
-    }
-
-    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
-        self.pins.get_mut(name)
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let input_value = self.pins["Input"].signal.to_u64().unwrap_or(0);
-        let pattern = self.get_segment_pattern(input_value);
-
-        let mut outputs = HashMap::new();
-        let segment_names = ["A", "B", "C", "D", "E", "F", "G"];
-        
-        for (i, &segment) in pattern.iter().enumerate() {
-            outputs.insert(segment_names[i].to_string(), Signal::new_single(segment));
-        }
-
-        UpdateResult {
-            outputs,
-            delay: 1,
-            state_changed: false,
-        }
-    }
-
-    fn reset(&mut self) {
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
-    }
-}
-
-/// JKFlipFlop - JK flip-flop
-#[derive(Debug, Clone)]
-pub struct JKFlipFlop {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-    stored_value: Value,
-    last_clock: Value,
-}
-
-impl JKFlipFlop {
-    pub fn new(id: ComponentId) -> Self {
-        let mut pins = HashMap::new();
-        pins.insert("J".to_string(), Pin::new_input("J", BusWidth(1)));
-        pins.insert("K".to_string(), Pin::new_input("K", BusWidth(1)));
-        pins.insert("Clock".to_string(), Pin::new_input("Clock", BusWidth(1)));
-        pins.insert("Q".to_string(), Pin::new_output("Q", BusWidth(1)));
-        pins.insert("QN".to_string(), Pin::new_output("QN", BusWidth(1)));
-
-        Self {
-            id,
-            pins,
-            stored_value: Value::Low,
-            last_clock: Value::Low,
-        }
-    }
-}
-
-impl Component for JKFlipFlop {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "JKFlipFlop"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn get_pin(&self, name: &str) -> Option<&Pin> {
-        self.pins.get(name)
-    }
-
-    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
-        self.pins.get_mut(name)
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let j = self.pins["J"].signal.as_single().unwrap_or(Value::Low);
-        let k = self.pins["K"].signal.as_single().unwrap_or(Value::Low);
-        let clock = self.pins["Clock"].signal.as_single().unwrap_or(Value::Low);
-
-        let mut state_changed = false;
-
-        // Detect positive edge of clock
-        if self.last_clock == Value::Low && clock == Value::High {
-            self.stored_value = match (j, k) {
-                (Value::Low, Value::Low) => self.stored_value,  // No change
-                (Value::Low, Value::High) => Value::Low,        // Reset
-                (Value::High, Value::Low) => Value::High,       // Set
-                (Value::High, Value::High) => {                 // Toggle
-                    if self.stored_value == Value::High {
-                        Value::Low
-                    } else {
-                        Value::High
-                    }
-                },
-                _ => Value::Unknown,
-            };
-            state_changed = true;
-        }
-
-        self.last_clock = clock;
-
-        let q_not = match self.stored_value {
-            Value::High => Value::Low,
-            Value::Low => Value::High,
-            _ => Value::Unknown,
-        };
-
-        let mut outputs = HashMap::new();
-        outputs.insert("Q".to_string(), Signal::new_single(self.stored_value));
-        outputs.insert("QN".to_string(), Signal::new_single(q_not));
-
-        UpdateResult {
-            outputs,
-            delay: 1,
-            state_changed,
-        }
-    }
-
-    fn reset(&mut self) {
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
-        self.stored_value = Value::Low;
-        self.last_clock = Value::Low;
-    }
-}
-
-/// SRLatch - Set-Reset latch
-#[derive(Debug, Clone)]
-pub struct SRLatch {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-    stored_value: Value,
-}
-
-impl SRLatch {
-    pub fn new(id: ComponentId) -> Self {
-        let mut pins = HashMap::new();
-        pins.insert("S".to_string(), Pin::new_input("S", BusWidth(1)));
-        pins.insert("R".to_string(), Pin::new_input("R", BusWidth(1)));
-        pins.insert("Q".to_string(), Pin::new_output("Q", BusWidth(1)));
-        pins.insert("QN".to_string(), Pin::new_output("QN", BusWidth(1)));
-
-        Self {
-            id,
-            pins,
-            stored_value: Value::Low,
-        }
-    }
-}
-
-impl Component for SRLatch {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "SRLatch"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn get_pin(&self, name: &str) -> Option<&Pin> {
-        self.pins.get(name)
-    }
-
-    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
-        self.pins.get_mut(name)
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let s = self.pins["S"].signal.as_single().unwrap_or(Value::Low);
-        let r = self.pins["R"].signal.as_single().unwrap_or(Value::Low);
-
-        let state_changed = match (s, r) {
-            (Value::Low, Value::Low) => false,                    // No change
-            (Value::Low, Value::High) => {                        // Reset
-                if self.stored_value != Value::Low {
-                    self.stored_value = Value::Low;
-                    true
-                } else {
-                    false
-                }
-            },
-            (Value::High, Value::Low) => {                        // Set
-                if self.stored_value != Value::High {
-                    self.stored_value = Value::High;
-                    true
-                } else {
-                    false
-                }
-            },
-            (Value::High, Value::High) => {                       // Invalid state
-                self.stored_value = Value::Unknown;
-                true
-            },
-            _ => {
-                self.stored_value = Value::Unknown;
-                true
-            },
-        };
-
-        let q_not = match self.stored_value {
-            Value::High => Value::Low,
-            Value::Low => Value::High,
-            _ => Value::Unknown,
-        };
-
-        let mut outputs = HashMap::new();
-        outputs.insert("Q".to_string(), Signal::new_single(self.stored_value));
-        outputs.insert("QN".to_string(), Signal::new_single(q_not));
-
-        UpdateResult {
-            outputs,
-            delay: 1,
-            state_changed,
-        }
-    }
-
-    fn reset(&mut self) {
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
-        self.stored_value = Value::Low;
-    }
-}
-
-/// DLatch - D-type latch
-#[derive(Debug, Clone)]
-pub struct DLatch {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-    stored_value: Value,
-}
-
-impl DLatch {
-    pub fn new(id: ComponentId) -> Self {
-        let mut pins = HashMap::new();
-        pins.insert("D".to_string(), Pin::new_input("D", BusWidth(1)));
-        pins.insert("Enable".to_string(), Pin::new_input("Enable", BusWidth(1)));
-        pins.insert("Q".to_string(), Pin::new_output("Q", BusWidth(1)));
-        pins.insert("QN".to_string(), Pin::new_output("QN", BusWidth(1)));
-
-        Self {
-            id,
-            pins,
-            stored_value: Value::Low,
-        }
-    }
-}
-
-impl Component for DLatch {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "DLatch"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn get_pin(&self, name: &str) -> Option<&Pin> {
-        self.pins.get(name)
-    }
-
-    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
-        self.pins.get_mut(name)
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let d = self.pins["D"].signal.as_single().unwrap_or(Value::Low);
-        let enable = self.pins["Enable"].signal.as_single().unwrap_or(Value::Low);
-
-        let state_changed = if enable == Value::High && self.stored_value != d {
-            self.stored_value = d;
-            true
-        } else {
-            false
-        };
-
-        let q_not = match self.stored_value {
-            Value::High => Value::Low,
-            Value::Low => Value::High,
-            _ => Value::Unknown,
-        };
-
-        let mut outputs = HashMap::new();
-        outputs.insert("Q".to_string(), Signal::new_single(self.stored_value));
-        outputs.insert("QN".to_string(), Signal::new_single(q_not));
-
-        UpdateResult {
-            outputs,
-            delay: 1,
-            state_changed,
-        }
-    }
-
-    fn reset(&mut self) {
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
-        self.stored_value = Value::Low;
     }
 }
 
@@ -5200,10 +4656,6 @@ impl Component for DFlipFlop {
         self.stored_value = Value::Low;
     }
 
-    fn is_sequential(&self) -> bool {
-        true
-    }
-
     fn clock_edge(&mut self, edge: ClockEdge, _timestamp: Timestamp) -> UpdateResult {
         if edge == ClockEdge::Rising {
             let d_value = self.pins["D"].signal.as_single().unwrap_or(Value::Unknown);
@@ -5228,6 +4680,10 @@ impl Component for DFlipFlop {
         } else {
             UpdateResult::new()
         }
+    }
+
+    fn is_sequential(&self) -> bool {
+        true
     }
 }
 
@@ -5320,346 +4776,5 @@ mod tests {
         let output = result.outputs.get("Q").unwrap();
         assert_eq!(output.as_single(), Some(Value::High));
         assert_eq!(latch.stored_value, Value::High);
-    }
-}
-
-/// Even Parity Gate - outputs High if input has even number of 1s
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EvenParityGate {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-    input_count: u32,
-}
-
-impl EvenParityGate {
-    /// Create a new even parity gate
-    pub fn new(id: ComponentId, input_count: u32) -> Self {
-        let mut pins = HashMap::new();
-
-        // Add input pins
-        for i in 0..input_count {
-            pins.insert(
-                format!("Input{}", i),
-                Pin::new_input(&format!("Input{}", i), BusWidth(1)),
-            );
-        }
-
-        pins.insert("Output".to_string(), Pin::new_output("Output", BusWidth(1)));
-
-        Self {
-            id,
-            pins,
-            input_count,
-        }
-    }
-}
-
-impl Component for EvenParityGate {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "Even Parity Gate"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let mut high_count = 0;
-        let mut has_unknown = false;
-
-        // Count high inputs
-        for i in 0..self.input_count {
-            let pin_name = format!("Input{}", i);
-            match self.pins[&pin_name]
-                .signal
-                .as_single()
-                .unwrap_or(Value::Unknown)
-            {
-                Value::High => high_count += 1,
-                Value::Unknown | Value::Error => has_unknown = true,
-                Value::Low => {}
-            }
-        }
-
-        let output = if has_unknown {
-            Value::Unknown
-        } else if high_count % 2 == 0 {
-            Value::High // Even parity
-        } else {
-            Value::Low // Odd parity
-        };
-
-        let mut outputs = HashMap::new();
-        outputs.insert("Output".to_string(), Signal::new_single(output));
-
-        UpdateResult {
-            outputs,
-            delay: 1,
-            state_changed: true,
-        }
-    }
-
-    fn reset(&mut self) {
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
-    }
-}
-
-/// Odd Parity Gate - outputs High if input has odd number of 1s
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OddParityGate {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-    input_count: u32,
-}
-
-impl OddParityGate {
-    /// Create a new odd parity gate
-    pub fn new(id: ComponentId, input_count: u32) -> Self {
-        let mut pins = HashMap::new();
-
-        // Add input pins
-        for i in 0..input_count {
-            pins.insert(
-                format!("Input{}", i),
-                Pin::new_input(&format!("Input{}", i), BusWidth(1)),
-            );
-        }
-
-        pins.insert("Output".to_string(), Pin::new_output("Output", BusWidth(1)));
-
-        Self {
-            id,
-            pins,
-            input_count,
-        }
-    }
-}
-
-impl Component for OddParityGate {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "Odd Parity Gate"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let mut high_count = 0;
-        let mut has_unknown = false;
-
-        // Count high inputs
-        for i in 0..self.input_count {
-            let pin_name = format!("Input{}", i);
-            match self.pins[&pin_name]
-                .signal
-                .as_single()
-                .unwrap_or(Value::Unknown)
-            {
-                Value::High => high_count += 1,
-                Value::Unknown | Value::Error => has_unknown = true,
-                Value::Low => {}
-            }
-        }
-
-        let output = if has_unknown {
-            Value::Unknown
-        } else if high_count % 2 == 1 {
-            Value::High // Odd parity
-        } else {
-            Value::Low // Even parity
-        };
-
-        let mut outputs = HashMap::new();
-        outputs.insert("Output".to_string(), Signal::new_single(output));
-
-        UpdateResult {
-            outputs,
-            delay: 1,
-            state_changed: true,
-        }
-    }
-
-    fn reset(&mut self) {
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
-    }
-}
-
-/// Button - Input component that can be pressed to generate signals
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Button {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-    is_pressed: bool,
-}
-
-impl Button {
-    /// Create a new button
-    pub fn new(id: ComponentId) -> Self {
-        let mut pins = HashMap::new();
-        pins.insert("Output".to_string(), Pin::new_output("Output", BusWidth(1)));
-
-        Self {
-            id,
-            pins,
-            is_pressed: false,
-        }
-    }
-
-    /// Press the button
-    pub fn press(&mut self) {
-        self.is_pressed = true;
-    }
-
-    /// Release the button
-    pub fn release(&mut self) {
-        self.is_pressed = false;
-    }
-
-    /// Check if button is pressed
-    pub fn is_pressed(&self) -> bool {
-        self.is_pressed
-    }
-}
-
-impl Component for Button {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "Button"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let output_value = if self.is_pressed {
-            Value::High
-        } else {
-            Value::Low
-        };
-
-        let mut outputs = HashMap::new();
-        outputs.insert("Output".to_string(), Signal::new_single(output_value));
-
-        UpdateResult {
-            outputs,
-            delay: 0, // Immediate response
-            state_changed: true,
-        }
-    }
-
-    fn reset(&mut self) {
-        self.is_pressed = false;
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
-    }
-}
-
-/// Switch - Toggle input component
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Switch {
-    id: ComponentId,
-    pins: HashMap<String, Pin>,
-    is_on: bool,
-}
-
-impl Switch {
-    /// Create a new switch
-    pub fn new(id: ComponentId) -> Self {
-        let mut pins = HashMap::new();
-        pins.insert("Output".to_string(), Pin::new_output("Output", BusWidth(1)));
-
-        Self {
-            id,
-            pins,
-            is_on: false,
-        }
-    }
-
-    /// Turn switch on
-    pub fn turn_on(&mut self) {
-        self.is_on = true;
-    }
-
-    /// Turn switch off
-    pub fn turn_off(&mut self) {
-        self.is_on = false;
-    }
-
-    /// Toggle switch state
-    pub fn toggle(&mut self) {
-        self.is_on = !self.is_on;
-    }
-
-    /// Check if switch is on
-    pub fn is_on(&self) -> bool {
-        self.is_on
-    }
-}
-
-impl Component for Switch {
-    fn id(&self) -> ComponentId {
-        self.id
-    }
-
-    fn name(&self) -> &str {
-        "Switch"
-    }
-
-    fn pins(&self) -> &HashMap<String, Pin> {
-        &self.pins
-    }
-
-    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
-        &mut self.pins
-    }
-
-    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        let output_value = if self.is_on { Value::High } else { Value::Low };
-
-        let mut outputs = HashMap::new();
-        outputs.insert("Output".to_string(), Signal::new_single(output_value));
-
-        UpdateResult {
-            outputs,
-            delay: 0, // Immediate response
-            state_changed: true,
-        }
-    }
-
-    fn reset(&mut self) {
-        self.is_on = false;
-        for pin in self.pins.values_mut() {
-            pin.signal = Signal::unknown(pin.width);
-        }
     }
 }

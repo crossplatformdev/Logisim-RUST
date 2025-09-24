@@ -2,7 +2,7 @@
 
 use crate::{UiError, UiResult};
 #[cfg(feature = "gui")]
-use eframe::egui::{self, IconData};
+use eframe::egui;
 use logisim_core::{circ_format::CircIntegration, Simulation};
 use std::path::PathBuf;
 
@@ -110,19 +110,18 @@ pub fn run_app() -> UiResult<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1200.0, 800.0])
-            .with_min_inner_size([800.0, 600.0])
-            .with_icon(
-                // TODO: Add proper icon
-                IconData::default(),
-            ),
+            .with_min_inner_size([800.0, 600.0]),
+        // TODO: Add proper icon when IconData is available
+        // .with_icon(
+        //     eframe::IconData::default(),
+        // ),
         ..Default::default()
     };
 
     let app = LogisimApp::new();
-    let app_title = app.title().to_string();
 
     eframe::run_native(
-        &app_title,
+        &app.title(),
         options,
         Box::new(|_cc| {
             // Set up custom fonts if needed
@@ -150,10 +149,9 @@ pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
 
     let mut app = LogisimApp::new();
     app.load_circuit_file(file_path)?;
-    let app_title = app.title().to_string();
 
     eframe::run_native(
-        &app_title,
+        &app.title(),
         options,
         Box::new(move |_cc| Ok(Box::new(app))),
     )
@@ -185,26 +183,4 @@ pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
     }
 
     Ok(())
-}
-
-/// Run with a template file
-pub fn run_app_with_template(template_path: PathBuf) -> UiResult<()> {
-    log::info!("Starting app with template: {:?}", template_path);
-
-    // For now, treat template same as regular file
-    // In full implementation, this would handle template substitutions
-    run_app_with_file(template_path)
-}
-
-/// Run with multiple files
-pub fn run_app_with_files(file_paths: Vec<PathBuf>) -> UiResult<()> {
-    log::info!("Starting app with {} files", file_paths.len());
-
-    // For now, just load the first file
-    // In full implementation, this would open multiple windows or tabs
-    if let Some(first_file) = file_paths.first() {
-        run_app_with_file(first_file.clone())
-    } else {
-        run_app()
-    }
 }
