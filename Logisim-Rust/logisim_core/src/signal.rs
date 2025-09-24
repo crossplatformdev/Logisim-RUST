@@ -12,7 +12,7 @@ pub struct BusWidth(pub u32);
 
 impl BusWidth {
     /// Create a new bus width
-    pub fn new(width: u32) -> Self {
+    pub const fn new(width: u32) -> Self {
         BusWidth(width)
     }
 
@@ -24,6 +24,17 @@ impl BusWidth {
     /// Check if this is a single-bit signal
     pub fn is_single_bit(self) -> bool {
         self.0 == 1
+    }
+
+    /// Get the mask for this bit width
+    pub fn get_mask(self) -> u64 {
+        if self.0 == 0 {
+            0
+        } else if self.0 >= 64 {
+            u64::MAX
+        } else {
+            (1u64 << self.0) - 1
+        }
     }
 }
 
@@ -267,6 +278,18 @@ impl Signal {
     /// Create multi-bit signal from u64 value (alias for from_u64)
     pub fn new_multi(width: BusWidth, value: u64) -> Self {
         Self::from_u64(value, width)
+    }
+
+    /// Create signal with all bits set to high
+    pub fn all_high(width: BusWidth) -> Self {
+        let values = vec![Value::High; width.as_u32() as usize];
+        Signal { values, width }
+    }
+
+    /// Create signal with all bits set to low
+    pub fn all_low(width: BusWidth) -> Self {
+        let values = vec![Value::Low; width.as_u32() as usize];
+        Signal { values, width }
     }
 }
 
