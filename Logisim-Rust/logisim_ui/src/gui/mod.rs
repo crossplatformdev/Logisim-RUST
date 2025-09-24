@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod frame;
+pub mod startup;
 
 #[cfg(feature = "gui")]
 pub mod canvas;

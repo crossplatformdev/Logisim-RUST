@@ -184,3 +184,25 @@ pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
 
     Ok(())
 }
+
+/// Run with a template file
+pub fn run_app_with_template(template_path: PathBuf) -> UiResult<()> {
+    log::info!("Starting app with template: {:?}", template_path);
+
+    // For now, treat template same as regular file
+    // In full implementation, this would handle template substitutions
+    run_app_with_file(template_path)
+}
+
+/// Run with multiple files
+pub fn run_app_with_files(file_paths: Vec<PathBuf>) -> UiResult<()> {
+    log::info!("Starting app with {} files", file_paths.len());
+
+    // For now, just load the first file
+    // In full implementation, this would open multiple windows or tabs
+    if let Some(first_file) = file_paths.first() {
+        run_app_with_file(first_file.clone())
+    } else {
+        run_app()
+    }
+}

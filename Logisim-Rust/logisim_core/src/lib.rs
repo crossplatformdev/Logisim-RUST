@@ -47,6 +47,7 @@
 //! sim.run().unwrap();
 //! ```
 
+pub mod build_info;
 pub mod circ_format;
 pub mod circ_parser;
 pub mod circ_serializer;
@@ -54,15 +55,18 @@ pub mod component;
 pub mod event;
 pub mod integrations;
 pub mod netlist;
+pub mod prefs;
 pub mod signal;
 pub mod simulation;
 
 // Re-export core types for convenience
+pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
 pub use component::{Component, ComponentId, Pin};
 pub use event::{EventQueue, SimulatorEvent};
 pub use integrations::{FpgaError, PluginError, TclError, VhdlError};
 pub use netlist::{NetId, Netlist, NodeId};
+pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
