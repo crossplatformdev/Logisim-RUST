@@ -111,10 +111,10 @@ pub fn run_app() -> UiResult<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1200.0, 800.0])
             .with_min_inner_size([800.0, 600.0]),
-            // TODO: Add proper icon when IconData is available
-            // .with_icon(
-            //     eframe::IconData::default(),
-            // ),
+        // TODO: Add proper icon when IconData is available
+        // .with_icon(
+        //     eframe::IconData::default(),
+        // ),
         ..Default::default()
     };
 
