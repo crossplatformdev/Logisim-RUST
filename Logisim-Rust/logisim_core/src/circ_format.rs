@@ -833,7 +833,8 @@ impl CircIntegration {
                 "Tunnel" => {
                     let label = comp_instance
                         .attributes
-                        .get("label").cloned()
+                        .get("label")
+                        .cloned()
                         .unwrap_or_else(|| format!("tunnel_{}", component_id.as_u64()));
                     let width = comp_instance
                         .attributes
@@ -944,7 +945,8 @@ impl CircIntegration {
                 "Text" => {
                     let text = comp_instance
                         .attributes
-                        .get("text").cloned()
+                        .get("text")
+                        .cloned()
                         .unwrap_or_else(|| "Text".to_string());
                     Box::new(Text::new(component_id, text))
                 }
@@ -994,7 +996,8 @@ impl CircIntegration {
                         .unwrap_or(BusWidth(8));
                     let shift_type = comp_instance
                         .attributes
-                        .get("shift").cloned()
+                        .get("shift")
+                        .cloned()
                         .unwrap_or_else(|| "right".to_string());
                     Box::new(ShiftRegister::new(component_id, width, shift_type))
                 }
