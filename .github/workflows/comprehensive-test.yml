@@ -59,7 +59,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev pkg-config
+        sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev pkg-config xvfb
     
     - name: "Install macOS dependencies"
       if: matrix.os == 'macos-latest'
@@ -113,7 +113,6 @@ jobs:
       run: |
         # On Linux, we can at least test that GUI code compiles
         echo "Testing GUI feature compilation on Linux..."
-        sudo apt-get install -y xvfb
         if DISPLAY=:99 xvfb-run -a cargo check --features gui --package logisim_ui; then
           echo "✅ GUI features compile successfully on Linux"
         else
