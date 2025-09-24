@@ -61,13 +61,14 @@ pub mod netlist;
 pub mod prefs;
 pub mod signal;
 pub mod simulation;
+pub mod tools;
 pub mod util;
 
 // Re-export core types for convenience
 pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
-pub use component::{Component, ComponentId, Pin};
+pub use component::{Component, ComponentId, Pin, ComponentFactory};
 pub use components::gray::*;
 pub use data::{
     Attribute, AttributeSet, AttributeValue, BitWidth, Bounds, Direction, Location, StdAttr,
@@ -79,6 +80,7 @@ pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
+pub use tools::{Tool, Library, BasicLibrary, Canvas, Project, Circuit, Action, Selection, CursorType, ToolResult, ToolError};
 pub use util::{
     Cache, CollectionUtil, FileUtil, LocaleManager, StringCache, StringGetter, StringUtil,
 };
