@@ -1648,6 +1648,460 @@ impl Propagator for Demultiplexer {
     }
 }
 
+/// Clock component for generating periodic signals
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Clock {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    period: u64,
+    last_toggle: Timestamp,
+    current_state: Value,
+}
+
+impl Clock {
+    pub fn new(id: ComponentId, period: u64) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("CLK".to_string(), Pin::new_output("CLK", BusWidth(1)));
+
+        Clock { 
+            id, 
+            pins, 
+            period,
+            last_toggle: Timestamp(0),
+            current_state: Value::Low,
+        }
+    }
+}
+
+impl Component for Clock {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Clock"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        // Check if it's time to toggle
+        if current_time.as_u64() >= self.last_toggle.as_u64() + self.period {
+            self.current_state = match self.current_state {
+                Value::High => Value::Low,
+                Value::Low => Value::High,
+                _ => Value::High,
+            };
+            self.last_toggle = current_time;
+            
+            let clock_signal = Signal::new_single(self.current_state);
+            result.add_output("CLK".to_string(), clock_signal.clone());
+            
+            if let Some(pin) = self.pins.get_mut("CLK") {
+                let _ = pin.set_signal(clock_signal);
+            }
+            
+            result.state_changed = true;
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        self.current_state = Value::Low;
+        self.last_toggle = Timestamp(0);
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::new_single(Value::Low);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for clock
+    }
+}
+
+impl Propagator for Clock {
+    fn propagate(
+        &mut self,
+        _input_pin: &str,
+        _signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        // Clock doesn't have inputs, it generates its own signal
+        self.update(current_time)
+    }
+}
+
+/// RAM component for addressable memory storage
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Ram {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    address_bits: u32,
+    data_bits: u32,
+    memory: HashMap<u32, Vec<Value>>,
+}
+
+impl Ram {
+    pub fn new(id: ComponentId, address_bits: u32, data_bits: u32) -> Self {
+        let mut pins = HashMap::new();
+        
+        // Address input
+        pins.insert("ADDR".to_string(), Pin::new_input("ADDR", BusWidth(address_bits)));
+        
+        // Data pins (bidirectional)
+        pins.insert("DATA".to_string(), Pin::new_inout("DATA", BusWidth(data_bits)));
+        
+        // Control pins
+        pins.insert("WE".to_string(), Pin::new_input("WE", BusWidth(1))); // Write Enable
+        pins.insert("OE".to_string(), Pin::new_input("OE", BusWidth(1))); // Output Enable
+        pins.insert("CS".to_string(), Pin::new_input("CS", BusWidth(1))); // Chip Select
+
+        Ram { 
+            id, 
+            pins, 
+            address_bits, 
+            data_bits,
+            memory: HashMap::new(),
+        }
+    }
+}
+
+impl Component for Ram {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "RAM"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        // Get control signals
+        let cs = self.pins.get("CS").unwrap().signal.as_single().unwrap_or(Value::Low);
+        let we = self.pins.get("WE").unwrap().signal.as_single().unwrap_or(Value::Low);
+        let oe = self.pins.get("OE").unwrap().signal.as_single().unwrap_or(Value::Low);
+        
+        // Only operate if chip is selected
+        if cs == Value::High {
+            // Get address
+            let addr_signal = &self.pins.get("ADDR").unwrap().signal;
+            let address = self.signal_to_address(addr_signal);
+            
+            if we == Value::High {
+                // Write operation
+                let data_signal = &self.pins.get("DATA").unwrap().signal;
+                self.memory.insert(address, data_signal.values().to_vec());
+            } else if oe == Value::High {
+                // Read operation
+                let data = self.memory.get(&address)
+                    .cloned()
+                    .unwrap_or_else(|| vec![Value::Unknown; self.data_bits as usize]);
+                
+                let output_signal = if data.len() == 1 {
+                    Signal::new_single(data[0])
+                } else {
+                    Signal::new_bus(data)
+                };
+                
+                result.add_output("DATA".to_string(), output_signal.clone());
+                
+                if let Some(pin) = self.pins.get_mut("DATA") {
+                    let _ = pin.set_signal(output_signal);
+                }
+            }
+        } else {
+            // Chip not selected - high impedance output
+            let hi_z_signal = Signal::new_uniform(BusWidth(self.data_bits), Value::Unknown);
+            result.add_output("DATA".to_string(), hi_z_signal.clone());
+            
+            if let Some(pin) = self.pins.get_mut("DATA") {
+                let _ = pin.set_signal(hi_z_signal);
+            }
+        }
+        
+        result.set_delay(self.propagation_delay());
+        result
+    }
+
+    fn reset(&mut self) {
+        // Clear memory on reset
+        self.memory.clear();
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        5 // 5 time units for RAM access
+    }
+}
+
+impl Ram {
+    fn signal_to_address(&self, signal: &Signal) -> u32 {
+        // Convert signal to address (simplified)
+        if let Some(value) = signal.as_single() {
+            match value {
+                Value::High => 1,
+                Value::Low => 0,
+                _ => 0,
+            }
+        } else {
+            // Multi-bit address - simplified conversion
+            let mut address = 0u32;
+            for (i, &bit) in signal.values().iter().enumerate() {
+                if bit == Value::High {
+                    address |= 1 << i;
+                }
+            }
+            address & ((1 << self.address_bits) - 1)
+        }
+    }
+}
+
+impl Propagator for Ram {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// Controlled Buffer (Three-state buffer) component
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ControlledBuffer {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+}
+
+impl ControlledBuffer {
+    pub fn new(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("IN".to_string(), Pin::new_input("IN", width));
+        pins.insert("EN".to_string(), Pin::new_input("EN", BusWidth(1))); // Enable
+        pins.insert("OUT".to_string(), Pin::new_output("OUT", width));
+
+        ControlledBuffer { id, pins, width }
+    }
+}
+
+impl Component for ControlledBuffer {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Controlled Buffer"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        let enable = self.pins.get("EN").unwrap().signal.as_single().unwrap_or(Value::Low);
+        let input = &self.pins.get("IN").unwrap().signal;
+        
+        let output_signal = if enable == Value::High {
+            // Enabled - pass through input
+            input.clone()
+        } else {
+            // Disabled - high impedance (represented as unknown)
+            Signal::new_uniform(self.width, Value::Unknown)
+        };
+        
+        result.add_output("OUT".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+        
+        if let Some(pin) = self.pins.get_mut("OUT") {
+            let _ = pin.set_signal(output_signal);
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        1 // 1 time unit for buffer
+    }
+}
+
+impl Propagator for ControlledBuffer {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// Register component for storing multi-bit values
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Register {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+    stored_data: Vec<Value>,
+}
+
+impl Register {
+    pub fn new(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("D".to_string(), Pin::new_input("D", width)); // Data input
+        pins.insert("CLK".to_string(), Pin::new_input("CLK", BusWidth(1))); // Clock
+        pins.insert("Q".to_string(), Pin::new_output("Q", width)); // Data output
+        pins.insert("EN".to_string(), Pin::new_input("EN", BusWidth(1))); // Enable (optional)
+
+        Register { 
+            id, 
+            pins, 
+            width,
+            stored_data: vec![Value::Unknown; width.as_u32() as usize],
+        }
+    }
+}
+
+impl Component for Register {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Register"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        // Output current stored data
+        let output_signal = if self.stored_data.len() == 1 {
+            Signal::new_single(self.stored_data[0])
+        } else {
+            Signal::new_bus(self.stored_data.clone())
+        };
+        
+        result.add_output("Q".to_string(), output_signal.clone());
+        result.set_delay(self.propagation_delay());
+        
+        if let Some(pin) = self.pins.get_mut("Q") {
+            let _ = pin.set_signal(output_signal);
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        self.stored_data = vec![Value::Unknown; self.width.as_u32() as usize];
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        3 // 3 time units for register
+    }
+
+    fn is_sequential(&self) -> bool {
+        true // Registers are sequential components
+    }
+
+    fn clock_edge(&mut self, edge: ClockEdge, _current_time: Timestamp) -> UpdateResult {
+        if edge == ClockEdge::Rising {
+            // Check enable signal
+            let enable = self.pins.get("EN")
+                .map(|pin| pin.signal.as_single().unwrap_or(Value::High))
+                .unwrap_or(Value::High); // Default enabled if no EN pin
+            
+            if enable == Value::High {
+                // Capture data input on rising edge
+                let data_signal = &self.pins.get("D").unwrap().signal;
+                self.stored_data = data_signal.values().to_vec();
+                
+                // Pad or truncate to match width
+                self.stored_data.resize(self.width.as_u32() as usize, Value::Unknown);
+                
+                return self.update(Timestamp(0));
+            }
+        }
+        
+        UpdateResult::new()
+    }
+}
+
+impl Propagator for Register {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal.clone());
+        }
+
+        // For clock input, check for edges
+        if input_pin == "CLK" {
+            if let Some(new_value) = signal.as_single() {
+                // Detect clock edge (simplified - in real implementation would track previous value)
+                if new_value == Value::High {
+                    return self.clock_edge(ClockEdge::Rising, current_time);
+                }
+            }
+        }
+
+        UpdateResult::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
