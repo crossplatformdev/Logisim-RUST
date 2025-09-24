@@ -32,6 +32,7 @@
 //! compatibility with existing .circ files.
 
 pub mod gui;
+pub mod hex;
 pub mod main {
     pub use crate::main_lib::*;
 }
@@ -40,6 +41,7 @@ mod main_lib;
 // Re-export main UI types for convenience
 pub use gui::app::LogisimApp;
 pub use gui::frame::MainFrame;
+pub use hex::{HexEditor, HexModel, VecHexModel, Caret, Highlighter, Measures};
 
 #[cfg(feature = "gui")]
 pub use gui::canvas::Canvas;
