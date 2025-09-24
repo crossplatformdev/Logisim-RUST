@@ -70,30 +70,36 @@ jobs:
     # Core quality checks
     - name: "Check code formatting"
       run: cargo fmt --all -- --check
+      working-directory: Logisim-Rust
     
     - name: "Run Clippy lints"
       run: cargo clippy --workspace --all-targets -- -D warnings
+      working-directory: Logisim-Rust
     
     # Build tests (headless mode - always works)
     - name: "Build workspace (headless)"
       run: |
         cargo build --workspace --verbose
         echo "✅ Headless build successful"
+      working-directory: Logisim-Rust
     
     - name: "Run tests (headless)"
       run: |
         cargo test --workspace --verbose
         echo "✅ All tests passed"
+      working-directory: Logisim-Rust
     
     - name: "Build documentation"
       run: |
         cargo doc --workspace --no-deps --verbose
         echo "✅ Documentation built successfully"
+      working-directory: Logisim-Rust
     
     - name: "Run doc tests"
       run: |
         cargo test --doc --workspace --verbose
         echo "✅ Doc tests passed"
+      working-directory: Logisim-Rust
     
     # GUI compilation test (platform-dependent)
     - name: "Test GUI compilation (Linux)"
@@ -107,6 +113,7 @@ jobs:
         else
           echo "⚠️  GUI features failed to compile on Linux (non-critical)"
         fi
+      working-directory: Logisim-Rust
       continue-on-error: true
     
     - name: "Test GUI compilation (Windows)"
@@ -118,6 +125,7 @@ jobs:
         } else {
           Write-Host "⚠️  GUI features failed to compile on Windows (non-critical)"
         }
+      working-directory: Logisim-Rust
       continue-on-error: true
     
     - name: "Test GUI compilation (macOS)"
@@ -129,6 +137,7 @@ jobs:
         else
           echo "⚠️  GUI features failed to compile on macOS (non-critical)"
         fi
+      working-directory: Logisim-Rust
       continue-on-error: true
     
     # Binary functionality tests
@@ -146,6 +155,7 @@ jobs:
         else
           echo "⚠️  CLI binary output unexpected, but non-critical"
         fi
+      working-directory: Logisim-Rust
     
     # Performance and build size checks
     - name: "Build release binary"
@@ -164,6 +174,7 @@ jobs:
         else
           echo "Binary size check skipped on Windows"
         fi
+      working-directory: Logisim-Rust
     
     # Integration tests with circuit files
     - name: "Test circuit file processing"
@@ -186,6 +197,7 @@ jobs:
         else
           echo "⚠️  No circuit files found for testing"
         fi
+      working-directory: Logisim-Rust
     
     # Memory and performance checks (basic)
     - name: "Basic performance check"
@@ -198,6 +210,7 @@ jobs:
         time cargo build --workspace
         
         echo "✅ Performance check completed"
+      working-directory: Logisim-Rust
     
     - name: "Platform summary"
       run: |
