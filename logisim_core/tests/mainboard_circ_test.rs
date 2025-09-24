@@ -50,7 +50,7 @@ fn test_mainboard_circ_rom_content_parsing() {
     let mut rom_count = 0;
     let mut total_rom_data_size = 0;
 
-    for (_circuit_name, circuit) in &circuit_file.circuits {
+    for circuit in circuit_file.circuits.values() {
         for component in &circuit.components {
             if component.name == "ROM" {
                 rom_count += 1;
@@ -91,7 +91,7 @@ fn test_mainboard_circ_component_inventory() {
     let mut total_components = 0;
     let mut total_wires = 0;
 
-    for (_circuit_name, circuit) in &circuit_file.circuits {
+    for circuit in circuit_file.circuits.values() {
         total_wires += circuit.wires.len();
         
         for component in &circuit.components {
@@ -150,7 +150,7 @@ fn test_mainboard_circ_round_trip() {
     }
 
     // Verify ROM contents are preserved
-    for (_circuit_name, original_circuit) in &original.circuits {
+    for original_circuit in original.circuits.values() {
         for (i, original_component) in original_circuit.components.iter().enumerate() {
             if original_component.name == "ROM" {
                 if let Some(original_contents) = original_component.attributes.get("contents") {
@@ -209,14 +209,14 @@ fn test_rom_content_validation() {
         .expect("Should be able to parse MAINBOARD.circ");
 
     // Find the first ROM and validate its content structure
-    for (_circuit_name, circuit) in &circuit_file.circuits {
+    for circuit in circuit_file.circuits.values() {
         for component in &circuit.components {
             if component.name == "ROM" {
                 if let Some(contents_str) = component.attributes.get("contents") {
                     let rom_contents = RomContents::parse_from_string(contents_str).unwrap();
                     
                     // Test ROM content serialization round-trip
-                    let serialized = rom_contents.to_string();
+                    let serialized = rom_contents.to_logisim_format();
                     let reparsed = RomContents::parse_from_string(&serialized).unwrap();
                     
                     assert_eq!(reparsed.addr_width, rom_contents.addr_width);

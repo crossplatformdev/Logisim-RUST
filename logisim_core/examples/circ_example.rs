@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 3. Extract and analyze ROM contents
     println!("\n3. Analyzing ROM contents...");
     let mut found_rom = false;
-    for (_circuit_name, circuit) in &circuit_file.circuits {
+    for circuit in circuit_file.circuits.values() {
         for component in &circuit.components {
             if component.name == "ROM" {
                 found_rom = true;
