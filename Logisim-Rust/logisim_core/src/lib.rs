@@ -61,6 +61,7 @@ pub mod netlist;
 pub mod prefs;
 pub mod signal;
 pub mod simulation;
+pub mod std;
 pub mod util;
 
 // Re-export core types for convenience
@@ -69,6 +70,7 @@ pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
 pub use component::{Component, ComponentId, Pin};
 pub use components::gray::*;
+pub use std::{base::*, gates::*};
 pub use data::{
     Attribute, AttributeSet, AttributeValue, BitWidth, Bounds, Direction, Location, StdAttr,
 };
