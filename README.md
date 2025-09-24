@@ -1,25 +1,39 @@
 # Logisim-RUST Repository
 
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-GPL--3.0--or--later-green)
+
+🎉 **Version 1.0.0 Release** - The first official release is now available!
+
 This repository contains two related but separate implementations of the Logisim digital logic simulator:
 
 ## Projects
 
-### 🦀 [Logisim-Rust](./Logisim-Rust/) - Modern Rust Implementation
+### 🦀 [Logisim-Rust](./Logisim-Rust/) - Modern Rust Implementation **[NEW v1.0.0]**
 
 A modern, high-performance Rust implementation of Logisim with native GUI using egui.
 
 **Key Features:**
 - Memory-safe Rust implementation
-- Native performance
-- Cross-platform (Windows, macOS, Linux, Web)
-- Modern GUI with egui
-- Headless simulation mode
+- Native performance with cross-platform support
+- Modern GUI with egui framework
+- Headless simulation mode for CI/CD
+- Comprehensive test suite (77+ tests)
+- Full compatibility with existing `.circ` files
 
 **Quick Start:**
 ```bash
 cd Logisim-Rust
-cargo build --workspace --features gui
+just ci              # Run all checks
+just build-gui        # Build with GUI
+just run-gui          # Run the application
 ```
+
+**System Requirements:**
+- **Rust**: 1.70+ (latest stable recommended)
+- **Linux**: glibc 2.31+, X11 or Wayland display server
+- **Windows**: Windows 10 version 1903 or later
+- **macOS**: macOS 10.15 (Catalina) or later
 
 ### ☕ [Logisim-Evolution](./Logisim-Evolution/) - Java Implementation
 
@@ -27,10 +41,10 @@ The original Java-based Logisim-Evolution digital logic simulator.
 
 **Key Features:**
 - Mature Java implementation
-- Rich feature set
+- Rich feature set with extensive component library
 - Swing/AWT GUI
-- FPGA integration
-- Extensive component library
+- FPGA integration support
+- Advanced circuit analysis tools
 
 **Quick Start:**
 ```bash

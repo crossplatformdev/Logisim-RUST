@@ -1,10 +1,15 @@
 [package]
 name = "logisim_core"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 description = "Core simulation kernel for Logisim-RUST digital logic simulator"
-license = "GPL-3.0-or-later"
-authors = ["Logisim-RUST Contributors"]
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 serde = { workspace = true }

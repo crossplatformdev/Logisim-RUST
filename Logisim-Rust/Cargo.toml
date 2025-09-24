@@ -2,6 +2,18 @@
 members = ["logisim_core", "logisim_ui"]
 resolver = "2"
 
+[workspace.package]
+version = "1.0.0"
+authors = ["Logisim-RUST Contributors"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/crossplatformdev/Logisim-RUST"
+homepage = "https://github.com/crossplatformdev/Logisim-RUST"
+documentation = "https://github.com/crossplatformdev/Logisim-RUST/tree/main/Logisim-Rust"
+readme = "README.md"
+keywords = ["logisim", "digital-logic", "simulator", "circuit", "education"]
+categories = ["education", "simulation", "gui"]
+edition = "2021"
+
 [workspace.dependencies]
 # Common dependencies can be defined here
 serde = { version = "1.0", features = ["derive"] }
