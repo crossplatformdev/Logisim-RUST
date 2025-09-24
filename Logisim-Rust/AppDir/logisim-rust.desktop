@@ -1,7 +1,0 @@
-[Desktop Entry]
-Name=Logisim-RUST
-Exec=logisim-rust
-Icon=logisim-rust
-Type=Application
-Categories=Education;Engineering;Electronics;
-Comment=Digital logic design tool and simulator
