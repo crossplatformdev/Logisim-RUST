@@ -56,6 +56,7 @@ pub mod components;
 pub mod data;
 pub mod event;
 pub mod file;
+pub mod instance;
 pub mod integrations;
 pub mod netlist;
 pub mod prefs;
@@ -74,6 +75,9 @@ pub use data::{
 };
 pub use event::{EventQueue, SimulatorEvent};
 pub use file::{LoadFailedException, Loader, LogisimFile};
+pub use instance::{
+    Instance, InstanceComponent, InstanceData, InstanceFactory, InstanceState, Port, PortType,
+};
 pub use integrations::{FpgaError, PluginError, TclError, VhdlError};
 pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
