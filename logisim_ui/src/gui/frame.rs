@@ -5,7 +5,7 @@ use eframe::egui::{self, CentralPanel, Context, ScrollArea, SidePanel, TopBottom
 use logisim_core::Simulation;
 
 #[cfg(feature = "gui")]
-use super::{canvas::Canvas, menu::MenuBar, project_explorer::ProjectExplorer, toolbox::Toolbox};
+use super::{canvas::Canvas, chronogram::ChronogramPanel, menu::MenuBar, project_explorer::ProjectExplorer, toolbox::Toolbox};
 
 /// Main application frame containing all UI components
 pub struct MainFrame {
@@ -25,12 +25,20 @@ pub struct MainFrame {
     #[cfg(feature = "gui")]
     project_explorer: ProjectExplorer,
 
+    /// Chronogram panel for timing diagram display
+    #[cfg(feature = "gui")]
+    chronogram_panel: ChronogramPanel,
+
     /// Current simulation instance
     simulation: Option<Simulation>,
 
     /// Selected tab in the left panel (toolbox vs explorer)
     #[cfg(feature = "gui")]
     left_tab_selected: LeftTab,
+
+    /// Whether to show the chronogram window
+    #[cfg(feature = "gui")]
+    show_chronogram: bool,
 
     /// Zoom level
     #[allow(dead_code)] // Used only with GUI feature
@@ -60,9 +68,13 @@ impl MainFrame {
             menu_bar: MenuBar::new(),
             #[cfg(feature = "gui")]
             project_explorer: ProjectExplorer::new(),
+            #[cfg(feature = "gui")]
+            chronogram_panel: ChronogramPanel::new(),
             simulation: None,
             #[cfg(feature = "gui")]
             left_tab_selected: LeftTab::Toolbox,
+            #[cfg(feature = "gui")]
+            show_chronogram: false,
             zoom_level: 1.0,
             show_grid: true,
         }
@@ -74,6 +86,10 @@ impl MainFrame {
         {
             self.canvas.set_simulation(&simulation);
             self.project_explorer.set_simulation(&simulation);
+            // Initialize chronogram with simulation if it's being shown
+            if self.show_chronogram {
+                self.chronogram_panel.start_recording(&simulation);
+            }
         }
         self.simulation = Some(simulation);
     }
@@ -84,7 +100,33 @@ impl MainFrame {
         // Top menu bar
         TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             self.menu_bar.show(ui);
+            
+            // Check if chronogram should be shown (triggered from menu)
+            if ui.button("📊 Chronogram").clicked() {
+                self.show_chronogram = !self.show_chronogram;
+                
+                // Start/stop recording based on chronogram visibility
+                if let Some(simulation) = &self.simulation {
+                    if self.show_chronogram {
+                        self.chronogram_panel.start_recording(simulation);
+                    } else {
+                        self.chronogram_panel.stop_recording();
+                    }
+                }
+            }
         });
+
+        // Show chronogram window if requested
+        if self.show_chronogram {
+            egui::Window::new("Chronogram")
+                .resizable(true)
+                .default_width(800.0)
+                .default_height(400.0)
+                .open(&mut self.show_chronogram)
+                .show(ctx, |ui| {
+                    self.chronogram_panel.render(ui);
+                });
+        }
 
         // Left side panel with toolbox and explorer
         SidePanel::left("left_panel")
@@ -108,6 +150,13 @@ impl MainFrame {
         CentralPanel::default().show(ctx, |ui| {
             self.canvas.show(ui, self.zoom_level, self.show_grid);
         });
+
+        // Update chronogram with current simulation data if recording
+        if self.show_chronogram && self.chronogram_panel.is_recording() {
+            if let Some(simulation) = &self.simulation {
+                self.chronogram_panel.update_from_simulation(simulation);
+            }
+        }
     }
 
     /// Show the left panel with tabs for toolbox and explorer
