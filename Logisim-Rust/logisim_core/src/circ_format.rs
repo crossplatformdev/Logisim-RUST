@@ -752,7 +752,12 @@ impl CircIntegration {
         circuit: &CircuitDefinition,
         _all_circuits: &HashMap<String, CircuitDefinition>,
     ) -> CircResult<()> {
-        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel, Splitter, Led, Multiplexer, Demultiplexer, Clock, Ram, ControlledBuffer, Register, Counter, Text, Adder, Divider, Decoder, Subtractor, Power, Ground, ShiftRegister, Multiplier, Comparator};
+        use crate::component::{
+            Adder, AndGate, Clock, ClockedLatch, Comparator, Constant, ControlledBuffer, Counter,
+            Decoder, Demultiplexer, Divider, Ground, Led, Multiplexer, Multiplier, NandGate,
+            NorGate, NotGate, OrGate, PinComponent, Power, Probe, Ram, Register, ShiftRegister,
+            Splitter, Subtractor, Text, Tunnel, XnorGate, XorGate,
+        };
         use crate::signal::{BusWidth, Value};
 
         // Create a mapping from locations to node IDs for wire connections
@@ -774,14 +779,18 @@ impl CircIntegration {
                 "XNOR Gate" => Box::new(XnorGate::new(component_id)),
                 "Pin" => {
                     // Determine if it's input or output based on attributes
-                    let is_output = comp_instance.attributes.get("output")
+                    let is_output = comp_instance
+                        .attributes
+                        .get("output")
                         .map(|v| v == "true")
                         .unwrap_or(false);
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(1));
-                    
+
                     if is_output {
                         Box::new(PinComponent::new_output(component_id, width))
                     } else {
@@ -790,14 +799,18 @@ impl CircIntegration {
                 }
                 "Clocked Latch" => Box::new(ClockedLatch::new(component_id)),
                 "Constant" => {
-                    let value_str = comp_instance.attributes.get("value")
+                    let value_str = comp_instance
+                        .attributes
+                        .get("value")
                         .map(|v| v.as_str())
                         .unwrap_or("0");
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(1));
-                    
+
                     let value = if value_str == "1" || value_str.to_lowercase() == "true" {
                         Value::High
                     } else if value_str == "0" || value_str.to_lowercase() == "false" {
@@ -805,158 +818,199 @@ impl CircIntegration {
                     } else {
                         Value::Unknown
                     };
-                    
+
                     Box::new(Constant::new(component_id, value, width))
                 }
                 "Probe" => {
-                    let width = comp_instance.attributes.get("radix")
+                    let width = comp_instance
+                        .attributes
+                        .get("radix")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(1));
                     Box::new(Probe::new(component_id, width))
                 }
                 "Tunnel" => {
-                    let label = comp_instance.attributes.get("label")
-                        .map(|l| l.clone())
+                    let label = comp_instance
+                        .attributes
+                        .get("label").cloned()
                         .unwrap_or_else(|| format!("tunnel_{}", component_id.as_u64()));
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(1));
                     Box::new(Tunnel::new(component_id, label, width))
                 }
                 "Splitter" => {
-                    let fanout = comp_instance.attributes.get("fanout")
+                    let fanout = comp_instance
+                        .attributes
+                        .get("fanout")
                         .and_then(|f| f.parse::<u32>().ok())
                         .unwrap_or(2);
-                    let incoming = comp_instance.attributes.get("incoming")
+                    let incoming = comp_instance
+                        .attributes
+                        .get("incoming")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(2));
                     Box::new(Splitter::new(component_id, fanout, incoming))
                 }
-                "LED" => {
-                    Box::new(Led::new(component_id))
-                }
+                "LED" => Box::new(Led::new(component_id)),
                 "Multiplexer" => {
-                    let select = comp_instance.attributes.get("select")
+                    let select = comp_instance
+                        .attributes
+                        .get("select")
                         .and_then(|s| s.parse::<u32>().ok())
                         .unwrap_or(1);
                     let inputs = 2u32.pow(select);
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(1));
                     Box::new(Multiplexer::new(component_id, inputs, width))
                 }
                 "Demultiplexer" => {
-                    let select = comp_instance.attributes.get("select")
+                    let select = comp_instance
+                        .attributes
+                        .get("select")
                         .and_then(|s| s.parse::<u32>().ok())
                         .unwrap_or(1);
                     let outputs = 2u32.pow(select);
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(1));
                     Box::new(Demultiplexer::new(component_id, outputs, width))
                 }
                 "Clock" => {
-                    let period = comp_instance.attributes.get("period")
+                    let period = comp_instance
+                        .attributes
+                        .get("period")
                         .and_then(|p| p.parse::<u64>().ok())
                         .unwrap_or(100); // Default 100 time units
                     Box::new(Clock::new(component_id, period))
                 }
                 "RAM" => {
-                    let addr_bits = comp_instance.attributes.get("addrWidth")
+                    let addr_bits = comp_instance
+                        .attributes
+                        .get("addrWidth")
                         .and_then(|a| a.parse::<u32>().ok())
                         .unwrap_or(8);
-                    let data_bits = comp_instance.attributes.get("dataWidth")
+                    let data_bits = comp_instance
+                        .attributes
+                        .get("dataWidth")
                         .or_else(|| comp_instance.attributes.get("width"))
                         .and_then(|w| w.parse::<u32>().ok())
                         .unwrap_or(8);
                     Box::new(Ram::new(component_id, addr_bits, data_bits))
                 }
                 "Controlled Buffer" => {
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(1));
                     Box::new(ControlledBuffer::new(component_id, width))
                 }
                 "Register" => {
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(8));
                     Box::new(Register::new(component_id, width))
                 }
                 "Counter" => {
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(4));
-                    let max = comp_instance.attributes.get("max")
+                    let max = comp_instance
+                        .attributes
+                        .get("max")
                         .and_then(|m| m.parse::<u32>().ok());
                     Box::new(Counter::new(component_id, width, max))
                 }
                 "Text" => {
-                    let text = comp_instance.attributes.get("text")
-                        .map(|t| t.clone())
+                    let text = comp_instance
+                        .attributes
+                        .get("text").cloned()
                         .unwrap_or_else(|| "Text".to_string());
                     Box::new(Text::new(component_id, text))
                 }
                 "Adder" => {
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(8));
                     Box::new(Adder::new(component_id, width))
                 }
                 "Divider" => {
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(8));
                     Box::new(Divider::new(component_id, width))
                 }
                 "Decoder" => {
-                    let select = comp_instance.attributes.get("select")
+                    let select = comp_instance
+                        .attributes
+                        .get("select")
                         .and_then(|s| s.parse::<u32>().ok())
                         .unwrap_or(2); // Default 2-bit decoder (4 outputs)
                     Box::new(Decoder::new(component_id, BusWidth(select)))
                 }
                 "Subtractor" => {
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(8));
                     Box::new(Subtractor::new(component_id, width))
                 }
-                "Power" => {
-                    Box::new(Power::new(component_id))
-                }
-                "Ground" => {
-                    Box::new(Ground::new(component_id))
-                }
+                "Power" => Box::new(Power::new(component_id)),
+                "Ground" => Box::new(Ground::new(component_id)),
                 "Shift Register" => {
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(8));
-                    let shift_type = comp_instance.attributes.get("shift")
-                        .map(|s| s.clone())
+                    let shift_type = comp_instance
+                        .attributes
+                        .get("shift").cloned()
                         .unwrap_or_else(|| "right".to_string());
                     Box::new(ShiftRegister::new(component_id, width, shift_type))
                 }
                 "Multiplier" => {
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(8));
                     Box::new(Multiplier::new(component_id, width))
                 }
                 "Comparator" => {
-                    let width = comp_instance.attributes.get("width")
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
                         .and_then(|w| w.parse::<u32>().ok())
                         .map(BusWidth)
                         .unwrap_or(BusWidth(8));
