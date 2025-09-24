@@ -73,4 +73,4 @@ pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
-pub use util::{StringGetter, StringUtil, CollectionUtil};
+pub use util::{StringGetter, StringUtil, CollectionUtil, Cache, StringCache, FileUtil, LocaleManager};
