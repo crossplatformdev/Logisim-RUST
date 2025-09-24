@@ -85,6 +85,8 @@ pub struct CircuitFile {
     pub vhdl_contents: Vec<VhdlContent>,
     /// Project options
     pub options: ProjectOptions,
+    /// External circuit files loaded for hierarchical circuits
+    pub external_circuits: HashMap<String, CircuitFile>, // lib_name -> external circuit file
 }
 
 /// Library configuration for component tools
@@ -93,6 +95,7 @@ pub struct LibraryConfig {
     pub name: String,
     pub description: String,
     pub tools: Vec<ToolConfig>,
+    pub external_file: Option<String>, // For file-based libraries like "file#Step_Counter.circ"
 }
 
 /// Tool configuration within a library
@@ -299,15 +302,24 @@ pub struct CircParser;
 impl CircParser {
     /// Load a .circ file from a path
     pub fn load_file<P: AsRef<Path>>(path: P) -> CircResult<CircuitFile> {
+        let path = path.as_ref();
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
         let mut contents = String::new();
         reader.read_to_string(&mut contents)?;
-        Self::parse_string(&contents)
+        Self::parse_string_with_path(&contents, Some(path))
     }
 
     /// Parse a .circ file from a string
     pub fn parse_string(xml_content: &str) -> CircResult<CircuitFile> {
+        Self::parse_string_with_path(xml_content, None)
+    }
+
+    /// Parse a .circ file from a string with optional path context for loading external files
+    fn parse_string_with_path(
+        xml_content: &str,
+        doc_path: Option<&Path>,
+    ) -> CircResult<CircuitFile> {
         let doc = roxmltree::Document::parse(xml_content)?;
         let root = doc.root_element();
 
@@ -349,6 +361,36 @@ impl CircParser {
         // Parse options (simplified for now)
         let options = Self::parse_options(&root)?;
 
+        // Load external circuit files for file-based libraries
+        let mut external_circuits = HashMap::new();
+        for library in &libraries {
+            if let Some(external_file) = &library.external_file {
+                // Try to load the external circuit file relative to the current file's directory
+                if let Some(parent_dir) = doc_path.and_then(|p| p.parent()) {
+                    let external_path = parent_dir.join(external_file);
+                    if external_path.exists() {
+                        match Self::load_file(&external_path) {
+                            Ok(external_circuit_file) => {
+                                external_circuits
+                                    .insert(library.name.clone(), external_circuit_file);
+                            }
+                            Err(e) => {
+                                eprintln!(
+                                    "Warning: Failed to load external circuit file {}: {}",
+                                    external_file, e
+                                );
+                            }
+                        }
+                    } else {
+                        eprintln!(
+                            "Warning: External circuit file not found: {}",
+                            external_path.display()
+                        );
+                    }
+                }
+            }
+        }
+
         Ok(CircuitFile {
             source_version,
             version,
@@ -357,12 +399,20 @@ impl CircParser {
             circuits,
             vhdl_contents,
             options,
+            external_circuits,
         })
     }
 
     fn parse_library(lib_node: roxmltree::Node) -> CircResult<LibraryConfig> {
         let name = lib_node.attribute("name").unwrap_or("unknown").to_string();
         let description = lib_node.attribute("desc").unwrap_or("").to_string();
+
+        // Check if this is a file-based library
+        let external_file = if description.starts_with("file#") {
+            Some(description.strip_prefix("file#").unwrap().to_string())
+        } else {
+            None
+        };
 
         let mut tools = Vec::new();
         for tool_node in lib_node
@@ -376,6 +426,7 @@ impl CircParser {
             name,
             description,
             tools,
+            external_file,
         })
     }
 
@@ -742,7 +793,7 @@ impl CircIntegration {
             })?;
 
         // Build the simulation from the main circuit
-        Self::build_circuit_in_simulation(&mut sim, main_circuit, &circuit_file.circuits)?;
+        Self::build_circuit_in_simulation(&mut sim, main_circuit, circuit_file)?;
 
         Ok(sim)
     }
@@ -750,13 +801,14 @@ impl CircIntegration {
     fn build_circuit_in_simulation(
         sim: &mut Simulation,
         circuit: &CircuitDefinition,
-        _all_circuits: &HashMap<String, CircuitDefinition>,
+        circuit_file: &CircuitFile,
     ) -> CircResult<()> {
         use crate::component::{
             Adder, AndGate, Clock, ClockedLatch, Comparator, Constant, ControlledBuffer, Counter,
-            Decoder, Demultiplexer, Divider, Ground, Led, Multiplexer, Multiplier, NandGate,
-            NorGate, NotGate, OrGate, PinComponent, Power, Probe, Ram, Register, ShiftRegister,
-            Splitter, Subtractor, Text, Tunnel, XnorGate, XorGate,
+            Decoder, Demultiplexer, Divider, Ground, HexDigitDisplay, Keyboard, Led, Multiplexer,
+            Multiplier, NandGate, NorGate, NotGate, OrGate, PinComponent, Power, Probe, Ram,
+            Register, RgbVideo, ShiftRegister, Splitter, Subtractor, Telnet, Text, Tty, Tunnel,
+            XnorGate, XorGate,
         };
         use crate::signal::{BusWidth, Value};
 
@@ -987,6 +1039,11 @@ impl CircIntegration {
                 }
                 "Power" => Box::new(Power::new(component_id)),
                 "Ground" => Box::new(Ground::new(component_id)),
+                "Keyboard" => Box::new(Keyboard::new(component_id)),
+                "Hex Digit Display" => Box::new(HexDigitDisplay::new(component_id)),
+                "Telnet" => Box::new(Telnet::new(component_id)),
+                "TTY" => Box::new(Tty::new(component_id)),
+                "RGB Video" => Box::new(RgbVideo::new(component_id)),
                 "Shift Register" => {
                     let width = comp_instance
                         .attributes
@@ -1025,9 +1082,60 @@ impl CircIntegration {
                     Box::new(AndGate::new(component_id)) // Placeholder
                 }
                 _ => {
-                    return Err(CircFormatError::UnsupportedComponent(
-                        comp_instance.name.clone(),
-                    ));
+                    // Check if this is a hierarchical component from an external library
+                    if let Some(lib_id) = &comp_instance.library {
+                        if let Ok(lib_num) = lib_id.parse::<usize>() {
+                            // Find the library by number
+                            if let Some(library) = circuit_file.libraries.get(lib_num) {
+                                if let Some(external_file) = &library.external_file {
+                                    // This is a hierarchical component from an external file
+                                    if let Some(external_circuit_file) =
+                                        circuit_file.external_circuits.get(&library.name)
+                                    {
+                                        // Check if the component name matches a circuit in the external file
+                                        if let Some(_external_circuit_def) =
+                                            external_circuit_file.circuits.get(&comp_instance.name)
+                                        {
+                                            // Create a hierarchical component (for now, use a placeholder)
+                                            // TODO: Implement proper hierarchical component that instantiates the subcircuit
+                                            eprintln!("INFO: Creating hierarchical component '{}' from {}", comp_instance.name, external_file);
+                                            Box::new(AndGate::new(component_id))
+                                        // Placeholder for hierarchical component
+                                        } else {
+                                            return Err(CircFormatError::UnsupportedComponent(
+                                                format!(
+                                                    "Component '{}' not found in external file {}",
+                                                    comp_instance.name, external_file
+                                                ),
+                                            ));
+                                        }
+                                    } else {
+                                        return Err(CircFormatError::UnsupportedComponent(
+                                            format!("External circuit file '{}' not loaded for library {}", external_file, library.name),
+                                        ));
+                                    }
+                                } else {
+                                    return Err(CircFormatError::UnsupportedComponent(
+                                        comp_instance.name.clone(),
+                                    ));
+                                }
+                            } else {
+                                return Err(CircFormatError::UnsupportedComponent(format!(
+                                    "Library {} not found for component '{}'",
+                                    lib_id, comp_instance.name
+                                )));
+                            }
+                        } else {
+                            return Err(CircFormatError::UnsupportedComponent(format!(
+                                "Invalid library ID '{}' for component '{}'",
+                                lib_id, comp_instance.name
+                            )));
+                        }
+                    } else {
+                        return Err(CircFormatError::UnsupportedComponent(
+                            comp_instance.name.clone(),
+                        ));
+                    }
                 }
             };
 
@@ -1126,6 +1234,7 @@ impl CircIntegration {
                     show_zoom: true,
                 },
             },
+            external_circuits: HashMap::new(), // No external circuits for simulation-to-file conversion
         })
     }
 }

@@ -3467,6 +3467,432 @@ impl Propagator for Comparator {
     }
 }
 
+/// Keyboard component for input
+#[derive(Debug, Clone)]
+pub struct Keyboard {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    current_value: u8, // Current key value
+}
+
+impl Keyboard {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("OUT".to_string(), Pin::new_output("OUT", BusWidth(8)));
+        pins.insert("AVAIL".to_string(), Pin::new_output("AVAIL", BusWidth(1)));
+        pins.insert("ACK".to_string(), Pin::new_input("ACK", BusWidth(1)));
+
+        Keyboard {
+            id,
+            pins,
+            current_value: 0,
+        }
+    }
+}
+
+impl Component for Keyboard {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Keyboard"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn get_pin(&self, name: &str) -> Option<&Pin> {
+        self.pins.get(name)
+    }
+
+    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
+        self.pins.get_mut(name)
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+
+        // Output current keyboard value as an 8-bit signal
+        let value_bits: Vec<Value> = (0..8)
+            .map(|i| {
+                if (self.current_value >> i) & 1 == 1 {
+                    Value::High
+                } else {
+                    Value::Low
+                }
+            })
+            .collect();
+        result
+            .outputs
+            .insert("OUT".to_string(), Signal::new_bus(value_bits));
+
+        // Set AVAIL signal to indicate data is available
+        result.outputs.insert(
+            "AVAIL".to_string(),
+            Signal::new_single(if self.current_value != 0 {
+                Value::High
+            } else {
+                Value::Low
+            }),
+        );
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+        self.current_value = 0;
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for keyboard
+    }
+}
+
+impl Propagator for Keyboard {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if input_pin == "ACK" && signal.as_single() == Some(Value::High) {
+            // Acknowledge received, clear current value
+            self.current_value = 0;
+        }
+        self.update(current_time)
+    }
+}
+
+/// Hex Digit Display component for displaying hexadecimal values
+#[derive(Debug, Clone)]
+pub struct HexDigitDisplay {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl HexDigitDisplay {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("IN".to_string(), Pin::new_input("IN", BusWidth(4)));
+
+        HexDigitDisplay { id, pins }
+    }
+}
+
+impl Component for HexDigitDisplay {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Hex Digit Display"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn get_pin(&self, name: &str) -> Option<&Pin> {
+        self.pins.get(name)
+    }
+
+    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
+        self.pins.get_mut(name)
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        // Hex displays don't produce outputs, they just display input
+        UpdateResult::new()
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for displays
+    }
+}
+
+impl Propagator for HexDigitDisplay {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// Telnet component for network communication
+#[derive(Debug, Clone)]
+pub struct Telnet {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl Telnet {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("IN".to_string(), Pin::new_input("IN", BusWidth(8)));
+        pins.insert("OUT".to_string(), Pin::new_output("OUT", BusWidth(8)));
+        pins.insert("SEND".to_string(), Pin::new_input("SEND", BusWidth(1)));
+        pins.insert("RECV".to_string(), Pin::new_output("RECV", BusWidth(1)));
+
+        Telnet { id, pins }
+    }
+}
+
+impl Component for Telnet {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Telnet"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn get_pin(&self, name: &str) -> Option<&Pin> {
+        self.pins.get(name)
+    }
+
+    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
+        self.pins.get_mut(name)
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+
+        // For simulation purposes, echo input to output
+        if let Some(input_pin) = self.pins.get("IN") {
+            result
+                .outputs
+                .insert("OUT".to_string(), input_pin.signal.clone());
+        }
+
+        // Signal that we're ready to receive (simplified)
+        result
+            .outputs
+            .insert("RECV".to_string(), Signal::new_single(Value::High));
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for telnet
+    }
+}
+
+impl Propagator for Telnet {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// TTY (Terminal/Teletypewriter) component for console I/O
+#[derive(Debug, Clone)]
+pub struct Tty {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl Tty {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("IN".to_string(), Pin::new_input("IN", BusWidth(8)));
+        pins.insert("OUT".to_string(), Pin::new_output("OUT", BusWidth(8)));
+        pins.insert("WRITE".to_string(), Pin::new_input("WRITE", BusWidth(1)));
+        pins.insert("READ".to_string(), Pin::new_input("read", BusWidth(1)));
+        pins.insert("READY".to_string(), Pin::new_output("READY", BusWidth(1)));
+
+        Tty { id, pins }
+    }
+}
+
+impl Component for Tty {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "TTY"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn get_pin(&self, name: &str) -> Option<&Pin> {
+        self.pins.get(name)
+    }
+
+    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
+        self.pins.get_mut(name)
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+
+        // For simulation purposes, echo input to output and signal ready
+        if let Some(input_pin) = self.pins.get("IN") {
+            result
+                .outputs
+                .insert("OUT".to_string(), input_pin.signal.clone());
+        }
+
+        // Signal that TTY is ready
+        result
+            .outputs
+            .insert("READY".to_string(), Signal::new_single(Value::High));
+
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for TTY
+    }
+}
+
+impl Propagator for Tty {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// RGB Video component for video display
+#[derive(Debug, Clone)]
+pub struct RgbVideo {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl RgbVideo {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("R".to_string(), Pin::new_input("R", BusWidth(8)));
+        pins.insert("G".to_string(), Pin::new_input("G", BusWidth(8)));
+        pins.insert("B".to_string(), Pin::new_input("B", BusWidth(8)));
+        pins.insert("HSYNC".to_string(), Pin::new_input("HSYNC", BusWidth(1)));
+        pins.insert("VSYNC".to_string(), Pin::new_input("VSYNC", BusWidth(1)));
+
+        RgbVideo { id, pins }
+    }
+}
+
+impl Component for RgbVideo {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "RGB Video"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn get_pin(&self, name: &str) -> Option<&Pin> {
+        self.pins.get(name)
+    }
+
+    fn get_pin_mut(&mut self, name: &str) -> Option<&mut Pin> {
+        self.pins.get_mut(name)
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        // Video displays don't produce outputs, they just display input
+        UpdateResult::new()
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0 // No delay for video display
+    }
+}
+
+impl Propagator for RgbVideo {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
