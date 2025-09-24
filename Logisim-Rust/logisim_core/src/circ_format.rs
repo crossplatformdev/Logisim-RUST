@@ -804,11 +804,12 @@ impl CircIntegration {
         circuit_file: &CircuitFile,
     ) -> CircResult<()> {
         use crate::component::{
-            Adder, AndGate, Clock, ClockedLatch, Comparator, Constant, ControlledBuffer, Counter,
-            Decoder, Demultiplexer, Divider, Ground, HexDigitDisplay, Keyboard, Led, Multiplexer,
-            Multiplier, NandGate, NorGate, NotGate, OrGate, PinComponent, Power, Probe, Ram,
-            Register, RgbVideo, ShiftRegister, Splitter, Subtractor, Telnet, Text, Tty, Tunnel,
-            XnorGate, XorGate,
+            Adder, AndGate, BitAdder, BitExtender, BitSelector, Buffer, Clock, ClockedLatch, 
+            Comparator, Constant, ControlledBuffer, Counter, DFlipFlop, Decoder, Demultiplexer, 
+            Divider, Ground, HexDigitDisplay, Keyboard, Led, Multiplexer, Multiplier, NandGate, 
+            Negator, NorGate, NotGate, OrGate, PinComponent, Power, PriorityEncoder, Probe, 
+            Ram, Random, Register, RgbVideo, Rom, ShiftRegister, Splitter, Subtractor, Telnet, 
+            Text, Tty, Tunnel, XnorGate, XorGate,
         };
         use crate::signal::{BusWidth, Value};
 
@@ -1076,10 +1077,92 @@ impl CircIntegration {
                         .unwrap_or(BusWidth(8));
                     Box::new(Comparator::new(component_id, width))
                 }
+                "Bit Adder" => Box::new(BitAdder::new(component_id)),
+                "Negator" => {
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    Box::new(Negator::new(component_id, width))
+                }
+                "Buffer" => {
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(1));
+                    Box::new(Buffer::new(component_id, width))
+                }
+                "Bit Extender" => {
+                    let input_width = comp_instance
+                        .attributes
+                        .get("in_width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    let output_width = comp_instance
+                        .attributes
+                        .get("out_width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(16));
+                    let signed = comp_instance
+                        .attributes
+                        .get("type")
+                        .map(|t| t == "sign")
+                        .unwrap_or(false);
+                    Box::new(BitExtender::new(component_id, input_width, output_width, signed))
+                }
+                "Bit Selector" => {
+                    let input_width = comp_instance
+                        .attributes
+                        .get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .unwrap_or(8);
+                    // Default to selecting first bit if no range specified
+                    let select_bits: Vec<u32> = vec![0];
+                    Box::new(BitSelector::new(component_id, BusWidth(input_width), select_bits))
+                }
+                "Priority Encoder" => {
+                    let input_count = comp_instance
+                        .attributes
+                        .get("select")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .unwrap_or(4);
+                    Box::new(PriorityEncoder::new(component_id, input_count))
+                }
+                "D Flip-Flop" => Box::new(DFlipFlop::new(component_id)),
+                "Random" => {
+                    let width = comp_instance
+                        .attributes
+                        .get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    let seed = comp_instance
+                        .attributes
+                        .get("seed")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .unwrap_or(1);
+                    Box::new(Random::new(component_id, width, seed))
+                }
                 "ROM" => {
-                    // Create a ROM component (simplified for now)
-                    // TODO: Implement proper ROM component with contents
-                    Box::new(AndGate::new(component_id)) // Placeholder
+                    let addr_width = comp_instance
+                        .attributes
+                        .get("addrWidth")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    let data_width = comp_instance
+                        .attributes
+                        .get("dataWidth")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    Box::new(Rom::new(component_id, addr_width, data_width))
                 }
                 _ => {
                     // Check if this is a hierarchical component from an external library
