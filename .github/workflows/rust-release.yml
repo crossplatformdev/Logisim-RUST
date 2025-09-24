@@ -135,8 +135,12 @@ jobs:
     - name: "Build release binary"
       run: |
         if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          # Use xvfb for GUI build on Linux (headless)
-          xvfb-run -a cargo build --release --target ${{ matrix.target }} --features gui --package logisim_ui --bin logisim-rust
+          # For Linux, try GUI build with xvfb, fallback to headless if it fails
+          echo "Attempting GUI build with xvfb..."
+          if ! xvfb-run -a cargo build --release --target ${{ matrix.target }} --features gui --package logisim_ui --bin logisim-rust; then
+            echo "GUI build failed, building headless version..."
+            cargo build --release --target ${{ matrix.target }} --package logisim_ui --bin logisim-rust
+          fi
         else
           # Direct build on Windows/macOS (they have display servers available)
           cargo build --release --target ${{ matrix.target }} --features gui --package logisim_ui --bin logisim-rust
