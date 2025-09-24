@@ -52,6 +52,7 @@ pub mod circ_format;
 pub mod circ_parser;
 pub mod circ_serializer;
 pub mod component;
+pub mod components;
 pub mod data;
 pub mod event;
 pub mod file;
@@ -67,6 +68,7 @@ pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
 pub use component::{Component, ComponentId, Pin};
+pub use components::gray::*;
 pub use data::{
     Attribute, AttributeSet, AttributeValue, BitWidth, Bounds, Direction, Location, StdAttr,
 };
