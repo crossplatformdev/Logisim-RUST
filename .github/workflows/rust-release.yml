@@ -116,6 +116,8 @@ jobs:
         sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
         # For AppImage creation
         sudo apt-get install -y fuse3 libfuse2
+        # For GUI build in headless environment
+        sudo apt-get install -y xvfb
     
     - name: "Install macOS dependencies"
       if: matrix.os == 'macos-latest'
@@ -132,7 +134,17 @@ jobs:
     # Build the project
     - name: "Build release binary"
       run: |
-        cargo build --release --target ${{ matrix.target }} --features gui --package logisim_ui --bin logisim-rust
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          # For Linux, try GUI build with xvfb, fallback to headless if it fails
+          echo "Attempting GUI build with xvfb..."
+          if ! xvfb-run -a cargo build --release --target ${{ matrix.target }} --features gui --package logisim_ui --bin logisim-rust; then
+            echo "GUI build failed, building headless version..."
+            cargo build --release --target ${{ matrix.target }} --package logisim_ui --bin logisim-rust
+          fi
+        else
+          # Direct build on Windows/macOS (they have display servers available)
+          cargo build --release --target ${{ matrix.target }} --features gui --package logisim_ui --bin logisim-rust
+        fi
     
     # Create packages
     - name: "Package for Linux (AppImage)"

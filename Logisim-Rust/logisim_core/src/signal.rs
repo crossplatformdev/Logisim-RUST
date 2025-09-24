@@ -130,6 +130,16 @@ impl Value {
             _ => Value::Unknown,
         }
     }
+
+    /// Logical XOR operation
+    pub fn xor(self, other: Value) -> Value {
+        match (self, other) {
+            (Value::High, Value::Low) | (Value::Low, Value::High) => Value::High,
+            (Value::High, Value::High) | (Value::Low, Value::Low) => Value::Low,
+            (Value::Error, _) | (_, Value::Error) => Value::Error,
+            _ => Value::Unknown,
+        }
+    }
 }
 
 impl fmt::Display for Value {

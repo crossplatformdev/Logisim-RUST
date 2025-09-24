@@ -1,10 +1,15 @@
 [package]
 name = "logisim_ui"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 description = "UI/GUI components for Logisim-RUST digital logic designer and simulator"
-license = "GPL-3.0-or-later"
-authors = ["Logisim-RUST Contributors"]
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [[bin]]
 name = "logisim-rust"
