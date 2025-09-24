@@ -59,6 +59,7 @@ pub mod netlist;
 pub mod prefs;
 pub mod signal;
 pub mod simulation;
+pub mod util;
 
 // Re-export core types for convenience
 pub use build_info::BuildInfo;
@@ -72,3 +73,4 @@ pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
+pub use util::{StringGetter, StringUtil, CollectionUtil};
