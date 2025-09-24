@@ -65,12 +65,12 @@
 pub mod tool;
 pub mod library;
 
-// Tool implementations will be added here
-// pub mod add_tool;
-// pub mod select_tool;
+// Tool implementations
+pub mod add_tool;
+pub mod select_tool;
+pub mod wiring_tool;
 // pub mod poke_tool;
 // pub mod edit_tool;
-// pub mod wiring_tool;
 // pub mod text_tool;
 // pub mod menu_tool;
 
@@ -91,8 +91,12 @@ pub mod library;
 pub use tool::{
     Tool, Canvas, Project, Circuit, Action, Selection,
     CursorType, KeyEvent, MouseEvent, MouseButton, KeyModifiers,
+    LogisimVersion, ComponentDrawContext,
 };
 pub use library::{Library, BasicLibrary, LibraryClone};
+pub use add_tool::{AddTool, AddComponentAction};
+pub use select_tool::SelectTool;
+pub use wiring_tool::{WiringTool, AddWireAction};
 
 /// Tool framework version for compatibility tracking
 pub const TOOLS_VERSION: &str = "1.0.0";

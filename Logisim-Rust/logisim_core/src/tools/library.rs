@@ -88,8 +88,8 @@ pub trait Library: Send + Sync {
     fn index_of(&self, query: &dyn ComponentFactory) -> Option<usize> {
         for (index, tool) in self.get_tools().iter().enumerate() {
             // Check if this tool is an AddTool that contains the factory
-            if let Some(add_tool) = tool.as_any().downcast_ref::<AddTool>() {
-                if std::ptr::eq(add_tool.get_factory().as_ref(), query) {
+            if let Some(add_tool) = tool.as_any().downcast_ref::<crate::tools::add_tool::AddTool>() {
+                if std::ptr::eq(add_tool.get_factory(), query) {
                     return Some(index);
                 }
             }
@@ -262,39 +262,6 @@ impl Clone for BasicLibrary {
 impl std::fmt::Display for dyn Library {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.get_name())
-    }
-}
-
-// Placeholder for AddTool - this will be implemented in add_tool.rs
-pub struct AddTool {
-    // Placeholder implementation
-}
-
-impl AddTool {
-    pub fn get_factory(&self) -> Box<dyn ComponentFactory> {
-        todo!("AddTool implementation")
-    }
-}
-
-impl Tool for AddTool {
-    fn clone_tool(&self) -> Box<dyn Tool> {
-        todo!("AddTool implementation")
-    }
-
-    fn get_description(&self) -> String {
-        todo!("AddTool implementation")
-    }
-
-    fn get_display_name(&self) -> String {
-        todo!("AddTool implementation")
-    }
-
-    fn get_name(&self) -> String {
-        todo!("AddTool implementation")
-    }
-    
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
     }
 }
 
