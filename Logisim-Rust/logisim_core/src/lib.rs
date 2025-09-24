@@ -61,6 +61,7 @@ pub mod netlist;
 pub mod prefs;
 pub mod signal;
 pub mod simulation;
+pub mod std;
 pub mod util;
 
 // Re-export core types for convenience
@@ -79,6 +80,7 @@ pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
+pub use std::wiring::WiringLibrary;
 pub use util::{
     Cache, CollectionUtil, FileUtil, LocaleManager, StringCache, StringGetter, StringUtil,
 };

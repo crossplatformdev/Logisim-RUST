@@ -279,6 +279,18 @@ impl Signal {
     pub fn new_multi(width: BusWidth, value: u64) -> Self {
         Self::from_u64(value, width)
     }
+
+    /// Create signal with all bits set to high
+    pub fn all_high(width: BusWidth) -> Self {
+        let values = vec![Value::High; width.as_u32() as usize];
+        Signal { values, width }
+    }
+
+    /// Create signal with all bits set to low
+    pub fn all_low(width: BusWidth) -> Self {
+        let values = vec![Value::Low; width.as_u32() as usize];
+        Signal { values, width }
+    }
 }
 
 impl fmt::Display for Signal {
