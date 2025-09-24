@@ -124,11 +124,13 @@ jobs:
     
     - name: "Test GUI compilation (Windows)"
       if: matrix.os == 'windows-latest'
+      shell: pwsh
       run: |
-        echo "Testing GUI feature compilation on Windows..."
-        if (cargo check --features gui --package logisim_ui) {
+        Write-Host "Testing GUI feature compilation on Windows..."
+        try {
+          cargo check --features gui --package logisim_ui
           Write-Host "✅ GUI features compile successfully on Windows"
-        } else {
+        } catch {
           Write-Host "⚠️  GUI features failed to compile on Windows (non-critical)"
         }
       working-directory: Logisim-Rust
