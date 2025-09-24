@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod frame;
+pub mod generic;
 pub mod startup;
 
 #[cfg(feature = "gui")]
