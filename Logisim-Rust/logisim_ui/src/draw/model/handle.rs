@@ -204,7 +204,7 @@ mod tests {
     
     #[test]
     fn test_handle_creation() {
-        let location = Location::create(10, 20);
+        let location = Location::new(10, 20);
         let handle = Handle::new(location);
         
         assert_eq!(handle.location(), location);
@@ -213,7 +213,7 @@ mod tests {
     
     #[test]
     fn test_handle_with_type() {
-        let location = Location::create(10, 20);
+        let location = Location::new(10, 20);
         let handle = Handle::with_type(location, HandleType::Resize);
         
         assert_eq!(handle.location(), location);
@@ -222,12 +222,12 @@ mod tests {
     
     #[test]
     fn test_handle_is_at() {
-        let location = Location::create(10, 20);
+        let location = Location::new(10, 20);
         let handle = Handle::new(location);
         
-        assert!(handle.is_at(Location::create(10, 20), 0));
-        assert!(handle.is_at(Location::create(12, 22), 3));
-        assert!(!handle.is_at(Location::create(15, 25), 3));
+        assert!(handle.is_at(Location::new(10, 20), 0));
+        assert!(handle.is_at(Location::new(12, 22), 3));
+        assert!(!handle.is_at(Location::new(15, 25), 3));
     }
     
     #[test]

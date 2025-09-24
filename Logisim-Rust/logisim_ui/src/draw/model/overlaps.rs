@@ -153,6 +153,7 @@ fn bounds_overlap(a: Bounds, b: Bounds) -> bool {
 mod tests {
     use super::*;
     use crate::draw::model::{AbstractCanvasObject, CanvasObjectId};
+    use crate::draw::shapes::Line;
     
     #[test]
     fn test_drawing_overlaps_creation() {
@@ -184,17 +185,20 @@ mod tests {
     fn test_add_remove_object() {
         let mut overlaps = DrawingOverlaps::new();
         
-        let object = Arc::new(AbstractCanvasObject::new(
+        // Use a Line object which has actual bounds
+        let line = Arc::new(Line::new(
             CanvasObjectId(1), 
-            "Test Object".to_string()
+            Location::new(10, 10),
+            Location::new(50, 50)
         )) as Arc<dyn CanvasObject>;
         
-        overlaps.add_object(object.clone());
+        overlaps.add_object(line.clone());
         
+        // Search for overlapping objects in the line's area
         let found = overlaps.find_overlapping(Bounds::create(0, 0, 100, 100));
         assert_eq!(found.len(), 1);
         
-        overlaps.remove_object(object.as_ref());
+        overlaps.remove_object(line.as_ref());
         
         let found_after = overlaps.find_overlapping(Bounds::create(0, 0, 100, 100));
         assert_eq!(found_after.len(), 0);
