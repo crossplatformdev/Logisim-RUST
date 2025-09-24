@@ -4,12 +4,12 @@
 //! the priority queue for scheduling events and the event types used
 //! throughout the simulation.
 
-use crate::signal::{Signal, Timestamp};
 use crate::component::ComponentId;
 use crate::netlist::NodeId;
+use crate::signal::{Signal, Timestamp};
 use serde::{Deserialize, Serialize};
-use std::collections::BinaryHeap;
 use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 use std::fmt;
 
 /// Unique identifier for simulation events
@@ -50,9 +50,7 @@ pub enum EventType {
     /// Clock tick event
     ClockTick,
     /// Component evaluation request
-    ComponentUpdate {
-        component_id: ComponentId,
-    },
+    ComponentUpdate { component_id: ComponentId },
     /// Reset signal
     Reset,
 }
@@ -103,7 +101,12 @@ impl SimulatorEvent {
     }
 
     /// Create a new component update event
-    pub fn component_update(id: EventId, time: Timestamp, serial: u64, component_id: ComponentId) -> Self {
+    pub fn component_update(
+        id: EventId,
+        time: Timestamp,
+        serial: u64,
+        component_id: ComponentId,
+    ) -> Self {
         SimulatorEvent {
             id,
             time,
@@ -133,7 +136,8 @@ impl PartialOrd for SimulatorEvent {
 impl Ord for SimulatorEvent {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         // For min-heap with Reverse wrapper, normal ordering gives us min-heap behavior
-        self.time.cmp(&other.time)
+        self.time
+            .cmp(&other.time)
             .then_with(|| self.serial.cmp(&other.serial))
     }
 }
@@ -172,7 +176,7 @@ impl EventQueue {
     ) -> EventId {
         let event_id = EventId(self.next_event_id);
         self.next_event_id += 1;
-        
+
         let serial = self.next_serial;
         self.next_serial += 1;
 
@@ -193,7 +197,7 @@ impl EventQueue {
     pub fn schedule_clock_tick(&mut self, time: Timestamp) -> EventId {
         let event_id = EventId(self.next_event_id);
         self.next_event_id += 1;
-        
+
         let serial = self.next_serial;
         self.next_serial += 1;
 
@@ -203,10 +207,14 @@ impl EventQueue {
     }
 
     /// Schedule a component update event
-    pub fn schedule_component_update(&mut self, time: Timestamp, component_id: ComponentId) -> EventId {
+    pub fn schedule_component_update(
+        &mut self,
+        time: Timestamp,
+        component_id: ComponentId,
+    ) -> EventId {
         let event_id = EventId(self.next_event_id);
         self.next_event_id += 1;
-        
+
         let serial = self.next_serial;
         self.next_serial += 1;
 
@@ -219,7 +227,7 @@ impl EventQueue {
     pub fn schedule_reset(&mut self, time: Timestamp) -> EventId {
         let event_id = EventId(self.next_event_id);
         self.next_event_id += 1;
-        
+
         let serial = self.next_serial;
         self.next_serial += 1;
 
@@ -270,13 +278,13 @@ impl EventQueue {
     /// Remove all events scheduled for or after the given time
     pub fn cancel_events_after(&mut self, time: Timestamp) {
         let mut remaining_events = BinaryHeap::new();
-        
+
         while let Some(Reverse(event)) = self.events.pop() {
             if event.time < time {
                 remaining_events.push(Reverse(event));
             }
         }
-        
+
         self.events = remaining_events;
     }
 
@@ -294,9 +302,15 @@ impl Default for EventQueue {
 
 impl fmt::Display for EventQueue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "EventQueue (current_time: {}, {} events):", self.current_time, self.len())?;
+        writeln!(
+            f,
+            "EventQueue (current_time: {}, {} events):",
+            self.current_time,
+            self.len()
+        )?;
         let events: Vec<_> = self.get_all_events();
-        for event in events.iter().take(10) { // Show first 10 events
+        for event in events.iter().take(10) {
+            // Show first 10 events
             writeln!(f, "  {}: {:?}", event.time, event.event_type)?;
         }
         if events.len() > 10 {
@@ -319,16 +333,19 @@ mod tests {
 
         // Test the basic ordering - event2 (time=5) should be less than event1 (time=10)
         assert!(event2 < event1, "Event with earlier time should be less");
-        
+
         // Same time, lower serial should be less
-        assert!(event1 < event3, "Event with same time but lower serial should be less");
-        
+        assert!(
+            event1 < event3,
+            "Event with same time but lower serial should be less"
+        );
+
         // Test the heap behavior by inserting into a priority queue
         let mut heap = std::collections::BinaryHeap::new();
         heap.push(Reverse(event1.clone()));
         heap.push(Reverse(event2.clone()));
         heap.push(Reverse(event3.clone()));
-        
+
         // Should pop events in time order
         assert_eq!(heap.pop().unwrap().0.time, Timestamp(5));
         assert_eq!(heap.pop().unwrap().0.time, Timestamp(10));
@@ -365,18 +382,17 @@ mod tests {
     #[test]
     fn test_event_queue_signal_change() {
         let mut queue = EventQueue::new();
-        
+
         let signal = Signal::new_single(crate::signal::Value::High);
-        let _id = queue.schedule_signal_change(
-            Timestamp(100),
-            NodeId(1),
-            signal,
-            ComponentId(1),
-        );
+        let _id = queue.schedule_signal_change(Timestamp(100), NodeId(1), signal, ComponentId(1));
 
         let event = queue.pop().unwrap();
         match event.event_type {
-            EventType::SignalChange { node_id, source_component, .. } => {
+            EventType::SignalChange {
+                node_id,
+                source_component,
+                ..
+            } => {
                 assert_eq!(node_id, NodeId(1));
                 assert_eq!(source_component, ComponentId(1));
             }
@@ -403,7 +419,7 @@ mod tests {
     #[test]
     fn test_cancel_events_after() {
         let mut queue = EventQueue::new();
-        
+
         queue.schedule_clock_tick(Timestamp(10));
         queue.schedule_clock_tick(Timestamp(20));
         queue.schedule_clock_tick(Timestamp(30));
@@ -413,7 +429,7 @@ mod tests {
 
         // Cancel events at or after time 25
         queue.cancel_events_after(Timestamp(25));
-        
+
         assert_eq!(queue.len(), 2);
 
         // Remaining events should be before time 25
