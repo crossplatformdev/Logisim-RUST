@@ -47,7 +47,7 @@ jobs:
     # Note: Excluding GUI features to avoid winit platform compatibility issues in headless CI
     - name: "Build project"
       run: |
-        cargo build --verbose
+        cargo build --verbose --workspace
 
     - name: "Perform CodeQL Analysis"
       uses: github/codeql-action/analyze@v3

@@ -57,8 +57,8 @@ jobs:
       uses: Swatinem/rust-cache@v2
     
     - name: "Run Clippy (deny warnings)"
-      run: cargo clippy --all-targets --all-features -- -D warnings
+      run: cargo clippy --workspace --all-targets -- -D warnings
     
     - name: "Run Clippy (pedantic for review)"
-      run: cargo clippy --all-targets --all-features -- -W clippy::pedantic
+      run: cargo clippy --workspace --all-targets -- -W clippy::pedantic
       continue-on-error: true
