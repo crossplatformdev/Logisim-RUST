@@ -15,7 +15,7 @@ jobs:
     
     steps:
     - name: "Checkout sources"
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: "Look for changes in translation files"
       uses: dorny/paths-filter@v3
@@ -45,7 +45,7 @@ jobs:
     
     steps:
     - name: "Checkout sources"
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: "Install Rust toolchain"
       uses: dtolnay/rust-toolchain@stable
