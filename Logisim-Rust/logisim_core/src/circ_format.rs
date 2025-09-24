@@ -752,7 +752,7 @@ impl CircIntegration {
         circuit: &CircuitDefinition,
         _all_circuits: &HashMap<String, CircuitDefinition>,
     ) -> CircResult<()> {
-        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel, Splitter, Led, Multiplexer, Demultiplexer, Clock, Ram, ControlledBuffer, Register};
+        use crate::component::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate, PinComponent, ClockedLatch, Constant, Probe, Tunnel, Splitter, Led, Multiplexer, Demultiplexer, Clock, Ram, ControlledBuffer, Register, Counter, Text, Adder, Divider};
         use crate::signal::{BusWidth, Value};
 
         // Create a mapping from locations to node IDs for wire connections
@@ -889,6 +889,35 @@ impl CircIntegration {
                         .map(BusWidth)
                         .unwrap_or(BusWidth(8));
                     Box::new(Register::new(component_id, width))
+                }
+                "Counter" => {
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(4));
+                    let max = comp_instance.attributes.get("max")
+                        .and_then(|m| m.parse::<u32>().ok());
+                    Box::new(Counter::new(component_id, width, max))
+                }
+                "Text" => {
+                    let text = comp_instance.attributes.get("text")
+                        .map(|t| t.clone())
+                        .unwrap_or_else(|| "Text".to_string());
+                    Box::new(Text::new(component_id, text))
+                }
+                "Adder" => {
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    Box::new(Adder::new(component_id, width))
+                }
+                "Divider" => {
+                    let width = comp_instance.attributes.get("width")
+                        .and_then(|w| w.parse::<u32>().ok())
+                        .map(BusWidth)
+                        .unwrap_or(BusWidth(8));
+                    Box::new(Divider::new(component_id, width))
                 }
                 "ROM" => {
                     // Create a ROM component (simplified for now)

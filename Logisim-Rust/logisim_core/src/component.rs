@@ -2102,6 +2102,485 @@ impl Propagator for Register {
     }
 }
 
+/// Counter component for sequential counting
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Counter {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+    max_count: u32,
+    current_count: u32,
+}
+
+impl Counter {
+    pub fn new(id: ComponentId, width: BusWidth, max_count: Option<u32>) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("CLK".to_string(), Pin::new_input("CLK", BusWidth(1))); // Clock
+        pins.insert("EN".to_string(), Pin::new_input("EN", BusWidth(1))); // Enable
+        pins.insert("RST".to_string(), Pin::new_input("RST", BusWidth(1))); // Reset
+        pins.insert("LD".to_string(), Pin::new_input("LD", BusWidth(1))); // Load
+        pins.insert("D".to_string(), Pin::new_input("D", width)); // Data input for load
+        pins.insert("Q".to_string(), Pin::new_output("Q", width)); // Count output
+        pins.insert("CARRY".to_string(), Pin::new_output("CARRY", BusWidth(1))); // Carry out
+
+        let default_max = (1u32 << width.as_u32()) - 1;
+        Counter { 
+            id, 
+            pins, 
+            width,
+            max_count: max_count.unwrap_or(default_max),
+            current_count: 0,
+        }
+    }
+}
+
+impl Component for Counter {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Counter"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        // Convert count to signal
+        let count_values = self.count_to_values(self.current_count);
+        let count_signal = if count_values.len() == 1 {
+            Signal::new_single(count_values[0])
+        } else {
+            Signal::new_bus(count_values)
+        };
+        
+        // Check for carry
+        let carry = if self.current_count >= self.max_count {
+            Value::High
+        } else {
+            Value::Low
+        };
+        
+        result.add_output("Q".to_string(), count_signal.clone());
+        result.add_output("CARRY".to_string(), Signal::new_single(carry));
+        result.set_delay(self.propagation_delay());
+        
+        if let Some(pin) = self.pins.get_mut("Q") {
+            let _ = pin.set_signal(count_signal);
+        }
+        if let Some(pin) = self.pins.get_mut("CARRY") {
+            let _ = pin.set_signal(Signal::new_single(carry));
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        self.current_count = 0;
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        4 // 4 time units for counter
+    }
+
+    fn is_sequential(&self) -> bool {
+        true
+    }
+
+    fn clock_edge(&mut self, edge: ClockEdge, _current_time: Timestamp) -> UpdateResult {
+        if edge == ClockEdge::Rising {
+            let enable = self.pins.get("EN")
+                .map(|pin| pin.signal.as_single().unwrap_or(Value::High))
+                .unwrap_or(Value::High);
+            let reset = self.pins.get("RST")
+                .map(|pin| pin.signal.as_single().unwrap_or(Value::Low))
+                .unwrap_or(Value::Low);
+            let load = self.pins.get("LD")
+                .map(|pin| pin.signal.as_single().unwrap_or(Value::Low))
+                .unwrap_or(Value::Low);
+            
+            if reset == Value::High {
+                self.current_count = 0;
+            } else if load == Value::High {
+                // Load data input
+                let data_signal = &self.pins.get("D").unwrap().signal;
+                self.current_count = self.signal_to_count(data_signal);
+            } else if enable == Value::High {
+                // Increment counter
+                self.current_count = (self.current_count + 1) % (self.max_count + 1);
+            }
+            
+            return self.update(Timestamp(0));
+        }
+        
+        UpdateResult::new()
+    }
+}
+
+impl Counter {
+    fn count_to_values(&self, count: u32) -> Vec<Value> {
+        let mut values = Vec::new();
+        for i in 0..self.width.as_u32() {
+            let bit = (count >> i) & 1;
+            values.push(if bit == 1 { Value::High } else { Value::Low });
+        }
+        values
+    }
+    
+    fn signal_to_count(&self, signal: &Signal) -> u32 {
+        let mut count = 0u32;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            if bit == Value::High {
+                count |= 1 << i;
+            }
+        }
+        count & self.max_count
+    }
+}
+
+impl Propagator for Counter {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal.clone());
+        }
+
+        // For clock input, check for edges
+        if input_pin == "CLK" {
+            if let Some(new_value) = signal.as_single() {
+                if new_value == Value::High {
+                    return self.clock_edge(ClockEdge::Rising, current_time);
+                }
+            }
+        }
+
+        UpdateResult::new()
+    }
+}
+
+/// Text component for circuit documentation  
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Text {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    text: String,
+}
+
+impl Text {
+    pub fn new(id: ComponentId, text: String) -> Self {
+        let pins = HashMap::new(); // Text has no pins
+        Text { id, pins, text }
+    }
+}
+
+impl Component for Text {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Text"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        // Text components don't process signals
+        UpdateResult::new()
+    }
+
+    fn reset(&mut self) {
+        // Nothing to reset for text
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        0
+    }
+}
+
+impl Propagator for Text {
+    fn propagate(
+        &mut self,
+        _input_pin: &str,
+        _signal: Signal,
+        _current_time: Timestamp,
+    ) -> UpdateResult {
+        // Text doesn't propagate signals
+        UpdateResult::new()
+    }
+}
+
+/// Adder component for arithmetic operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Adder {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+}
+
+impl Adder {
+    pub fn new(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("A".to_string(), Pin::new_input("A", width));
+        pins.insert("B".to_string(), Pin::new_input("B", width));
+        pins.insert("CIN".to_string(), Pin::new_input("CIN", BusWidth(1))); // Carry in
+        pins.insert("SUM".to_string(), Pin::new_output("SUM", width));
+        pins.insert("COUT".to_string(), Pin::new_output("COUT", BusWidth(1))); // Carry out
+
+        Adder { id, pins, width }
+    }
+}
+
+impl Component for Adder {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Adder"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        let a_signal = &self.pins.get("A").unwrap().signal;
+        let b_signal = &self.pins.get("B").unwrap().signal;
+        let cin = self.pins.get("CIN").unwrap().signal.as_single().unwrap_or(Value::Low);
+        
+        let a_value = self.signal_to_number(a_signal);
+        let b_value = self.signal_to_number(b_signal);
+        let cin_value = if cin == Value::High { 1 } else { 0 };
+        
+        let sum = a_value + b_value + cin_value;
+        let max_value = (1u32 << self.width.as_u32()) - 1;
+        
+        let result_value = sum & max_value;
+        let carry_out = if sum > max_value { Value::High } else { Value::Low };
+        
+        let sum_values = self.number_to_values(result_value);
+        let sum_signal = if sum_values.len() == 1 {
+            Signal::new_single(sum_values[0])
+        } else {
+            Signal::new_bus(sum_values)
+        };
+        
+        result.add_output("SUM".to_string(), sum_signal.clone());
+        result.add_output("COUT".to_string(), Signal::new_single(carry_out));
+        result.set_delay(self.propagation_delay());
+        
+        if let Some(pin) = self.pins.get_mut("SUM") {
+            let _ = pin.set_signal(sum_signal);
+        }
+        if let Some(pin) = self.pins.get_mut("COUT") {
+            let _ = pin.set_signal(Signal::new_single(carry_out));
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        3 // 3 time units for adder
+    }
+}
+
+impl Adder {
+    fn signal_to_number(&self, signal: &Signal) -> u32 {
+        let mut number = 0u32;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            if bit == Value::High {
+                number |= 1 << i;
+            }
+        }
+        number
+    }
+    
+    fn number_to_values(&self, number: u32) -> Vec<Value> {
+        let mut values = Vec::new();
+        for i in 0..self.width.as_u32() {
+            let bit = (number >> i) & 1;
+            values.push(if bit == 1 { Value::High } else { Value::Low });
+        }
+        values
+    }
+}
+
+impl Propagator for Adder {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
+/// Divider component for arithmetic division
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Divider {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    width: BusWidth,
+}
+
+impl Divider {
+    pub fn new(id: ComponentId, width: BusWidth) -> Self {
+        let mut pins = HashMap::new();
+        pins.insert("DIVIDEND".to_string(), Pin::new_input("DIVIDEND", width));
+        pins.insert("DIVISOR".to_string(), Pin::new_input("DIVISOR", width));
+        pins.insert("QUOTIENT".to_string(), Pin::new_output("QUOTIENT", width));
+        pins.insert("REMAINDER".to_string(), Pin::new_output("REMAINDER", width));
+
+        Divider { id, pins, width }
+    }
+}
+
+impl Component for Divider {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Divider"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        let dividend_signal = &self.pins.get("DIVIDEND").unwrap().signal;
+        let divisor_signal = &self.pins.get("DIVISOR").unwrap().signal;
+        
+        let dividend = self.signal_to_number(dividend_signal);
+        let divisor = self.signal_to_number(divisor_signal);
+        
+        let (quotient, remainder) = if divisor == 0 {
+            // Division by zero - return error state
+            (0, 0)
+        } else {
+            (dividend / divisor, dividend % divisor)
+        };
+        
+        let quotient_values = self.number_to_values(quotient);
+        let remainder_values = self.number_to_values(remainder);
+        
+        let quotient_signal = if quotient_values.len() == 1 {
+            Signal::new_single(quotient_values[0])
+        } else {
+            Signal::new_bus(quotient_values)
+        };
+        
+        let remainder_signal = if remainder_values.len() == 1 {
+            Signal::new_single(remainder_values[0])
+        } else {
+            Signal::new_bus(remainder_values)
+        };
+        
+        result.add_output("QUOTIENT".to_string(), quotient_signal.clone());
+        result.add_output("REMAINDER".to_string(), remainder_signal.clone());
+        result.set_delay(self.propagation_delay());
+        
+        if let Some(pin) = self.pins.get_mut("QUOTIENT") {
+            let _ = pin.set_signal(quotient_signal);
+        }
+        if let Some(pin) = self.pins.get_mut("REMAINDER") {
+            let _ = pin.set_signal(remainder_signal);
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        for pin in self.pins.values_mut() {
+            pin.signal = Signal::unknown(pin.width);
+        }
+    }
+
+    fn propagation_delay(&self) -> u64 {
+        8 // 8 time units for divider (more complex operation)
+    }
+}
+
+impl Divider {
+    fn signal_to_number(&self, signal: &Signal) -> u32 {
+        let mut number = 0u32;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            if bit == Value::High {
+                number |= 1 << i;
+            }
+        }
+        number
+    }
+    
+    fn number_to_values(&self, number: u32) -> Vec<Value> {
+        let mut values = Vec::new();
+        for i in 0..self.width.as_u32() {
+            let bit = (number >> i) & 1;
+            values.push(if bit == 1 { Value::High } else { Value::Low });
+        }
+        values
+    }
+}
+
+impl Propagator for Divider {
+    fn propagate(
+        &mut self,
+        input_pin: &str,
+        signal: Signal,
+        current_time: Timestamp,
+    ) -> UpdateResult {
+        if let Some(pin) = self.pins.get_mut(input_pin) {
+            let _ = pin.set_signal(signal);
+        }
+        self.update(current_time)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
