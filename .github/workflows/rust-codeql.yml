@@ -44,9 +44,10 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     # Build the project for CodeQL analysis
+    # Note: Excluding GUI features to avoid winit platform compatibility issues in headless CI
     - name: "Build project"
       run: |
-        cargo build --verbose --all-features
+        cargo build --verbose
 
     - name: "Perform CodeQL Analysis"
       uses: github/codeql-action/analyze@v3
