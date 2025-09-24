@@ -1511,7 +1511,7 @@ impl Component for Multiplexer {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let sel_signal = self.pins.get("SEL").unwrap().signal.clone();
-        
+
         // Convert select signal to index
         let selected_input = if let Some(sel_value) = sel_signal.as_single() {
             match sel_value {
