@@ -241,6 +241,15 @@ impl ComponentProperties {
     pub fn validate_property_value(&self, key: &str, value: &PropertyValue) -> Result<(), String> {
         if let Some(descriptor) = self.descriptors.get(key) {
             match (&descriptor.property_type, value) {
+                (PropertyType::String, PropertyValue::String(_)) => {
+                    // Strings are always valid
+                },
+                (PropertyType::Boolean, PropertyValue::Boolean(_)) => {
+                    // Booleans are always valid
+                },
+                (PropertyType::Color, PropertyValue::Color(_)) => {
+                    // Colors are always valid (already validated during parsing)
+                },
                 (PropertyType::Integer { min, max }, PropertyValue::Integer(i)) => {
                     if let Some(min_val) = min {
                         if *i < *min_val {

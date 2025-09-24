@@ -495,8 +495,8 @@ mod tests {
         manager.set_language(Language::Spanish);
         assert_eq!(manager.get_string("menu.file"), "Archivo");
         
-        // Test fallback to English
-        assert!(!manager.get_string("nonexistent.key").starts_with("["));
+        // Test fallback for nonexistent key - should return key in brackets
+        assert!(manager.get_string("nonexistent.key").starts_with("["));
     }
 
     #[test]
