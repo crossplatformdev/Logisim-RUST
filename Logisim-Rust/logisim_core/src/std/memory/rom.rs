@@ -12,14 +12,14 @@
 //! This module implements ROM functionality equivalent to Rom.java.
 //! ROM provides read-only memory storage that can be programmed with initial values.
 
-use crate::{Attribute, AttributeSet, BitWidth, Bounds, Direction, Location, StdAttr, Value};
+use crate::{AttributeSet, BitWidth, Bounds, Location};
 use crate::instance::{Instance, InstanceFactory, InstancePainter, InstanceState, Port, PortType};
 use crate::std::memory::{MemContents, MemState};
 use crate::std::memory::mem::{MemFactory, MemoryComponent};
-use crate::util::StringGetter;
 use std::sync::{Arc, Mutex};
 
 /// ROM component factory
+#[derive(Debug)]
 pub struct RomFactory {
     base: MemFactory,
 }
@@ -29,7 +29,7 @@ impl RomFactory {
         Self {
             base: MemFactory::new(
                 "ROM".to_string(),
-                StringGetter::new("romComponent"),
+                "ROM Component".to_string(),
                 0, // No extra ports
                 false, // No label needed
             ),
@@ -55,6 +55,26 @@ impl InstanceFactory for RomFactory {
     fn create_attribute_set(&self) -> AttributeSet {
         // TODO: Implement proper attributes when attribute system is complete
         AttributeSet::new()
+    }
+
+    fn get_ports(&self) -> &[Port] {
+        &[]
+    }
+
+    fn get_offset_bounds(&self, _attrs: &AttributeSet) -> Bounds {
+        Bounds::new(0, 0, 60, 60)
+    }
+
+    fn create_component(&self, _location: Location, _attrs: AttributeSet) -> Box<dyn std::any::Any> {
+        Box::new(())
+    }
+
+    fn paint_instance(&self, _painter: &mut InstancePainter) {
+        // TODO: Implement ROM drawing
+    }
+
+    fn propagate(&self, _state: &mut dyn InstanceState) {
+        // TODO: Implement ROM logic
     }
 }
 
@@ -95,9 +115,9 @@ impl RomFactory {
     }
 
     /// Get or create memory state for this ROM instance
-    fn get_or_create_mem_state(&self, state: &InstanceState, addr_bits: i32, data_bits: i32) -> MemState {
+    fn get_or_create_mem_state(&self, _state: &dyn InstanceState, addr_bits: i32, data_bits: i32) -> MemState {
         // Try to get existing state
-        if let Some(mem_state) = self.base.get_mem_state(state) {
+        if let Some(mem_state) = self.base.get_mem_state(_state) {
             return mem_state;
         }
         
@@ -111,48 +131,32 @@ impl RomFactory {
     }
 
     /// Paint the base ROM component
-    fn paint_base(&self, painter: &mut InstancePainter) {
+    fn paint_base(&self, _painter: &mut InstancePainter) {
+        // TODO: Implement ROM painting when graphics system is complete
         // Get component bounds
-        let bounds = painter.get_bounds();
-        let g = painter.get_graphics();
+        // let bounds = painter.get_bounds();
+        // let g = painter.get_graphics();
         
-        // Draw ROM rectangle
-        g.set_color(painter.get_attribute_value(&StdAttr::FILL_COLOR).unwrap_or_default());
-        g.fill_rect(bounds.get_x(), bounds.get_y(), bounds.get_width(), bounds.get_height());
-        
-        g.set_color(painter.get_stroke_color());
-        g.draw_rect(bounds.get_x(), bounds.get_y(), bounds.get_width(), bounds.get_height());
-        
-        // Draw "ROM" label
-        g.set_color(painter.get_text_color());
-        let center_x = bounds.get_x() + bounds.get_width() / 2;
-        let center_y = bounds.get_y() + bounds.get_height() / 2;
-        g.draw_string_centered("ROM", center_x, center_y);
-        
-        // Draw ports
-        painter.draw_ports();
+        // Draw ROM rectangle and label
     }
 }
 
 impl MemoryComponent for RomFactory {
-    fn get_contents(&self, state: &InstanceState) -> Option<Arc<Mutex<MemContents>>> {
-        self.base.get_mem_state(state)
-            .map(|mem_state| mem_state.get_contents())
+    fn get_contents(&self, _state: &dyn InstanceState) -> Option<Arc<Mutex<MemContents>>> {
+        // TODO: Implement when state system is complete
+        None
     }
 
-    fn set_contents(&self, state: &mut InstanceState, contents: MemContents) {
-        if let Some(mut mem_state) = self.base.get_mem_state(state) {
-            mem_state.set_contents(contents);
-            self.base.set_mem_state(state, mem_state);
-        }
+    fn set_contents(&self, _state: &mut dyn InstanceState, _contents: MemContents) {
+        // TODO: Implement when state system is complete
     }
 
-    fn get_addr_bits(&self, attrs: &AttributeSet) -> i32 {
+    fn get_addr_bits(&self, _attrs: &AttributeSet) -> i32 {
         // TODO: Get from attributes when system is complete
         8
     }
 
-    fn get_data_bits(&self, attrs: &AttributeSet) -> i32 {
+    fn get_data_bits(&self, _attrs: &AttributeSet) -> i32 {
         // TODO: Get from attributes when system is complete  
         8
     }
@@ -162,14 +166,14 @@ impl MemoryComponent for RomFactory {
 #[derive(Clone)]
 pub struct RomContentsAttribute {
     name: String,
-    display_name: crate::util::ConstantStringGetter,
+    display_name: String,
 }
 
 impl RomContentsAttribute {
     pub fn new() -> Self {
         Self {
             name: "contents".to_string(),
-            display_name: StringGetter::new("romContentsAttr"),
+            display_name: "ROM Contents".to_string(),
         }
     }
 }
@@ -180,37 +184,7 @@ impl Default for RomContentsAttribute {
     }
 }
 
-// TODO: Fix attribute implementation - Attribute<T> is a struct, not a trait
-/*
-impl Attribute<MemContents> for RomContentsAttribute {
-    fn name(&self) -> &str {
-        &self.name
-    }
-
-    fn display_name(&self) -> String {
-        self.display_name.get()
-    }
-
-    fn parse(&self, value: &str) -> Result<MemContents, String> {
-        // TODO: Implement ROM contents parsing from string
-        // This would parse hex files or other ROM data formats
-        Ok(MemContents::create(8, 8, false))
-    }
-
-    fn to_display_string(&self, value: &MemContents) -> String {
-        format!("ROM Contents ({}x{} bits)", 
-                1 << value.get_log_length(), 
-                value.get_width())
-    }
-
-    fn to_standard_string(&self, value: &MemContents) -> String {
-        // TODO: Implement proper ROM contents serialization
-        format!("addr/data: {} {}\n", 
-                value.get_log_length(), 
-                value.get_width())
-    }
-}
-*/
+// TODO: Implement proper Attribute trait when the attribute system is complete
 
 #[cfg(test)]
 mod tests {

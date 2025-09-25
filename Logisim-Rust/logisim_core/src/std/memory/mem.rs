@@ -12,13 +12,13 @@
 //! This module provides the base functionality for memory components,
 //! equivalent to the Java Mem.java abstract class.
 
-use crate::{Attribute, AttributeSet, BitWidth, Bounds, Direction, Location, StdAttr};
-use crate::instance::{Instance, InstanceFactory, InstanceState, Port, PortType};
+use crate::{AttributeSet, BitWidth, Bounds, Location};
+use crate::instance::{Instance, InstanceFactory, InstanceState, InstancePainter, Port, PortType};
 use crate::std::memory::{MemContents, MemState};
-use crate::util::StringGetter;
+use crate::util::{StringGetter, ConstantStringGetter};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Weak, Mutex};
+use std::sync::{Arc, Mutex};
 
 /// Memory enable modes
 #[derive(Debug, Clone, PartialEq)]
@@ -30,10 +30,10 @@ pub enum EnableMode {
 /// Base trait for memory components
 pub trait MemoryComponent: Send + Sync {
     /// Get the memory contents
-    fn get_contents(&self, state: &InstanceState) -> Option<Arc<Mutex<MemContents>>>;
+    fn get_contents(&self, state: &dyn InstanceState) -> Option<Arc<Mutex<MemContents>>>;
     
     /// Set the memory contents
-    fn set_contents(&self, state: &mut InstanceState, contents: MemContents);
+    fn set_contents(&self, state: &mut dyn InstanceState, contents: MemContents);
     
     /// Get the address bit width
     fn get_addr_bits(&self, attrs: &AttributeSet) -> i32;
@@ -49,6 +49,7 @@ pub trait MemoryComponent: Send + Sync {
 }
 
 /// Base memory component factory
+#[derive(Debug)]
 pub struct MemFactory {
     name: String,
     description: crate::util::ConstantStringGetter,
@@ -61,13 +62,13 @@ impl MemFactory {
     /// Create a new memory factory
     pub fn new(
         name: String,
-        description: StringGetter,
+        description: String,
         extra_ports: i32,
         needs_label: bool,
     ) -> Self {
         Self {
             name,
-            description,
+            description: ConstantStringGetter::new(description),
             extra_ports,
             needs_label,
             current_files: HashMap::new(),
@@ -135,14 +136,14 @@ impl MemFactory {
     }
 
     /// Get or create memory state for an instance
-    pub fn get_mem_state(&self, state: &InstanceState) -> Option<MemState> {
+    pub fn get_mem_state(&self, _state: &dyn InstanceState) -> Option<MemState> {
         // TODO: Implement proper instance data integration
         // This would retrieve MemState from the instance's data store
         None
     }
 
     /// Set memory state for an instance
-    pub fn set_mem_state(&self, state: &mut InstanceState, mem_state: MemState) {
+    pub fn set_mem_state(&self, _state: &mut dyn InstanceState, _mem_state: MemState) {
         // TODO: Implement proper instance data integration
         // This would store MemState in the instance's data store
     }
@@ -169,11 +170,34 @@ impl InstanceFactory for MemFactory {
     }
 
     fn get_display_name(&self) -> String {
-        self.description.get()
+        self.description.get_string()
     }
 
     fn create_attribute_set(&self) -> AttributeSet {
         Self::create_attributes()
+    }
+
+    fn get_ports(&self) -> &[Port] {
+        // Return empty ports for now - will be configured per instance
+        &[]
+    }
+
+    fn get_offset_bounds(&self, _attrs: &AttributeSet) -> Bounds {
+        // Standard memory component bounds
+        Bounds::new(0, 0, 60, 60 + self.extra_ports * 10)
+    }
+
+    fn create_component(&self, _location: Location, _attrs: AttributeSet) -> Box<dyn std::any::Any> {
+        // Create a placeholder component
+        Box::new(())
+    }
+
+    fn paint_instance(&self, _painter: &mut InstancePainter) {
+        // TODO: Implement memory component painting
+    }
+
+    fn propagate(&self, _state: &mut dyn InstanceState) {
+        // TODO: Implement memory component logic
     }
 }
 

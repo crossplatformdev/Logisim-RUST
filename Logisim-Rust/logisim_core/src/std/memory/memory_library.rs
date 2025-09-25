@@ -15,7 +15,6 @@
 use crate::ComponentId;
 use crate::instance::InstanceFactory;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Unique identifier for the memory library
 /// Do NOT change as it will prevent project files from loading.

@@ -14,7 +14,6 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Weak, Mutex};
-use crate::BitWidth;
 
 /// Listener for memory content changes
 pub trait HexModelListener: Send + Sync {

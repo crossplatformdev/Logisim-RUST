@@ -12,8 +12,6 @@
 //! This module implements RAM functionality equivalent to Ram.java.
 //! RAM provides read/write memory storage.
 
-use crate::std::memory::mem::MemFactory;
-
 /// RAM component (placeholder for now)
 pub struct Ram {
     // TODO: Implement RAM component

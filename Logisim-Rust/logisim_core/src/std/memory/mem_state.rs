@@ -118,14 +118,14 @@ impl MemState {
     }
 
     /// Get state from instance state
-    pub fn get(state: &InstanceState) -> Option<MemState> {
+    pub fn get(state: &dyn InstanceState) -> Option<MemState> {
         // TODO: Implement proper instance state integration
         // This would interface with the component's instance data
         None
     }
 
     /// Set state in instance state
-    pub fn set(state: &mut InstanceState, mem_state: MemState) {
+    pub fn set(state: &mut dyn InstanceState, mem_state: MemState) {
         // TODO: Implement proper instance state integration
         // This would store the memory state in the instance data
     }
