@@ -48,7 +48,7 @@ pub use extra::*;
 
 use crate::comp::Color;
 
-/// Default background color (transparent white)
+/// Default background color (fully transparent)
 pub const DEFAULT_BACKGROUND: Color = Color {
     r: 255,
     g: 255,
