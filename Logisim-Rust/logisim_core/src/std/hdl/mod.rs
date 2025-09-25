@@ -67,12 +67,12 @@ pub use hdl_library::*;
 pub use vhdl_entity::VhdlEntityComponent;
 pub use vhdl_entity_attr::{VhdlEntityContentAttribute, VhdlEntityNameAttribute, VhdlEntityAttributes};
 pub use vhdl_content::VhdlContentComponent;
-pub use vhdl_parser::{VhdlParser, VhdlResult, VhdlError};
+pub use vhdl_parser::{VhdlParser, VhdlResult};
 pub use vhdl_generator::*;
 
 pub use blif_circuit::BlifCircuitComponent;  
 pub use blif_content::BlifContentComponent;
-pub use blif_parser::{BlifParser, BlifResult, BlifError};
+pub use blif_parser::{BlifParser, BlifResult};
 
 pub use dense_logic_circuit::*;
 pub use dense_logic_builder::*;

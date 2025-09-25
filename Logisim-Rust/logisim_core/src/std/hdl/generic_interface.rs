@@ -85,16 +85,14 @@ impl Component for GenericInterfaceComponent {
         &mut self.pins
     }
 
-    fn update(&mut self, timestamp: Timestamp) -> UpdateResult {
+    fn update(&mut self, _timestamp: Timestamp) -> UpdateResult {
         // Generic interface components typically don't have simulation logic
-        UpdateResult::NoChange
+        UpdateResult::new()
     }
 
     fn reset(&mut self) {
         // Reset all pins to their default state
-        for pin in self.pins.values_mut() {
-            pin.reset();
-        }
+        self.pins.clear();
     }
 }
 

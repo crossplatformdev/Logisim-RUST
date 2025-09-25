@@ -12,7 +12,8 @@
 //! Equivalent to Java VhdlContentComponent.java
 //! Manages VHDL content for entity components.
 
-use super::{HdlContent, PortDescription};
+use super::HdlContent;
+use crate::hdl::model::PortDescription;
 
 /// VHDL Content Component
 /// 

@@ -12,8 +12,6 @@
 //! Equivalent to Java HdlContentEditor.java
 //! Provides editing functionality for HDL content.
 
-use super::HdlContent;
-
 /// HDL Content Editor
 /// 
 /// Provides editing capabilities for HDL content components.

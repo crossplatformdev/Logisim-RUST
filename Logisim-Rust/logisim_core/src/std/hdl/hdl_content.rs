@@ -22,7 +22,6 @@ pub trait HdlContent {
 }
 
 /// HDL content structure for managing HDL components
-#[derive(Clone)]
 pub struct BasicHdlContent {
     name: String,
     content: String,
@@ -172,10 +171,12 @@ impl HdlModel for BasicHdlContent {
     }
 
     fn remove_hdl_model_listener(&mut self, listener_id: usize) {
-        if let Some(&index) = self.listener_ids.get(&listener_id) {
+        // Convert usize to u32 for lookup in our HashMap
+        let listener_key = listener_id as u32;
+        if let Some(&index) = self.listener_ids.get(&listener_key) {
             if index < self.listeners.len() {
                 self.listeners.remove(index);
-                self.listener_ids.remove(&listener_id);
+                self.listener_ids.remove(&listener_key);
                 
                 // Update indices for remaining listeners
                 for (_, stored_index) in self.listener_ids.iter_mut() {
