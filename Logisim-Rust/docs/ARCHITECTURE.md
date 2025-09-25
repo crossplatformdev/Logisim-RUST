@@ -49,6 +49,297 @@ Prepared structure for component implementations:
 - **Component abstraction**: Generic trait for all circuit components
 - **Time-based simulation**: Supports precise timing simulation
 
+## Simulation Kernel Control Flow
+
+### Overview
+
+The Logisim-RUST simulation kernel is built around an event-driven architecture that provides deterministic, time-ordered execution of digital logic simulation. The kernel operates through discrete time steps, processing events that represent signal changes, component updates, and clock ticks.
+
+### Core Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph "Simulation Kernel (`logisim_core`)"
+        Simulation[Simulation Engine]
+        EventQueue[Event Queue<br/>Priority Queue]
+        Netlist[Netlist<br/>Connectivity Graph]
+        Components[Component Registry<br/>HashMap&lt;ComponentId, Component&gt;]
+        
+        Simulation --> EventQueue
+        Simulation --> Netlist
+        Simulation --> Components
+        
+        subgraph "Event Types"
+            SignalChange[SignalChange]
+            ClockTick[ClockTick]
+            ComponentUpdate[ComponentUpdate]
+            Reset[Reset]
+        end
+        
+        EventQueue --> SignalChange
+        EventQueue --> ClockTick
+        EventQueue --> ComponentUpdate
+        EventQueue --> Reset
+    end
+    
+    subgraph "UI Layer (`logisim_ui`)"
+        GUI[egui GUI]
+        Chronogram[Chronogram Panel]
+        ProjectExplorer[Project Explorer]
+        
+        GUI --> Chronogram
+        GUI --> ProjectExplorer
+    end
+    
+    subgraph "Component Library"
+        Gates[Logic Gates]
+        Memory[Memory Elements]
+        IO[Input/Output]
+        Custom[Custom Components]
+        
+        Gates --> Components
+        Memory --> Components
+        IO --> Components
+        Custom --> Components
+    end
+    
+    GUI --> Simulation
+    Chronogram --> Simulation
+```
+
+### Crate/Module Boundaries
+
+#### `logisim_core` - Simulation Kernel
+The core simulation engine with clearly defined module responsibilities:
+
+```rust
+// Core simulation types and orchestration
+mod simulation {
+    pub struct Simulation;          // Main simulation engine
+    pub struct SimulationConfig;    // Runtime configuration
+    pub struct SimulationStats;     // Performance metrics
+    pub enum SimulationError;       // Error handling
+}
+
+// Event processing and scheduling
+mod event {
+    pub struct EventQueue;          // Priority queue for events
+    pub struct SimulatorEvent;      // Individual simulation events
+    pub enum EventType;             // Event type classification
+    pub struct EventId;             // Unique event identification
+}
+
+// Network connectivity and signal routing
+mod netlist {
+    pub struct Netlist;             // Circuit connectivity graph
+    pub struct Node;                // Connection points
+    pub struct Net;                 // Signal nets (wires)
+    pub struct Connection;          // Component-to-node connections
+}
+
+// Component abstraction and management
+mod component {
+    pub trait Component;            // Core component interface
+    pub trait ComponentFactory;     // Component creation
+    pub struct ComponentId;         // Unique component identification
+}
+
+// Signal representation and manipulation
+mod signal {
+    pub struct Signal;              // Digital signal values
+    pub enum Value;                 // Logic values (High/Low/Unknown/Error)
+    pub struct BusWidth;            // Multi-bit signal width
+    pub struct Timestamp;           // Simulation time representation
+}
+```
+
+#### `logisim_ui` - User Interface Layer
+The UI layer provides visual interaction and monitoring:
+
+```rust
+// Main application framework
+mod main_frame {
+    pub struct MainFrame;           // Primary application window
+    pub struct Canvas;              // Circuit editing canvas
+    pub struct ToolManager;         // Tool selection and management
+}
+
+// Real-time simulation monitoring
+mod chronogram {
+    pub struct ChronogramPanel;     // Timing diagram display
+    pub struct SignalTracker;       // Signal value recording
+    pub struct Timeline;            // Time axis navigation
+}
+
+// Project and file management
+mod project {
+    pub struct ProjectExplorer;     // Circuit hierarchy navigation
+    pub struct FileManager;         // File I/O operations
+}
+```
+
+### Event Queue Processing
+
+#### Event Scheduling and Prioritization
+
+The simulation kernel uses a binary heap-based priority queue to ensure events are processed in strict time order:
+
+```mermaid
+sequenceDiagram
+    participant S as Simulation
+    participant EQ as EventQueue
+    participant C as Component
+    participant N as Netlist
+    
+    S->>EQ: schedule_event(time, event_type)
+    EQ->>EQ: insert with time priority
+    
+    loop Event Processing
+        S->>EQ: pop_next_event()
+        EQ-->>S: SimulatorEvent
+        
+        alt SignalChange
+            S->>N: propagate_signal(node_id, signal)
+            N->>C: component.evaluate()
+            C-->>S: UpdateResult with new events
+            S->>EQ: schedule_new_events()
+        else ClockTick
+            S->>S: update_clock_state()
+            S->>C: notify_clock_edge()
+        else ComponentUpdate
+            S->>C: component.update()
+        else Reset
+            S->>S: reset_all_state()
+        end
+    end
+```
+
+#### Event Processing Cycle
+
+1. **Event Retrieval**: Pop the earliest event from the priority queue
+2. **Time Advancement**: Update simulation time to event timestamp
+3. **Event Dispatch**: Route event to appropriate handler based on type
+4. **Component Evaluation**: Execute component logic for signal changes
+5. **Signal Propagation**: Update netlist with new signal values
+6. **Callback Notification**: Trigger external observers (chronogram, UI)
+7. **Event Generation**: Schedule new events from component outputs
+
+### Component Integration and Extensibility Points
+
+#### Component Trait Definition
+
+All simulation components implement the core `Component` trait:
+
+```rust
+pub trait Component: Send + Sync {
+    /// Unique identifier for this component
+    fn id(&self) -> ComponentId;
+    
+    /// Component type name for factory registration
+    fn component_type(&self) -> &'static str;
+    
+    /// Process input signals and generate outputs
+    fn evaluate(&mut self, inputs: &HashMap<String, Signal>) -> UpdateResult;
+    
+    /// Handle clock edge events for sequential components
+    fn on_clock_edge(&mut self, edge: ClockEdge) -> UpdateResult;
+    
+    /// Reset component to initial state
+    fn reset(&mut self);
+    
+    /// Get component's input/output pin definitions
+    fn get_pins(&self) -> Vec<Pin>;
+    
+    /// Handle attribute changes (width, delay, etc.)
+    fn configure(&mut self, attributes: &AttributeSet);
+}
+```
+
+#### Extensibility Architecture
+
+The simulation kernel provides multiple extension points for new components:
+
+```mermaid
+graph LR
+    subgraph "Component Extensibility"
+        Factory[ComponentFactory] --> Registry[Component Registry]
+        Registry --> Core[Core Components]
+        Registry --> Custom[Custom Components]
+        Registry --> HDL[HDL Components]
+        
+        subgraph "Core Components"
+            Gates[Logic Gates]
+            Memory[Memory Elements]
+            IO[I/O Components]
+        end
+        
+        subgraph "Extension Points"
+            Plugin[Plugin Interface]
+            Scripting[Scripting API]
+            HDLParser[HDL Parser]
+        end
+        
+        Custom --> Plugin
+        HDL --> HDLParser
+        Factory --> Plugin
+    end
+```
+
+#### Component Registration System
+
+```rust
+// Component factory registration
+pub struct ComponentRegistry {
+    factories: HashMap<String, Box<dyn ComponentFactory>>,
+}
+
+impl ComponentRegistry {
+    pub fn register<F: ComponentFactory + 'static>(&mut self, factory: F) {
+        self.factories.insert(factory.get_name(), Box::new(factory));
+    }
+    
+    pub fn create_component(&self, component_type: &str) -> Option<Box<dyn Component>> {
+        self.factories.get(component_type)?.create_component().into()
+    }
+}
+```
+
+### Performance Optimization Strategies
+
+#### Memory Management
+- **Component Pooling**: Reuse component instances to reduce allocations
+- **Event Batching**: Process multiple events at the same timestamp together
+- **Signal Interning**: Cache frequently used signal values
+- **Sparse Event Storage**: Only store events that actually occur
+
+#### Parallel Processing Opportunities
+- **Component Evaluation**: Independent components can be evaluated in parallel
+- **Signal Propagation**: Non-interdependent signal paths can be processed concurrently
+- **Event Processing**: Future events can be pre-computed while current events execute
+
+### Debugging and Introspection
+
+The simulation kernel provides comprehensive debugging facilities:
+
+```rust
+pub struct SimulationDebugger {
+    pub event_trace: Vec<SimulatorEvent>,
+    pub signal_history: HashMap<NodeId, Vec<(Timestamp, Signal)>>,
+    pub component_states: HashMap<ComponentId, Box<dyn ComponentState>>,
+    pub performance_metrics: SimulationStats,
+}
+```
+
+#### Debug Output Example
+```
+[T=100] Processing ClockTick event
+[T=100] Clock edge: Rising
+[T=100] Component AND_GATE_1 evaluating inputs: A=High, B=High
+[T=100] Component AND_GATE_1 output Y -> High
+[T=101] Scheduling SignalChange event for node N3
+[T=101] Signal propagation to 3 connected components
+```
+
 ### Key Modules
 - `circ_format.rs`: Circuit file parsing and serialization
 - `simulation.rs`: Main simulation engine
@@ -279,6 +570,79 @@ pub const DEFAULT_TICK_WIDTH: f32 = 10.0;  // Default time scale
 - Multi-threaded simulation
 - GPU acceleration for rendering
 - Memory pool allocation
+
+## Migration Roadmap
+
+### Core Kernel Implementation Status
+
+| Feature Area | Component | Status | Priority | Notes |
+|--------------|-----------|--------|----------|-------|
+| **Event System** | Event Queue | ✅ Complete | Critical | Priority queue with time ordering |
+| | Event Types | ✅ Complete | Critical | SignalChange, ClockTick, ComponentUpdate, Reset |
+| | Event Scheduling | ✅ Complete | Critical | Time-based event insertion and retrieval |
+| **Simulation Engine** | Core Loop | ✅ Complete | Critical | Event processing and dispatch |
+| | Statistics Tracking | ✅ Complete | Medium | Performance metrics collection |
+| | Configuration | ✅ Complete | Medium | Timeout, oscillation detection |
+| | Error Handling | ✅ Complete | High | Comprehensive error types |
+| **Component System** | Base Trait | ✅ Complete | Critical | Core Component interface |
+| | Factory Pattern | ✅ Complete | Critical | Component creation abstraction |
+| | Registry | 🚧 Partial | High | Component type registration |
+| | Plugin Interface | ❌ Planned | Medium | Dynamic component loading |
+
+### Netlist Handling Implementation Status
+
+| Feature Area | Component | Status | Priority | Notes |
+|--------------|-----------|--------|----------|-------|
+| **Graph Structure** | Node Management | ✅ Complete | Critical | Connection point representation |
+| | Net Management | ✅ Complete | Critical | Wire/bus representation |
+| | Connection Tracking | ✅ Complete | Critical | Component-to-node mapping |
+| **Signal Routing** | Signal Propagation | ✅ Complete | Critical | Value propagation through nets |
+| | Multi-bit Buses | ✅ Complete | High | Bus width handling |
+| | Signal Conflicts | 🚧 Partial | High | Conflict resolution rules |
+| **Optimization** | Sparse Representation | ✅ Complete | Medium | Efficient storage for large circuits |
+| | Change Detection | ✅ Complete | Medium | Only propagate actual changes |
+| | Cycle Detection | ❌ Planned | Low | Combinational loop detection |
+
+### Extensibility Features Status
+
+| Feature Area | Component | Status | Priority | Notes |
+|--------------|-----------|--------|----------|-------|
+| **Component Libraries** | Standard Gates | ✅ Complete | Critical | AND, OR, NOT, XOR, etc. |
+| | Memory Elements | 🚧 Partial | High | Flip-flops, latches, RAM, ROM |
+| | I/O Components | 🚧 Partial | High | Input pins, output pins, clocks |
+| | Arithmetic Components | ❌ Planned | Medium | Adders, comparators, counters |
+| **HDL Integration** | VHDL Parser | 🚧 Partial | Low | Basic VHDL entity parsing |
+| | Verilog Support | ❌ Future | Low | Verilog module support |
+| | BLIF Support | 🚧 Partial | Low | Berkeley Logic Interchange Format |
+| **External Interfaces** | Plugin API | ❌ Planned | Medium | Dynamic library loading |
+| | Scripting Support | ❌ Future | Low | Lua or Python scripting |
+| | External Tools | ❌ Future | Low | Synthesis, place & route integration |
+
+### Migration Priorities
+
+**Phase 1 (Current - v1.0)**: Core simulation functionality
+- ✅ Basic event-driven simulation
+- ✅ Standard logic gates
+- ✅ Circuit file loading
+- ✅ UI integration
+
+**Phase 2 (v1.1)**: Enhanced component library  
+- 🚧 Complete memory elements
+- 🚧 Advanced I/O components
+- 🚧 Component registry system
+- ❌ Signal conflict resolution
+
+**Phase 3 (v1.2)**: Extensibility framework
+- ❌ Plugin architecture
+- ❌ HDL component integration
+- ❌ Custom component API
+- ❌ Performance optimizations
+
+**Phase 4 (Future)**: Advanced features
+- ❌ Multi-threaded simulation
+- ❌ External tool integration
+- ❌ Advanced debugging tools
+- ❌ Web-based simulation
 
 ## Migration from Java
 

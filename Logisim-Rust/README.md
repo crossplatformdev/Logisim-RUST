@@ -76,6 +76,38 @@ just release-check # Pre-release validation
 - `logisim_ui/`: User interface components using egui
 - `example_schematics/`: Example circuits for testing
 
+## Contributing
+
+### For Contributors
+
+We welcome contributions to Logisim-RUST! Please see our contribution guidelines:
+
+- [BUILD.md](./BUILD.md#contributing) - Build instructions and development setup
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) - Architecture overview and design principles
+
+#### Kernel Hacking
+
+**Working on the simulation kernel?** The core simulation engine is in `logisim_core/` and uses an event-driven architecture. Key areas for kernel development:
+
+- **Event Processing**: `src/event.rs` - Priority queue-based event scheduling
+- **Simulation Loop**: `src/simulation.rs` - Main simulation orchestration  
+- **Signal Propagation**: `src/netlist.rs` - Circuit connectivity and signal routing
+- **Component Integration**: `src/component.rs` - Component trait and extensibility points
+
+See the [Simulation Kernel Control Flow](./docs/ARCHITECTURE.md#simulation-kernel-control-flow) section for detailed architecture information, event processing diagrams, and extensibility points.
+
+**Debugging Simulation Issues:**
+```bash
+# Enable debug logging
+RUST_LOG=debug cargo run --features gui
+
+# Run specific simulation tests
+cargo test --package logisim_core simulation
+
+# Profile simulation performance
+cargo build --release --features gui
+```
+
 ## Documentation
 
 - [BUILD.md](./BUILD.md) - Detailed build instructions
