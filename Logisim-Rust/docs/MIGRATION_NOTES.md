@@ -1,10 +1,102 @@
 # Migration Notes: Java Logisim-Evolution to Rust
 
-This document provides detailed notes about migrating from the Java Logisim-Evolution implementation to the Rust version, with specific focus on the chronogram feature.
+This document provides detailed notes about migrating from the Java Logisim-Evolution implementation to the Rust version, including the foundational infrastructure and features like the chronogram.
 
 ## Overview
 
 The Rust port maintains API compatibility and behavioral equivalence with the Java implementation while leveraging Rust's memory safety and performance benefits.
+
+## Foundation Infrastructure Migration
+
+### Utility Classes Migration
+
+#### Java to Rust Mapping
+
+| Java Class | Rust Module | Key Changes |
+|------------|-------------|-------------|
+| `StringUtil.java` | `util/string_util.rs` | Trait-based StringGetter, null → Option |
+| `CollectionUtil.java` | `util/collection_util.rs` | Generic collections, type safety |
+| `Cache.java` | `util/cache.rs` | Thread-safe caching, ownership semantics |
+| `FileUtil.java` | `util/file_util.rs` | Cross-platform I/O, Result error handling |
+| `LocaleManager.java` | `util/locale_manager.rs` | Simplified i18n, global state management |
+
+#### Key Migration Patterns
+
+**Null Safety:**
+```java
+// Java - null pointer risks
+String value = getValue();
+if (value != null) {
+    return value.toUpperCase();
+}
+```
+
+```rust
+// Rust - compile-time null safety
+let value = get_value();
+value.map(|s| s.to_uppercase())
+```
+
+**Memory Management:**
+```java
+// Java - garbage collection
+private Map<String, Object> cache = new HashMap<>();
+```
+
+```rust
+// Rust - ownership and borrowing
+use std::collections::HashMap;
+let mut cache: HashMap<String, Box<dyn Any + Send + Sync>> = HashMap::new();
+```
+
+### Core Data Structures Migration
+
+#### Geometric Types
+
+| Java Class | Rust Module | Key Features |
+|------------|-------------|--------------|
+| `Direction.java` | `data/direction.rs` | Enum-based, rotation logic, display formatting |
+| `Location.java` | `data/location.rs` | Immutable coordinates, grid snapping, spatial operations |
+| `Bounds.java` | `data/bounds.rs` | Immutable rectangles, collision detection, transformations |
+| `BitWidth.java` | `data/bit_width.rs` | Enhanced bit width, UI integration, mask generation |
+
+#### Attribute System
+
+**Java Implementation:**
+```java
+public abstract class Attribute<V> {
+    public abstract V parse(String value);
+    public String toDisplayString(V value);
+}
+
+public class AttributeSet {
+    private Map<Attribute<?>, Object> values;
+    public <V> V getValue(Attribute<V> attr);
+}
+```
+
+**Rust Implementation:**
+```rust
+pub trait AttributeValue: Any + Debug + Clone + Send + Sync {
+    fn to_display_string(&self) -> String;
+    fn parse_from_string(s: &str) -> Result<Self, String> where Self: Sized;
+}
+
+pub struct Attribute<T: AttributeValue> {
+    id: AttributeId,
+    display_name: Option<String>,
+}
+
+pub struct AttributeSet {
+    values: HashMap<AttributeId, Box<dyn Any + Send + Sync>>,
+}
+```
+
+**Benefits of Rust Approach:**
+- **Type Safety**: Compile-time verification of attribute types
+- **Memory Safety**: No null pointer exceptions, automatic resource management
+- **Performance**: Zero-cost abstractions, no runtime type checking overhead
+- **Thread Safety**: Safe concurrent access with Send + Sync bounds
 
 ## Chronogram Feature Migration
 
