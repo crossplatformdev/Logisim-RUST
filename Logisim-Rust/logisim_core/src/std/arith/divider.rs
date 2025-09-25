@@ -96,6 +96,7 @@ impl Component for Divider {
                 // Division by zero
                 (Value::Error, Value::Error)
             } else {
+            let mut outputs = HashMap::new();
                 let dividend_val = dividend.to_long_value();
                 let div_result = dividend_val / divisor_val;
                 let rem_result = dividend_val % divisor_val;
@@ -105,10 +106,12 @@ impl Component for Divider {
                 )
             }
         } else {
+            let mut outputs = HashMap::new();
             // Handle error/unknown inputs
             let error_val = if matches!(dividend, Value::Error) || matches!(divisor, Value::Error) {
                 Value::Error
             } else {
+            let mut outputs = HashMap::new();
                 Value::Unknown
             };
             (error_val, error_val)
@@ -134,6 +137,7 @@ impl Component for Divider {
         if changed {
             UpdateResult::with_outputs(outputs, 1)
         } else {
+            let mut outputs = HashMap::new();
             UpdateResult::new()
         }
     }

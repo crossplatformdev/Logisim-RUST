@@ -69,6 +69,7 @@ impl Comparator {
             let result_val = if matches!(value_a, Value::Error) || matches!(value_b, Value::Error) {
                 Value::Error
             } else {
+            let mut outputs = HashMap::new();
                 Value::Unknown
             };
             return (result_val, result_val, result_val);
@@ -88,6 +89,7 @@ impl Comparator {
                 } else if a_signed == b_signed {
                     (Value::Low, Value::High, Value::Low)
                 } else {
+            let mut outputs = HashMap::new();
                     (Value::Low, Value::Low, Value::High)
                 }
             }
@@ -101,6 +103,7 @@ impl Comparator {
                 } else if a_unsigned == b_unsigned {
                     (Value::Low, Value::High, Value::Low)
                 } else {
+            let mut outputs = HashMap::new();
                     (Value::Low, Value::Low, Value::High)
                 }
             }
@@ -115,6 +118,7 @@ impl Comparator {
         if width >= 64 {
             value
         } else {
+            let mut outputs = HashMap::new();
             let mask = (1i64 << width) - 1;
             let masked = value & mask;
             let sign_bit = 1i64 << (width - 1);
@@ -123,6 +127,7 @@ impl Comparator {
                 // Negative number - sign extend
                 masked | (!mask)
             } else {
+            let mut outputs = HashMap::new();
                 // Positive number
                 masked
             }
@@ -208,6 +213,7 @@ impl Component for Comparator {
         if changed {
             UpdateResult::with_outputs(outputs, 1)
         } else {
+            let mut outputs = HashMap::new();
             UpdateResult::new()
         }
     }

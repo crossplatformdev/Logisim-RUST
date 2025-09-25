@@ -77,6 +77,7 @@ impl Shifter {
             if matches!(data, Value::Error) || matches!(distance, Value::Error) {
                 return Value::Error;
             } else {
+            let mut outputs = HashMap::new();
                 return Value::Unknown;
             }
         }
@@ -94,6 +95,7 @@ impl Shifter {
                 if shift_amount >= width {
                     0 // All bits shifted out
                 } else {
+            let mut outputs = HashMap::new();
                     (masked_data << shift_amount) & mask
                 }
             }
@@ -101,6 +103,7 @@ impl Shifter {
                 if shift_amount >= width {
                     0 // All bits shifted out
                 } else {
+            let mut outputs = HashMap::new();
                     masked_data >> shift_amount
                 }
             }
@@ -110,6 +113,7 @@ impl Shifter {
                     let sign_bit = masked_data & (1u64 << (width - 1));
                     if sign_bit != 0 { mask } else { 0 }
                 } else {
+            let mut outputs = HashMap::new();
                     let sign_bit = masked_data & (1u64 << (width - 1));
                     let shifted = masked_data >> shift_amount;
                     
@@ -118,6 +122,7 @@ impl Shifter {
                         let fill_mask = mask << (width - shift_amount);
                         shifted | (fill_mask & mask)
                     } else {
+            let mut outputs = HashMap::new();
                         // Positive number - normal right shift
                         shifted
                     }
@@ -128,6 +133,7 @@ impl Shifter {
                 if effective_shift == 0 {
                     masked_data
                 } else {
+            let mut outputs = HashMap::new();
                     let left_part = (masked_data << effective_shift) & mask;
                     let right_part = masked_data >> (width - effective_shift);
                     (left_part | right_part) & mask
@@ -138,6 +144,7 @@ impl Shifter {
                 if effective_shift == 0 {
                     masked_data
                 } else {
+            let mut outputs = HashMap::new();
                     let right_part = masked_data >> effective_shift;
                     let left_part = (masked_data << (width - effective_shift)) & mask;
                     (left_part | right_part) & mask
@@ -167,7 +174,7 @@ impl Shifter {
             pin.width = width; pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("Shift") {
-            pin.set_width(shift_width);
+            pin.width = shift_width;
         }
         if let Some(pin) = self.pins.get_mut("Output") {
             pin.width = width; pin.signal = Signal::unknown(width);
@@ -217,6 +224,7 @@ impl Component for Shifter {
         if changed {
             UpdateResult::with_outputs(outputs, 1)
         } else {
+            let mut outputs = HashMap::new();
             UpdateResult::new()
         }
     }

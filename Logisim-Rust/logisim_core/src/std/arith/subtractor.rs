@@ -133,14 +133,14 @@ impl Component for Subtractor {
         // Update output pins
         let mut changed = false;
         if let Some(diff_pin) = self.pins.get_mut("Difference") {
-            if diff_pin.get_signal().value() != difference {
+            if *diff_pin.get_signal().value() != difference {
                 diff_pin.set_signal(Signal::new(difference, current_time));
                 changed = true;
             }
         }
         
         if let Some(borrow_pin) = self.pins.get_mut("Borrow_Out") {
-            if borrow_pin.get_signal().value() != borrow_out {
+            if *borrow_pin.get_signal().value() != borrow_out {
                 borrow_pin.set_signal(Signal::new(borrow_out, current_time));
                 changed = true;
             }
@@ -149,8 +149,10 @@ impl Component for Subtractor {
         if changed {
             UpdateResult::with_outputs(outputs, 1)
         } else {
-            UpdateResult::new()
+            let mut outputs = HashMap::new();
+            UpdateResult::with_outputs(outputs, 1)
         }
+    }
     }
 
     fn reset(&mut self) {
