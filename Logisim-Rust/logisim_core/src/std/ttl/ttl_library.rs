@@ -13,7 +13,7 @@
 //! TTL integrated circuit components for Logisim.
 
 use crate::{
-    comp::ComponentFactory,
+    component::ComponentFactory,
     tools::{Library, Tool},
 };
 use super::{
@@ -79,15 +79,19 @@ impl Default for TtlLibrary {
 
 impl Library for TtlLibrary {
     fn get_name(&self) -> String {
-        "TTL".to_string()
-    }
-    
-    fn get_display_name(&self) -> String {
-        "TTL".to_string()
+        Self::ID.to_string()
     }
     
     fn get_tools(&self) -> Vec<Box<dyn Tool>> {
-        self.tools.clone()
+        self.tools.iter().map(|tool| tool.clone_tool()).collect()
+    }
+    
+    fn set_hidden(&mut self) {
+        // TTL library cannot be hidden - it's a core library
+    }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

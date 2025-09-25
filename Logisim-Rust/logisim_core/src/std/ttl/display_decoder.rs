@@ -76,7 +76,7 @@ impl DisplayDecoder {
     /// # Returns
     /// The decimal value (0-15) represented by the BCD inputs
     pub fn get_decimal_value(
-        state: &InstanceState,
+        state: &dyn InstanceState,
         active_low: bool,
         offset: usize,
         port_a: usize,
@@ -126,7 +126,7 @@ impl DisplayDecoder {
     /// * `port_bi` - Port index for blanking input
     /// * `port_rbi` - Port index for ripple blanking input
     pub fn compute_display_decoder_outputs(
-        state: &mut InstanceState,
+        state: &mut dyn InstanceState,
         decimal_value: u8,
         port_qa: usize,
         port_qb: usize,
