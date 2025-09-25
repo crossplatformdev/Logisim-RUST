@@ -7,28 +7,29 @@
  * This is free software released under GNU GPLv3 license
  */
 
-use super::Measures;
+//! Highlighter - Visual highlighting for hex editor
+//!
+//! Rust port of Highlighter.java
 
-/// Color representation as RGB tuple
-pub type Color = (u8, u8, u8);
+use super::measures::Measures;
+use super::hex_model::HexModel;
 
-/// Handle for a highlight entry that can be used to remove it
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct HighlightHandle(usize);
+#[cfg(feature = "gui")]
+use egui::{Color32, Rect, Painter, Stroke, Rounding};
 
-/// Entry representing a highlighted range
+/// Represents a highlighted range in the hex editor
 #[derive(Debug, Clone)]
-struct HighlightEntry {
-    start: u64,
-    end: u64,
-    color: Color,
-    id: usize,
+pub struct HighlightEntry {
+    pub start: u64,
+    pub end: u64,
+    #[cfg(feature = "gui")]
+    pub color: Color32,
+    #[cfg(not(feature = "gui"))]
+    pub color: [u8; 4], // RGBA fallback
+    pub id: usize,
 }
 
-/// Manages highlighting of address ranges in the hex editor
-///
-/// The highlighter allows marking ranges of addresses with different colors
-/// for visual emphasis and can handle overlapping highlights.
+/// Manages visual highlighting of address ranges in the hex editor
 pub struct Highlighter {
     entries: Vec<HighlightEntry>,
     next_id: usize,
@@ -39,162 +40,251 @@ impl Highlighter {
     pub fn new() -> Self {
         Self {
             entries: Vec::new(),
-            next_id: 0,
+            next_id: 1,
         }
     }
-
+    
     /// Add a highlight for the given address range
-    ///
-    /// # Arguments
-    /// * `start` - Starting address (inclusive)
-    /// * `end` - Ending address (inclusive)
-    /// * `color` - RGB color for the highlight
-    ///
-    /// Returns a handle that can be used to remove the highlight later,
-    /// or None if the range is invalid.
-    pub fn add(&mut self, start: u64, end: u64, color: Color) -> Option<HighlightHandle> {
+    #[cfg(feature = "gui")]
+    pub fn add(&mut self, start: u64, end: u64, color: Color32, model: Option<&dyn HexModel>) -> Option<usize> {
+        let model = model?;
+        
         let (start, end) = if start > end {
             (end, start)
         } else {
             (start, end)
         };
-
+        
+        let start = start.max(model.get_first_offset());
+        let end = end.min(model.get_last_offset());
+        
         if start >= end {
             return None;
         }
-
+        
         let id = self.next_id;
         self.next_id += 1;
-
+        
         let entry = HighlightEntry {
             start,
             end,
             color,
             id,
         };
-
+        
         self.entries.push(entry);
-        Some(HighlightHandle(id))
+        Some(id)
     }
-
-    /// Remove all highlights
-    pub fn clear(&mut self) {
-        self.entries.clear();
+    
+    /// Add a highlight for the given address range (non-GUI version)
+    #[cfg(not(feature = "gui"))]
+    pub fn add(&mut self, start: u64, end: u64, color: [u8; 4], model: Option<&dyn HexModel>) -> Option<usize> {
+        let model = model?;
+        
+        let (start, end) = if start > end {
+            (end, start)
+        } else {
+            (start, end)
+        };
+        
+        let start = start.max(model.get_first_offset());
+        let end = end.min(model.get_last_offset());
+        
+        if start >= end {
+            return None;
+        }
+        
+        let id = self.next_id;
+        self.next_id += 1;
+        
+        let entry = HighlightEntry {
+            start,
+            end,
+            color,
+            id,
+        };
+        
+        self.entries.push(entry);
+        Some(id)
     }
-
-    /// Remove a specific highlight by handle
-    ///
-    /// Returns true if the highlight was found and removed.
-    pub fn remove(&mut self, handle: HighlightHandle) -> bool {
-        let handle_id = handle.0;
-        if let Some(pos) = self.entries.iter().position(|e| e.id == handle_id) {
+    
+    /// Remove a highlight by ID
+    pub fn remove(&mut self, id: usize) -> bool {
+        if let Some(pos) = self.entries.iter().position(|e| e.id == id) {
             self.entries.remove(pos);
             true
         } else {
             false
         }
     }
-
-    /// Get all highlights that intersect with the given address range
-    ///
-    /// Returns a vector of (start, end, color) tuples for highlights
-    /// that overlap with the given range.
-    pub fn get_highlights_in_range(&self, start: u64, end: u64) -> Vec<(u64, u64, Color)> {
-        self.entries
-            .iter()
-            .filter(|e| e.start <= end && e.end >= start)
-            .map(|e| (e.start, e.end, e.color))
-            .collect()
+    
+    /// Clear all highlights
+    pub fn clear(&mut self) {
+        self.entries.clear();
     }
-
-    /// Paint highlights for the given address range
-    ///
-    /// This method would be called during rendering to draw the highlights.
-    /// In a real GUI implementation, this would draw colored rectangles.
-    ///
-    /// # Arguments
-    /// * `measures` - Layout measurements for coordinate conversion
-    /// * `start` - Starting address of visible range
-    /// * `end` - Ending address of visible range
-    /// * `first_offset` - First offset in the data model
-    ///
-    /// Returns a list of rectangles to be drawn with their colors.
-    pub fn paint_highlights(
+    
+    /// Get all highlight entries
+    pub fn get_entries(&self) -> &[HighlightEntry] {
+        &self.entries
+    }
+    
+    /// Paint highlights for the visible address range
+    #[cfg(feature = "gui")]
+    pub fn paint(
         &self,
+        painter: &Painter,
         measures: &Measures,
-        start: u64,
-        end: u64,
-        first_offset: u64,
-    ) -> Vec<(i32, i32, i32, i32, Color)> {
-        let mut rectangles = Vec::new();
-        let base_address = measures.get_base_address(first_offset);
-
+        start_addr: u64,
+        end_addr: u64,
+        model: Option<&dyn HexModel>,
+    ) {
+        if self.entries.is_empty() {
+            return;
+        }
+        
+        let line_start = measures.get_values_x();
+        let line_width = measures.get_values_width();
+        let cell_width = measures.get_cell_width();
+        let cell_height = measures.get_cell_height();
+        
         for entry in &self.entries {
-            if entry.start <= end && entry.end >= start {
-                let y0 = measures.to_y(entry.start, base_address);
-                let y1 = measures.to_y(entry.end, base_address);
-                let x0 = measures.to_x(entry.start);
-                let x1 = measures.to_x(entry.end);
-                let cell_width = measures.get_cell_width();
-                let cell_height = measures.get_cell_height();
-
-                if y0 == y1 {
+            if entry.start <= end_addr && entry.end >= start_addr {
+                let y0 = measures.to_y(entry.start, model);
+                let y1 = measures.to_y(entry.end, model);
+                let x0 = measures.to_x(entry.start, model);
+                let x1 = measures.to_x(entry.end, model);
+                
+                if (y0 - y1).abs() < 0.1 {
                     // Single line highlight
-                    rectangles.push((x0, y0, x1 - x0 + cell_width, cell_height, entry.color));
+                    let rect = Rect::from_min_size(
+                        [x0, y0].into(),
+                        [x1 - x0 + cell_width, cell_height].into(),
+                    );
+                    painter.rect_filled(rect, Rounding::ZERO, entry.color);
                 } else {
                     // Multi-line highlight
-                    let line_start_x = measures.get_values_x();
-                    let line_width = measures.get_values_width();
-
+                    
                     // First line
-                    rectangles.push((
-                        x0,
-                        y0,
-                        line_start_x + line_width - x0,
-                        cell_height,
-                        entry.color,
-                    ));
-
+                    let first_rect = Rect::from_min_size(
+                        [x0, y0].into(),
+                        [line_start + line_width - x0, cell_height].into(),
+                    );
+                    painter.rect_filled(first_rect, Rounding::ZERO, entry.color);
+                    
                     // Middle lines (if any)
                     let mid_height = y1 - (y0 + cell_height);
-                    if mid_height > 0 {
-                        rectangles.push((
-                            line_start_x,
-                            y0 + cell_height,
-                            line_width,
-                            mid_height,
-                            entry.color,
-                        ));
+                    if mid_height > 0.1 {
+                        let mid_rect = Rect::from_min_size(
+                            [line_start, y0 + cell_height].into(),
+                            [line_width, mid_height].into(),
+                        );
+                        painter.rect_filled(mid_rect, Rounding::ZERO, entry.color);
                     }
-
+                    
                     // Last line
-                    rectangles.push((
-                        line_start_x,
-                        y1,
-                        x1 + cell_width - line_start_x,
-                        cell_height,
-                        entry.color,
-                    ));
+                    let last_rect = Rect::from_min_size(
+                        [line_start, y1].into(),
+                        [x1 + cell_width - line_start, cell_height].into(),
+                    );
+                    painter.rect_filled(last_rect, Rounding::ZERO, entry.color);
                 }
             }
         }
-
-        rectangles
     }
-
-    /// Get the number of active highlights
-    pub fn len(&self) -> usize {
-        self.entries.len()
+    
+    /// Check if an address is highlighted
+    #[cfg(feature = "gui")]
+    pub fn is_highlighted(&self, address: u64) -> Option<Color32> {
+        for entry in &self.entries {
+            if address >= entry.start && address <= entry.end {
+                return Some(entry.color);
+            }
+        }
+        None
     }
-
-    /// Check if there are no highlights
-    pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
+    
+    /// Get all highlights that contain the given address
+    pub fn get_highlights_at(&self, address: u64) -> Vec<&HighlightEntry> {
+        self.entries
+            .iter()
+            .filter(|entry| address >= entry.start && address <= entry.end)
+            .collect()
     }
-
-    /// Get all highlight entries (for debugging/testing)
-    pub fn entries(&self) -> &[HighlightEntry] {
-        &self.entries
+    
+    /// Get highlight entries that overlap with the given range
+    pub fn get_overlapping_highlights(&self, start: u64, end: u64) -> Vec<&HighlightEntry> {
+        self.entries
+            .iter()
+            .filter(|entry| entry.start <= end && entry.end >= start)
+            .collect()
+    }
+    
+    /// Get the bounding rectangle for a highlight entry
+    #[cfg(feature = "gui")]
+    pub fn get_highlight_bounds(
+        &self,
+        entry: &HighlightEntry,
+        measures: &Measures,
+        model: Option<&dyn HexModel>,
+    ) -> Option<Rect> {
+        let y0 = measures.to_y(entry.start, model);
+        let y1 = measures.to_y(entry.end, model);
+        let x0 = measures.to_x(entry.start, model);
+        let x1 = measures.to_x(entry.end, model);
+        
+        let cell_width = measures.get_cell_width();
+        let cell_height = measures.get_cell_height();
+        
+        if (y0 - y1).abs() < 0.1 {
+            // Single line
+            Some(Rect::from_min_size(
+                [x0, y0].into(),
+                [x1 - x0 + cell_width, cell_height].into(),
+            ))
+        } else {
+            // Multi-line - return bounding rectangle
+            let line_start = measures.get_values_x();
+            let line_width = measures.get_values_width();
+            
+            Some(Rect::from_min_size(
+                [line_start, y0].into(),
+                [line_width, y1 - y0 + cell_height].into(),
+            ))
+        }
+    }
+    
+    /// Update highlight color
+    #[cfg(feature = "gui")]
+    pub fn update_color(&mut self, id: usize, color: Color32) -> bool {
+        if let Some(entry) = self.entries.iter_mut().find(|e| e.id == id) {
+            entry.color = color;
+            true
+        } else {
+            false
+        }
+    }
+    
+    /// Update highlight range
+    pub fn update_range(&mut self, id: usize, start: u64, end: u64, model: Option<&dyn HexModel>) -> bool {
+        if let Some(entry) = self.entries.iter_mut().find(|e| e.id == id) {
+            if let Some(model) = model {
+                let (start, end) = if start > end {
+                    (end, start)
+                } else {
+                    (start, end)
+                };
+                
+                let start = start.max(model.get_first_offset());
+                let end = end.min(model.get_last_offset());
+                
+                if start < end {
+                    entry.start = start;
+                    entry.end = end;
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -207,123 +297,192 @@ impl Default for Highlighter {
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use crate::hex::hex_model::MemoryHexModel;
+    
     #[test]
-    fn test_highlighter_basic_operations() {
+    fn test_highlighter_creation() {
+        let highlighter = Highlighter::new();
+        assert_eq!(highlighter.entries.len(), 0);
+    }
+    
+    #[cfg(feature = "gui")]
+    #[test]
+    fn test_add_highlight() {
         let mut highlighter = Highlighter::new();
-
-        // Test initial state
-        assert_eq!(highlighter.len(), 0);
-        assert!(highlighter.is_empty());
-
-        // Test adding highlights
-        let handle1 = highlighter.add(0, 10, (255, 255, 0));
-        assert!(handle1.is_some());
-        assert_eq!(highlighter.len(), 1);
-
-        let handle2 = highlighter.add(20, 30, (0, 255, 255));
-        assert!(handle2.is_some());
-        assert_eq!(highlighter.len(), 2);
-
-        // Test removing highlights
-        if let Some(h) = handle1 {
-            assert!(highlighter.remove(h));
-            assert_eq!(highlighter.len(), 1);
+        let model = MemoryHexModel::new(256, 8);
+        
+        let id = highlighter.add(10, 20, Color32::RED, Some(&model));
+        assert!(id.is_some());
+        assert_eq!(highlighter.entries.len(), 1);
+        
+        let entry = &highlighter.entries[0];
+        assert_eq!(entry.start, 10);
+        assert_eq!(entry.end, 20);
+        assert_eq!(entry.color, Color32::RED);
+    }
+    
+    #[cfg(not(feature = "gui"))]
+    #[test]
+    fn test_add_highlight() {
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        
+        let id = highlighter.add(10, 20, [255, 0, 0, 255], Some(&model));
+        assert!(id.is_some());
+        assert_eq!(highlighter.entries.len(), 1);
+        
+        let entry = &highlighter.entries[0];
+        assert_eq!(entry.start, 10);
+        assert_eq!(entry.end, 20);
+        assert_eq!(entry.color, [255, 0, 0, 255]);
+    }
+    
+    #[test]
+    fn test_remove_highlight() {
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        
+        #[cfg(feature = "gui")]
+        let id = highlighter.add(10, 20, Color32::RED, Some(&model)).unwrap();
+        #[cfg(not(feature = "gui"))]
+        let id = highlighter.add(10, 20, [255, 0, 0, 255], Some(&model)).unwrap();
+        
+        assert_eq!(highlighter.entries.len(), 1);
+        
+        let removed = highlighter.remove(id);
+        assert!(removed);
+        assert_eq!(highlighter.entries.len(), 0);
+        
+        // Try to remove non-existent highlight
+        let removed_again = highlighter.remove(id);
+        assert!(!removed_again);
+    }
+    
+    #[test]
+    fn test_clear_highlights() {
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        
+        #[cfg(feature = "gui")]
+        {
+            highlighter.add(10, 20, Color32::RED, Some(&model));
+            highlighter.add(30, 40, Color32::BLUE, Some(&model));
         }
-
-        // Test clearing all highlights
+        #[cfg(not(feature = "gui"))]
+        {
+            highlighter.add(10, 20, [255, 0, 0, 255], Some(&model));
+            highlighter.add(30, 40, [0, 0, 255, 255], Some(&model));
+        }
+        
+        assert_eq!(highlighter.entries.len(), 2);
+        
         highlighter.clear();
-        assert_eq!(highlighter.len(), 0);
-        assert!(highlighter.is_empty());
+        assert_eq!(highlighter.entries.len(), 0);
     }
-
+    
+    #[cfg(feature = "gui")]
     #[test]
-    fn test_highlight_range_queries() {
+    fn test_is_highlighted() {
         let mut highlighter = Highlighter::new();
-
-        // Add some highlights
-        highlighter.add(0, 10, (255, 0, 0));
-        highlighter.add(15, 25, (0, 255, 0));
-        highlighter.add(30, 40, (0, 0, 255));
-
-        // Test range queries
-        let highlights = highlighter.get_highlights_in_range(5, 20);
-        assert_eq!(highlights.len(), 2); // Should include first two highlights
-
-        let highlights = highlighter.get_highlights_in_range(35, 45);
-        assert_eq!(highlights.len(), 1); // Should include only the third highlight
-
-        let highlights = highlighter.get_highlights_in_range(50, 60);
-        assert_eq!(highlights.len(), 0); // Should include no highlights
+        let model = MemoryHexModel::new(256, 8);
+        
+        highlighter.add(10, 20, Color32::RED, Some(&model));
+        
+        assert_eq!(highlighter.is_highlighted(5), None);
+        assert_eq!(highlighter.is_highlighted(15), Some(Color32::RED));
+        assert_eq!(highlighter.is_highlighted(25), None);
     }
-
+    
     #[test]
-    fn test_invalid_ranges() {
+    fn test_get_highlights_at() {
         let mut highlighter = Highlighter::new();
-
-        // Test invalid range (start == end)
-        let handle = highlighter.add(10, 10, (255, 255, 255));
-        assert!(handle.is_none());
-
-        // Test reversed range (should be corrected)
-        let handle = highlighter.add(20, 10, (255, 255, 255));
-        assert!(handle.is_some());
-
-        if let Some(h) = handle {
-            let highlights = highlighter.get_highlights_in_range(5, 25);
-            assert_eq!(highlights.len(), 1);
-            assert_eq!(highlights[0].0, 10); // Should be corrected to start=10, end=20
-            assert_eq!(highlights[0].1, 20);
+        let model = MemoryHexModel::new(256, 8);
+        
+        #[cfg(feature = "gui")]
+        {
+            highlighter.add(10, 20, Color32::RED, Some(&model));
+            highlighter.add(15, 25, Color32::BLUE, Some(&model));
         }
-    }
-
-    #[test]
-    fn test_remove_nonexistent_highlight() {
-        let mut highlighter = Highlighter::new();
-
-        // Try to remove a highlight that doesn't exist
-        let fake_handle = HighlightHandle(999);
-        assert!(!highlighter.remove(fake_handle));
-    }
-
-    #[test]
-    fn test_paint_highlights() {
-        let mut highlighter = Highlighter::new();
-        let measures = Measures::new(8, 16);
-
-        // Add a highlight
-        highlighter.add(0, 5, (255, 0, 0));
-
-        // Test painting
-        let rectangles = highlighter.paint_highlights(&measures, 0, 10, 0);
-        assert!(!rectangles.is_empty());
-
-        // Each rectangle should have proper dimensions
-        for (x, y, w, h, color) in rectangles {
-            assert!(x >= 0);
-            assert!(y >= 0);
-            assert!(w > 0);
-            assert!(h > 0);
-            assert_eq!(color, (255, 0, 0));
+        #[cfg(not(feature = "gui"))]
+        {
+            highlighter.add(10, 20, [255, 0, 0, 255], Some(&model));
+            highlighter.add(15, 25, [0, 0, 255, 255], Some(&model));
         }
+        
+        let highlights_at_5 = highlighter.get_highlights_at(5);
+        assert_eq!(highlights_at_5.len(), 0);
+        
+        let highlights_at_12 = highlighter.get_highlights_at(12);
+        assert_eq!(highlights_at_12.len(), 1);
+        #[cfg(feature = "gui")]
+        assert_eq!(highlights_at_12[0].color, Color32::RED);
+        #[cfg(not(feature = "gui"))]
+        assert_eq!(highlights_at_12[0].color, [255, 0, 0, 255]);
+        
+        let highlights_at_17 = highlighter.get_highlights_at(17);
+        assert_eq!(highlights_at_17.len(), 2); // Both highlights overlap here
     }
-
+    
     #[test]
-    fn test_multiline_highlight() {
+    fn test_overlapping_highlights() {
         let mut highlighter = Highlighter::new();
-        let measures = Measures::new(8, 4); // Small column count to force multiline
-
-        // Add a highlight that spans multiple lines
-        highlighter.add(2, 10, (0, 255, 0));
-
-        let rectangles = highlighter.paint_highlights(&measures, 0, 15, 0);
-
-        // Should have multiple rectangles for a multiline highlight
-        assert!(!rectangles.is_empty());
-
-        // All rectangles should have the same color
-        for (_, _, _, _, color) in rectangles {
-            assert_eq!(color, (0, 255, 0));
+        let model = MemoryHexModel::new(256, 8);
+        
+        #[cfg(feature = "gui")]
+        {
+            highlighter.add(10, 20, Color32::RED, Some(&model));
+            highlighter.add(25, 35, Color32::BLUE, Some(&model));
+            highlighter.add(15, 30, Color32::GREEN, Some(&model));
         }
+        #[cfg(not(feature = "gui"))]
+        {
+            highlighter.add(10, 20, [255, 0, 0, 255], Some(&model));
+            highlighter.add(25, 35, [0, 0, 255, 255], Some(&model));
+            highlighter.add(15, 30, [0, 255, 0, 255], Some(&model));
+        }
+        
+        let overlapping = highlighter.get_overlapping_highlights(12, 24);
+        assert_eq!(overlapping.len(), 2); // RED and GREEN overlap with range 12-24
+        
+        let overlapping_all = highlighter.get_overlapping_highlights(0, 100);
+        assert_eq!(overlapping_all.len(), 3); // All highlights overlap with large range
+    }
+    
+    #[cfg(feature = "gui")]
+    #[test]
+    fn test_update_highlight() {
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        
+        let id = highlighter.add(10, 20, Color32::RED, Some(&model)).unwrap();
+        
+        // Update color
+        let updated = highlighter.update_color(id, Color32::GREEN);
+        assert!(updated);
+        assert_eq!(highlighter.entries[0].color, Color32::GREEN);
+        
+        // Update range
+        let updated = highlighter.update_range(id, 5, 15, Some(&model));
+        assert!(updated);
+        assert_eq!(highlighter.entries[0].start, 5);
+        assert_eq!(highlighter.entries[0].end, 15);
+    }
+    
+    #[test]
+    fn test_highlight_bounds_clamping() {
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(100, 8); // Model with addresses 0-99
+        
+        // Try to add highlight beyond model bounds
+        #[cfg(feature = "gui")]
+        let id = highlighter.add(50, 150, Color32::RED, Some(&model));
+        #[cfg(not(feature = "gui"))]
+        let id = highlighter.add(50, 150, [255, 0, 0, 255], Some(&model));
+        
+        assert!(id.is_some());
+        
+        let entry = &highlighter.entries[0];
+        assert_eq!(entry.start, 50);
+        assert_eq!(entry.end, 99); // Clamped to model's last offset
     }
 }

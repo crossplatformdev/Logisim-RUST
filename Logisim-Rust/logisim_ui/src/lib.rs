@@ -31,7 +31,6 @@
 //! the original as closely as possible to maintain user familiarity and ensure
 //! compatibility with existing .circ files.
 
-pub mod draw;
 pub mod gui;
 pub mod hex;
 pub mod main {
@@ -42,7 +41,6 @@ mod main_lib;
 // Re-export main UI types for convenience
 pub use gui::app::LogisimApp;
 pub use gui::frame::MainFrame;
-pub use hex::{Caret, HexEditor, HexModel, Highlighter, Measures, VecHexModel};
 
 #[cfg(feature = "gui")]
 pub use gui::canvas::Canvas;
@@ -53,11 +51,11 @@ pub use gui::toolbox::Toolbox;
 pub use gui::edit_handler::EditHandler;
 pub use gui::selection::Selection;
 
-// Drawing framework exports
-pub use draw::{DrawError, DrawResult, Color32, Stroke, DrawingContext, AttributeAccess};
-pub use draw::model::{CanvasObject, Drawing, Handle, HandleGesture};
-pub use draw::canvas::{Canvas as DrawCanvas, Selection as DrawSelection};
-pub use draw::shapes::DrawAttr;
+// Re-export hex editor components
+pub use hex::{HexModel, HexModelListener, Measures, MemoryHexModel};
+
+#[cfg(feature = "gui")]
+pub use hex::{HexEditor, Caret, Highlighter};
 
 /// UI-specific error types
 #[derive(Debug, thiserror::Error)]

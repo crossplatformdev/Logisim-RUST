@@ -7,469 +7,507 @@
  * This is free software released under GNU GPLv3 license
  */
 
-use super::{HexModel, HighlightHandle, Highlighter, Measures};
-use std::cell::RefCell;
-use std::rc::Rc;
+//! Caret - Cursor management for hex editor
+//!
+//! Rust port of Caret.java
 
-/// Selection and cursor management for hex editor
-///
-/// The caret handles cursor positioning, text selection, and user input
-/// in the hex editor. It maintains both a cursor position (dot) and
-/// selection start (mark) to support text selection operations.
+use super::hex_model::HexModel;
+use super::measures::Measures;
+use super::highlighter::Highlighter;
+
+#[cfg(feature = "gui")]
+use egui::{Color32, Key, Modifiers, Painter, Rect, Stroke, Rounding};
+
+/// Selection colors
+#[cfg(feature = "gui")]
+const SELECT_COLOR: Color32 = Color32::from_rgb(192, 192, 255);
+#[cfg(feature = "gui")]
+const CURSOR_COLOR: Color32 = Color32::BLACK;
+
+/// Represents the cursor and selection state in the hex editor
 pub struct Caret {
-    model: Option<Rc<RefCell<dyn HexModel>>>,
-    measures: Option<Rc<Measures>>,
-    highlighter: Option<Rc<RefCell<Highlighter>>>,
-    mark: Option<u64>,
-    cursor: Option<u64>,
-    selection_highlight: Option<HighlightHandle>,
-    change_listeners: Vec<Box<dyn Fn()>>,
+    /// Current cursor position
+    cursor: i64,
+    /// Selection mark position (-1 if no selection)
+    mark: i64,
+    /// Highlight ID for selection display
+    selection_highlight_id: Option<usize>,
+    /// Whether the caret is visible
+    visible: bool,
+    /// Blink state for cursor
+    blink_state: bool,
+    /// Last blink time
+    last_blink_time: std::time::Instant,
 }
 
 impl Caret {
     /// Create a new caret
-    pub fn new(model: Option<Rc<RefCell<dyn HexModel>>>) -> Self {
+    pub fn new() -> Self {
         Self {
-            model,
-            measures: None,
-            highlighter: None,
-            mark: None,
-            cursor: None,
-            selection_highlight: None,
-            change_listeners: Vec::new(),
+            cursor: -1,
+            mark: -1,
+            selection_highlight_id: None,
+            visible: true,
+            blink_state: true,
+            last_blink_time: std::time::Instant::now(),
         }
     }
-
-    /// Set the measures reference for coordinate calculations
-    pub fn set_measures(&mut self, measures: Rc<Measures>) {
-        self.measures = Some(measures);
-    }
-
-    /// Set the highlighter reference for selection display
-    pub fn set_highlighter(&mut self, highlighter: Rc<RefCell<Highlighter>>) {
-        self.highlighter = Some(highlighter);
-    }
-
-    /// Add a change listener that will be called when the caret position changes
-    pub fn add_change_listener<F>(&mut self, listener: F)
-    where
-        F: Fn() + 'static,
-    {
-        self.change_listeners.push(Box::new(listener));
-    }
-
-    /// Get the current cursor position (dot)
-    pub fn get_dot(&self) -> Option<u64> {
+    
+    /// Get the current cursor position
+    pub fn get_dot(&self) -> i64 {
         self.cursor
     }
-
-    /// Get the selection start position (mark)
-    pub fn get_mark(&self) -> Option<u64> {
+    
+    /// Get the selection mark position
+    pub fn get_mark(&self) -> i64 {
         self.mark
     }
-
-    /// Set the cursor position
-    ///
-    /// # Arguments
-    /// * `value` - New cursor position, or None to clear
-    /// * `keep_mark` - If true, keeps the current mark position for selection
-    pub fn set_dot(&mut self, value: Option<u64>, keep_mark: bool) {
-        let validated_value = if let Some(addr) = value {
-            self.validate_address(addr)
-        } else {
-            None
-        };
-
-        if self.cursor != validated_value {
-            let old_cursor = self.cursor;
-
-            // Clear existing selection highlight
-            if let Some(highlight) = self.selection_highlight {
-                if let Some(highlighter) = &self.highlighter {
-                    highlighter.borrow_mut().remove(highlight);
-                }
-                self.selection_highlight = None;
-            }
-
-            // Update mark if not keeping it
-            if !keep_mark {
-                self.mark = validated_value;
-            }
-
-            // Update cursor
-            self.cursor = validated_value;
-
-            // Create new selection highlight if mark differs from cursor
-            if let (Some(mark), Some(cursor)) = (self.mark, self.cursor) {
-                if mark != cursor {
-                    if let Some(highlighter) = &self.highlighter {
-                        let (start, end) = if mark < cursor {
-                            (mark, cursor)
-                        } else {
-                            (cursor, mark)
-                        };
-
-                        self.selection_highlight =
-                            highlighter.borrow_mut().add(start, end, (192, 192, 255));
-                        // Light blue selection
-                    }
-                }
-            }
-
-            // Notify change listeners
-            for listener in &self.change_listeners {
-                listener();
-            }
+    
+    /// Set cursor position
+    pub fn set_dot(&mut self, value: i64, keep_mark: bool, highlighter: &mut Highlighter, model: Option<&dyn HexModel>) {
+        let old_cursor = self.cursor;
+        self.cursor = value;
+        
+        if !keep_mark {
+            self.mark = value;
+        }
+        
+        self.update_selection_highlight(highlighter, model);
+        
+        // Reset blink state when cursor moves
+        if old_cursor != value {
+            self.blink_state = true;
+            self.last_blink_time = std::time::Instant::now();
         }
     }
-
-    /// Move cursor by a relative offset
-    ///
-    /// # Arguments
-    /// * `offset` - Number of positions to move (positive = forward, negative = backward)
-    /// * `keep_mark` - If true, extends selection rather than moving cursor
-    pub fn move_cursor(&mut self, offset: i64, keep_mark: bool) {
-        if let Some(current) = self.cursor {
-            let new_pos = if offset >= 0 {
-                current.saturating_add(offset as u64)
-            } else {
-                current.saturating_sub((-offset) as u64)
-            };
-
-            self.set_dot(Some(new_pos), keep_mark);
-        }
+    
+    /// Set selection range
+    pub fn set_selection(&mut self, start: i64, end: i64, highlighter: &mut Highlighter, model: Option<&dyn HexModel>) {
+        self.cursor = end;
+        self.mark = start;
+        self.update_selection_highlight(highlighter, model);
     }
-
-    /// Move cursor up by one row
-    pub fn move_up(&mut self, keep_mark: bool) {
-        if let Some(measures) = &self.measures {
-            let cols = measures.get_column_count() as i64;
-            self.move_cursor(-cols, keep_mark);
-        }
+    
+    /// Clear selection
+    pub fn clear_selection(&mut self, highlighter: &mut Highlighter) {
+        self.mark = self.cursor;
+        self.clear_selection_highlight(highlighter);
     }
-
-    /// Move cursor down by one row
-    pub fn move_down(&mut self, keep_mark: bool) {
-        if let Some(measures) = &self.measures {
-            let cols = measures.get_column_count() as i64;
-            self.move_cursor(cols, keep_mark);
-        }
-    }
-
-    /// Move cursor left by one position
-    pub fn move_left(&mut self, keep_mark: bool) {
-        self.move_cursor(-1, keep_mark);
-    }
-
-    /// Move cursor right by one position
-    pub fn move_right(&mut self, keep_mark: bool) {
-        self.move_cursor(1, keep_mark);
-    }
-
-    /// Move to beginning of current line
-    pub fn move_to_line_start(&mut self, keep_mark: bool) {
-        if let (Some(cursor), Some(measures)) = (self.cursor, &self.measures) {
-            let cols = measures.get_column_count() as u64;
-            let line_start = cursor - (cursor % cols);
-            self.set_dot(Some(line_start), keep_mark);
-        }
-    }
-
-    /// Move to end of current line
-    pub fn move_to_line_end(&mut self, keep_mark: bool) {
-        if let (Some(cursor), Some(measures)) = (self.cursor, &self.measures) {
-            let cols = measures.get_column_count() as u64;
-            let line_end = ((cursor / cols) + 1) * cols - 1;
-
-            // Clamp to model bounds
-            let validated_end = self.validate_address(line_end).unwrap_or(line_end);
-            self.set_dot(Some(validated_end), keep_mark);
-        }
-    }
-
-    /// Move to beginning of data
-    pub fn move_to_start(&mut self, keep_mark: bool) {
-        if let Some(model) = &self.model {
-            let first_offset = model.borrow().get_first_offset();
-            self.set_dot(Some(first_offset), keep_mark);
-        }
-    }
-
-    /// Move to end of data
-    pub fn move_to_end(&mut self, keep_mark: bool) {
-        if let Some(model) = &self.model {
-            let last_offset = model.borrow().get_last_offset();
-            self.set_dot(Some(last_offset), keep_mark);
-        }
-    }
-
-    /// Move by one page up
-    pub fn page_up(&mut self, keep_mark: bool, visible_rows: u32) {
-        if let Some(measures) = &self.measures {
-            let cols = measures.get_column_count() as i64;
-            let page_size = std::cmp::max(1, visible_rows.saturating_sub(1)) as i64;
-            self.move_cursor(-cols * page_size, keep_mark);
-        }
-    }
-
-    /// Move by one page down
-    pub fn page_down(&mut self, keep_mark: bool, visible_rows: u32) {
-        if let Some(measures) = &self.measures {
-            let cols = measures.get_column_count() as i64;
-            let page_size = std::cmp::max(1, visible_rows.saturating_sub(1)) as i64;
-            self.move_cursor(cols * page_size, keep_mark);
-        }
-    }
-
-    /// Set cursor position from screen coordinates
-    pub fn set_cursor_from_coordinates(&mut self, x: i32, y: i32, keep_mark: bool) {
-        let addr = if let (Some(model), Some(measures)) = (&self.model, &self.measures) {
-            let model_ref = model.borrow();
-            let first_offset = model_ref.get_first_offset();
-            let last_offset = model_ref.get_last_offset();
-            drop(model_ref); // Release the borrow early
-
-            measures.to_address(x, y, first_offset, last_offset)
-        } else {
-            None
-        };
-
-        if let Some(addr) = addr {
-            self.set_dot(Some(addr), keep_mark);
-        }
-    }
-
-    /// Check if there is an active selection
+    
+    /// Check if there is a selection
     pub fn has_selection(&self) -> bool {
-        if let (Some(mark), Some(cursor)) = (self.mark, self.cursor) {
-            mark != cursor
-        } else {
-            false
-        }
+        self.cursor >= 0 && self.mark >= 0 && self.cursor != self.mark
     }
-
-    /// Get the current selection range
-    ///
-    /// Returns (start, end) where start <= end, or None if no selection
-    pub fn get_selection(&self) -> Option<(u64, u64)> {
-        if let (Some(mark), Some(cursor)) = (self.mark, self.cursor) {
-            if mark != cursor {
-                Some(if mark < cursor {
-                    (mark, cursor)
-                } else {
-                    (cursor, mark)
-                })
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
-    /// Clear the selection, keeping only the cursor
-    pub fn clear_selection(&mut self) {
+    
+    /// Get selection range (start, end) where start <= end
+    pub fn get_selection_range(&self) -> Option<(u64, u64)> {
         if self.has_selection() {
-            self.set_dot(self.cursor, false);
-        }
-    }
-
-    /// Select all data
-    pub fn select_all(&mut self) {
-        let (first_offset, last_offset) = if let Some(model) = &self.model {
-            let model_ref = model.borrow();
-            let first = model_ref.get_first_offset();
-            let last = model_ref.get_last_offset();
-            drop(model_ref); // Release the borrow early
-            (first, last)
-        } else {
-            return;
-        };
-
-        self.set_dot(Some(first_offset), false);
-        self.set_dot(Some(last_offset), true);
-    }
-
-    /// Validate that an address is within model bounds
-    fn validate_address(&self, address: u64) -> Option<u64> {
-        if let Some(model) = &self.model {
-            let model_ref = model.borrow();
-            let first_offset = model_ref.get_first_offset();
-            let last_offset = model_ref.get_last_offset();
-
-            if address >= first_offset && address <= last_offset {
-                Some(address)
-            } else if address < first_offset {
-                Some(first_offset)
-            } else {
-                Some(last_offset)
-            }
+            let start = self.cursor.min(self.mark) as u64;
+            let end = self.cursor.max(self.mark) as u64;
+            Some((start, end))
         } else {
             None
         }
     }
-
-    /// Paint the cursor (for rendering)
-    ///
-    /// Returns the cursor rectangle if it should be drawn, or None if not visible
-    pub fn get_cursor_rect(
-        &self,
-        visible_start: u64,
-        visible_end: u64,
-    ) -> Option<(i32, i32, i32, i32)> {
-        if let (Some(cursor), Some(measures)) = (self.cursor, &self.measures) {
-            if cursor >= visible_start && cursor < visible_end {
-                if let Some(model) = &self.model {
-                    let model_ref = model.borrow();
-                    let first_offset = model_ref.get_first_offset();
-                    let base_address = measures.get_base_address(first_offset);
-
-                    let x = measures.to_x(cursor);
-                    let y = measures.to_y(cursor, base_address);
-                    let w = measures.get_cell_width();
-                    let h = measures.get_cell_height();
-
-                    return Some((x, y, w, h));
+    
+    /// Handle key input
+    #[cfg(feature = "gui")]
+    pub fn handle_key_input(
+        &mut self,
+        key: Key,
+        modifiers: Modifiers,
+        measures: &Measures,
+        highlighter: &mut Highlighter,
+        model: Option<&dyn HexModel>,
+    ) -> bool {
+        let model = match model {
+            Some(m) => m,
+            None => return false,
+        };
+        
+        let shift_held = modifiers.shift;
+        let ctrl_held = modifiers.ctrl;
+        
+        match key {
+            Key::ArrowLeft => {
+                self.move_cursor(-1, shift_held, highlighter, Some(model));
+                true
+            }
+            Key::ArrowRight => {
+                self.move_cursor(1, shift_held, highlighter, Some(model));
+                true
+            }
+            Key::ArrowUp => {
+                let cols = measures.get_column_count() as i64;
+                self.move_cursor(-cols, shift_held, highlighter, Some(model));
+                true
+            }
+            Key::ArrowDown => {
+                let cols = measures.get_column_count() as i64;
+                self.move_cursor(cols, shift_held, highlighter, Some(model));
+                true
+            }
+            Key::Home => {
+                if ctrl_held {
+                    // Go to beginning of document
+                    let new_pos = model.get_first_offset() as i64;
+                    self.set_dot(new_pos, shift_held, highlighter, Some(model));
+                } else {
+                    // Go to beginning of line
+                    let cols = measures.get_column_count() as i64;
+                    let current_row = self.cursor / cols;
+                    let new_pos = current_row * cols + model.get_first_offset() as i64;
+                    self.set_dot(new_pos, shift_held, highlighter, Some(model));
                 }
+                true
+            }
+            Key::End => {
+                if ctrl_held {
+                    // Go to end of document
+                    let new_pos = model.get_last_offset() as i64;
+                    self.set_dot(new_pos, shift_held, highlighter, Some(model));
+                } else {
+                    // Go to end of line
+                    let cols = measures.get_column_count() as i64;
+                    let current_row = self.cursor / cols;
+                    let line_end = (current_row + 1) * cols + model.get_first_offset() as i64 - 1;
+                    let new_pos = line_end.min(model.get_last_offset() as i64);
+                    self.set_dot(new_pos, shift_held, highlighter, Some(model));
+                }
+                true
+            }
+            Key::PageUp => {
+                // Move up by visible page (approximate)
+                let page_rows = 16; // Could be made configurable
+                let cols = measures.get_column_count() as i64;
+                self.move_cursor(-page_rows * cols, shift_held, highlighter, Some(model));
+                true
+            }
+            Key::PageDown => {
+                // Move down by visible page (approximate)
+                let page_rows = 16; // Could be made configurable
+                let cols = measures.get_column_count() as i64;
+                self.move_cursor(page_rows * cols, shift_held, highlighter, Some(model));
+                true
+            }
+            _ => false,
+        }
+    }
+    
+    /// Handle mouse click
+    #[cfg(feature = "gui")]
+    pub fn handle_mouse_click(
+        &mut self,
+        pos: egui::Pos2,
+        extend_selection: bool,
+        measures: &Measures,
+        highlighter: &mut Highlighter,
+        model: Option<&dyn HexModel>,
+    ) {
+        if let Some(addr) = measures.to_address(pos.x, pos.y, model) {
+            self.set_dot(addr as i64, extend_selection, highlighter, model);
+        }
+    }
+    
+    /// Handle mouse drag
+    #[cfg(feature = "gui")]
+    pub fn handle_mouse_drag(
+        &mut self,
+        pos: egui::Pos2,
+        measures: &Measures,
+        highlighter: &mut Highlighter,
+        model: Option<&dyn HexModel>,
+    ) {
+        if let Some(addr) = measures.to_address(pos.x, pos.y, model) {
+            self.set_dot(addr as i64, true, highlighter, model); // Always extend selection when dragging
+        }
+    }
+    
+    /// Paint the cursor
+    #[cfg(feature = "gui")]
+    pub fn paint_cursor(
+        &mut self,
+        painter: &Painter,
+        measures: &Measures,
+        model: Option<&dyn HexModel>,
+    ) {
+        if !self.visible || self.cursor < 0 {
+            return;
+        }
+        
+        // Update blink state
+        let now = std::time::Instant::now();
+        if now.duration_since(self.last_blink_time).as_millis() > 500 {
+            self.blink_state = !self.blink_state;
+            self.last_blink_time = now;
+        }
+        
+        if !self.blink_state {
+            return;
+        }
+        
+        let x = measures.to_x(self.cursor as u64, model);
+        let y = measures.to_y(self.cursor as u64, model);
+        let cell_height = measures.get_cell_height();
+        
+        // Draw cursor line
+        let cursor_rect = Rect::from_min_size(
+            [x - 1.0, y].into(),
+            [2.0, cell_height].into(),
+        );
+        
+        painter.rect_filled(cursor_rect, Rounding::ZERO, CURSOR_COLOR);
+    }
+    
+    /// Select all
+    pub fn select_all(&mut self, highlighter: &mut Highlighter, model: Option<&dyn HexModel>) {
+        if let Some(model) = model {
+            let first = model.get_first_offset() as i64;
+            let last = model.get_last_offset() as i64;
+            self.set_selection(first, last, highlighter, Some(model));
+        }
+    }
+    
+    /// Move cursor by delta
+    fn move_cursor(
+        &mut self,
+        delta: i64,
+        extend_selection: bool,
+        highlighter: &mut Highlighter,
+        model: Option<&dyn HexModel>,
+    ) {
+        let model = match model {
+            Some(m) => m,
+            None => return,
+        };
+        
+        let new_pos = (self.cursor + delta)
+            .max(model.get_first_offset() as i64)
+            .min(model.get_last_offset() as i64);
+        
+        self.set_dot(new_pos, extend_selection, highlighter, Some(model));
+    }
+    
+    /// Update selection highlight
+    fn update_selection_highlight(&mut self, highlighter: &mut Highlighter, model: Option<&dyn HexModel>) {
+        // Clear existing selection highlight
+        self.clear_selection_highlight(highlighter);
+        
+        // Add new selection highlight if there is a selection
+        if self.has_selection() {
+            let (start, end) = self.get_selection_range().unwrap();
+            #[cfg(feature = "gui")]
+            {
+                self.selection_highlight_id = highlighter.add(start, end, SELECT_COLOR, model);
+            }
+            #[cfg(not(feature = "gui"))]
+            {
+                self.selection_highlight_id = highlighter.add(start, end, [192, 192, 255, 255], model);
             }
         }
-        None
+    }
+    
+    /// Clear selection highlight
+    fn clear_selection_highlight(&mut self, highlighter: &mut Highlighter) {
+        if let Some(id) = self.selection_highlight_id.take() {
+            highlighter.remove(id);
+        }
+    }
+    
+    /// Set visibility
+    pub fn set_visible(&mut self, visible: bool) {
+        self.visible = visible;
+    }
+    
+    /// Check if visible
+    pub fn is_visible(&self) -> bool {
+        self.visible
+    }
+    
+    /// Get current address bounds for scrolling
+    #[cfg(feature = "gui")]
+    pub fn get_cursor_bounds(&self, measures: &Measures, model: Option<&dyn HexModel>) -> Option<Rect> {
+        if self.cursor < 0 {
+            return None;
+        }
+        
+        let x = measures.to_x(self.cursor as u64, model);
+        let y = measures.to_y(self.cursor as u64, model);
+        let cell_width = measures.get_cell_width();
+        let cell_height = measures.get_cell_height();
+        
+        Some(Rect::from_min_size(
+            [x, y].into(),
+            [cell_width, cell_height].into(),
+        ))
+    }
+}
+
+impl Default for Caret {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hex::{HexModel, VecHexModel};
-
+    use crate::hex::hex_model::MemoryHexModel;
+    
     #[test]
-    fn test_caret_basic_operations() {
-        let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
-        let mut caret = Caret::new(Some(model.clone()));
-
-        // Test initial state
-        assert_eq!(caret.get_dot(), None);
-        assert_eq!(caret.get_mark(), None);
+    fn test_caret_creation() {
+        let caret = Caret::new();
+        assert_eq!(caret.get_dot(), -1);
+        assert_eq!(caret.get_mark(), -1);
         assert!(!caret.has_selection());
-
-        // Test set dot
-        caret.set_dot(Some(10), false);
-        assert_eq!(caret.get_dot(), Some(10));
-        assert_eq!(caret.get_mark(), Some(10));
-        assert!(!caret.has_selection());
-
-        // Test set dot with keeping mark
-        caret.set_dot(Some(15), true);
-        assert_eq!(caret.get_dot(), Some(15));
-        assert_eq!(caret.get_mark(), Some(10));
-        assert!(caret.has_selection());
     }
-
+    
     #[test]
-    fn test_caret_movement() {
-        let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
-        let mut caret = Caret::new(Some(model.clone()));
-        let measures = Rc::new(Measures::new(8, 16));
-        caret.set_measures(measures);
-
+    fn test_set_dot() {
+        let mut caret = Caret::new();
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        
+        caret.set_dot(10, false, &mut highlighter, Some(&model));
+        assert_eq!(caret.get_dot(), 10);
+        assert_eq!(caret.get_mark(), 10);
+        assert!(!caret.has_selection());
+    }
+    
+    #[test]
+    fn test_selection() {
+        let mut caret = Caret::new();
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        
+        caret.set_selection(10, 20, &mut highlighter, Some(&model));
+        assert_eq!(caret.get_dot(), 20);
+        assert_eq!(caret.get_mark(), 10);
+        assert!(caret.has_selection());
+        
+        let (start, end) = caret.get_selection_range().unwrap();
+        assert_eq!(start, 10);
+        assert_eq!(end, 20);
+    }
+    
+    #[test]
+    fn test_clear_selection() {
+        let mut caret = Caret::new();
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        
+        caret.set_selection(10, 20, &mut highlighter, Some(&model));
+        assert!(caret.has_selection());
+        
+        caret.clear_selection(&mut highlighter);
+        assert!(!caret.has_selection());
+        assert_eq!(caret.get_dot(), caret.get_mark());
+    }
+    
+    #[test]
+    fn test_select_all() {
+        let mut caret = Caret::new();
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        
+        caret.select_all(&mut highlighter, Some(&model));
+        assert!(caret.has_selection());
+        
+        let (start, end) = caret.get_selection_range().unwrap();
+        assert_eq!(start, model.get_first_offset());
+        assert_eq!(end, model.get_last_offset());
+    }
+    
+    #[cfg(feature = "gui")]
+    #[test]
+    fn test_key_navigation() {
+        let mut caret = Caret::new();
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        let measures = Measures::new();
+        
         // Set initial position
-        caret.set_dot(Some(20), false);
-
-        // Test basic movement
-        caret.move_left(false);
-        assert_eq!(caret.get_dot(), Some(19));
-
-        caret.move_right(false);
-        assert_eq!(caret.get_dot(), Some(20));
-
-        // Test row movement
-        caret.move_up(false);
-        assert_eq!(caret.get_dot(), Some(4)); // 20 - 16 = 4
-
-        caret.move_down(false);
-        assert_eq!(caret.get_dot(), Some(20)); // 4 + 16 = 20
+        caret.set_dot(10, false, &mut highlighter, Some(&model));
+        
+        // Test right arrow
+        let handled = caret.handle_key_input(
+            Key::ArrowRight,
+            Modifiers::NONE,
+            &measures,
+            &mut highlighter,
+            Some(&model),
+        );
+        assert!(handled);
+        assert_eq!(caret.get_dot(), 11);
+        
+        // Test left arrow
+        let handled = caret.handle_key_input(
+            Key::ArrowLeft,
+            Modifiers::NONE,
+            &measures,
+            &mut highlighter,
+            Some(&model),
+        );
+        assert!(handled);
+        assert_eq!(caret.get_dot(), 10);
     }
-
+    
+    #[cfg(feature = "gui")]
     #[test]
-    fn test_selection_operations() {
-        let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
-        let mut caret = Caret::new(Some(model.clone()));
-
-        // Test selection creation
-        caret.set_dot(Some(10), false);
-        caret.set_dot(Some(20), true);
-
+    fn test_key_selection() {
+        let mut caret = Caret::new();
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        let measures = Measures::new();
+        
+        // Set initial position
+        caret.set_dot(10, false, &mut highlighter, Some(&model));
+        
+        // Test shift+right arrow (extend selection)
+        let handled = caret.handle_key_input(
+            Key::ArrowRight,
+            Modifiers::SHIFT,
+            &measures,
+            &mut highlighter,
+            Some(&model),
+        );
+        assert!(handled);
+        assert_eq!(caret.get_dot(), 11);
+        assert_eq!(caret.get_mark(), 10);
         assert!(caret.has_selection());
-        if let Some((start, end)) = caret.get_selection() {
-            assert_eq!(start, 10);
-            assert_eq!(end, 20);
-        }
-
-        // Test selection clearing
-        caret.clear_selection();
-        assert!(!caret.has_selection());
-
-        // Test select all
-        caret.select_all();
-        assert!(caret.has_selection());
-        if let Some((start, end)) = caret.get_selection() {
-            assert_eq!(start, 0);
-            assert_eq!(end, 63);
-        }
     }
-
+    
+    #[cfg(feature = "gui")]
     #[test]
-    fn test_bounds_validation() {
-        let model = Rc::new(RefCell::new(VecHexModel::new(16, 8)));
-        let mut caret = Caret::new(Some(model.clone()));
-
-        // Test setting cursor beyond bounds
-        caret.set_dot(Some(100), false);
-        assert_eq!(caret.get_dot(), Some(15)); // Should clamp to last valid address
-
-        // Test setting cursor before bounds
-        caret.set_dot(Some(0), false);
-        caret.move_cursor(-10, false);
-        assert_eq!(caret.get_dot(), Some(0)); // Should clamp to first valid address
-    }
-
-    #[test]
-    fn test_line_movement() {
-        let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
-        let mut caret = Caret::new(Some(model.clone()));
-        let measures = Rc::new(Measures::new(8, 16));
-        caret.set_measures(measures);
-
-        // Set position in middle of a line
-        caret.set_dot(Some(22), false); // 22 % 16 = 6 (column 6)
-
-        // Test move to line start
-        caret.move_to_line_start(false);
-        assert_eq!(caret.get_dot(), Some(16)); // Start of second line
-
-        // Test move to line end
-        caret.move_to_line_end(false);
-        assert_eq!(caret.get_dot(), Some(31)); // End of second line
-    }
-
-    #[test]
-    fn test_coordinate_conversion() {
-        let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
-        let mut caret = Caret::new(Some(model.clone()));
-        let measures = Rc::new(Measures::new(8, 16));
-        caret.set_measures(measures.clone());
-
-        // Set cursor and test coordinate conversion
-        caret.set_dot(Some(10), false);
-
-        let rect = caret.get_cursor_rect(0, 64);
-        assert!(rect.is_some());
-
-        if let Some((x, y, w, h)) = rect {
-            assert!(x >= 0);
-            assert!(y >= 0);
-            assert!(w > 0);
-            assert!(h > 0);
-        }
+    fn test_home_end_keys() {
+        let mut caret = Caret::new();
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        let measures = Measures::new();
+        
+        // Set position in middle
+        caret.set_dot(100, false, &mut highlighter, Some(&model));
+        
+        // Test Ctrl+Home (go to start)
+        let handled = caret.handle_key_input(
+            Key::Home,
+            Modifiers::CTRL,
+            &measures,
+            &mut highlighter,
+            Some(&model),
+        );
+        assert!(handled);
+        assert_eq!(caret.get_dot(), model.get_first_offset() as i64);
+        
+        // Test Ctrl+End (go to end)
+        let handled = caret.handle_key_input(
+            Key::End,
+            Modifiers::CTRL,
+            &measures,
+            &mut highlighter,
+            Some(&model),
+        );
+        assert!(handled);
+        assert_eq!(caret.get_dot(), model.get_last_offset() as i64);
     }
 }
