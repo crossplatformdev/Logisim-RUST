@@ -13,7 +13,6 @@
 
 use super::hex_model::HexModel;
 use super::highlighter::Highlighter;
-use super::measures::Measures;
 
 #[cfg(feature = "gui")]
 use egui::{Color32, Key, Modifiers, Painter, Rect, Rounding, Stroke};

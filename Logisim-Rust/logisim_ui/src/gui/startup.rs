@@ -4,7 +4,7 @@
 //! It handles command line argument parsing and application initialization.
 
 use crate::UiResult;
-use logisim_core::{build_info::BuildInfo, prefs::AppPreferences};
+use logisim_core::build_info::BuildInfo;
 use std::path::PathBuf;
 
 /// Application startup configuration

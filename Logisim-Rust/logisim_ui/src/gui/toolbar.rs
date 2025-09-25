@@ -1,5 +1,4 @@
 use crate::gui::i18n::tr;
-use logisim_core::ComponentId;
 /// Complete toolbar system with component palette and tool selection
 /// Provides comprehensive tool management and component organization
 use std::collections::HashMap;
