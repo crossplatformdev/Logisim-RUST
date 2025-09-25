@@ -46,8 +46,8 @@ pub enum FormatError {
     #[error("Feature not implemented: {0}")]
     NotImplemented(String),
 
-    #[error("Core error: {0}")]
-    CoreError(#[from] logisim_core::simulation::SimulationError),
+    // #[error("Core error: {0}")]
+    // CoreError(#[from] logisim_core::simulation::SimulationError),
 }
 
 pub type FormatResult<T> = std::result::Result<T, FormatError>;
