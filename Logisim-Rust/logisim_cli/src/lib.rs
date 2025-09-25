@@ -42,8 +42,8 @@ pub enum CliError {
     #[error("Format error: {0}")]
     FormatError(#[from] logisim_formats::FormatError),
 
-    #[error("Core error: {0}")]
-    CoreError(#[from] logisim_core::simulation::SimulationError),
+    // #[error("Core error: {0}")]
+    // CoreError(#[from] logisim_core::simulation::SimulationError),
 
     #[error("Feature not implemented: {0}")]
     NotImplemented(String),
