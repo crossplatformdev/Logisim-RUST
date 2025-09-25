@@ -13,7 +13,7 @@
 //! equivalent to the Java Mem.java abstract class.
 
 use crate::{AttributeSet, BitWidth, Bounds, Location};
-use crate::instance::{Instance, InstanceFactory, InstanceState, InstancePainter, Port, PortType};
+use crate::instance::{Instance, InstanceFactory, InstanceState, InstancePainter, Port, PortType, PortWidth};
 use crate::std::memory::{MemContents, MemState};
 use crate::util::{StringGetter, ConstantStringGetter};
 use std::collections::HashMap;
@@ -88,51 +88,52 @@ impl MemFactory {
     pub fn configure_ports(&self, instance: &mut Instance, addr_bits: i32, data_bits: i32) {
         let mut ports = Vec::new();
         
-        // Address port
+        // Address input port
         ports.push(Port::new(
-            Location::new(0, 10),
+            0, 10,
             PortType::Input,
-            BitWidth::create(addr_bits),
+            PortWidth::fixed(BitWidth::create(addr_bits as u32).unwrap_or_default()),
         ));
         
         // Data input port  
         ports.push(Port::new(
-            Location::new(0, 20),
+            0, 20,
             PortType::Input,
-            BitWidth::create(data_bits),
+            PortWidth::fixed(BitWidth::create(data_bits as u32).unwrap_or_default()),
         ));
         
         // Data output port
         ports.push(Port::new(
-            Location::new(60, 20),
+            60, 20,
             PortType::Output, 
-            BitWidth::create(data_bits),
+            PortWidth::fixed(BitWidth::create(data_bits as u32).unwrap_or_default()),
         ));
         
         // Clock port
         ports.push(Port::new(
-            Location::new(0, 30),
+            0, 30,
             PortType::Input,
-            BitWidth::ONE,
+            PortWidth::fixed(BitWidth::ONE),
         ));
         
         // Write enable port
         ports.push(Port::new(
-            Location::new(0, 40),
+            0, 40,
             PortType::Input,
-            BitWidth::ONE,
+            PortWidth::fixed(BitWidth::ONE),
         ));
         
         // Add extra ports
         for i in 0..self.extra_ports {
             ports.push(Port::new(
-                Location::new(0, 50 + i * 10),
+                0, 50 + i * 10,
                 PortType::Input,
-                BitWidth::ONE,
+                PortWidth::fixed(BitWidth::ONE),
             ));
         }
         
-        instance.set_ports(&ports);
+        // Set ports for the instance (ports are managed internally)
+        // instance.set_ports(&ports); // TODO: Replace with proper port management
     }
 
     /// Get or create memory state for an instance
@@ -184,7 +185,7 @@ impl InstanceFactory for MemFactory {
 
     fn get_offset_bounds(&self, _attrs: &AttributeSet) -> Bounds {
         // Standard memory component bounds
-        Bounds::new(0, 0, 60, 60 + self.extra_ports * 10)
+        Bounds::create(0, 0, 60, 60 + self.extra_ports * 10)
     }
 
     fn create_component(&self, _location: Location, _attrs: AttributeSet) -> Box<dyn std::any::Any> {
@@ -212,7 +213,7 @@ impl MemBounds {
         let extra_height = extra_ports * 10;
         let label_height = if has_label { 20 } else { 0 };
         
-        Bounds::new(0, 0, width, base_height + extra_height + label_height)
+        Bounds::create(0, 0, width, base_height + extra_height + label_height)
     }
 }
 

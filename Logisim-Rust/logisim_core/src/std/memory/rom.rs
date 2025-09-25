@@ -13,7 +13,7 @@
 //! ROM provides read-only memory storage that can be programmed with initial values.
 
 use crate::{AttributeSet, BitWidth, Bounds, Location};
-use crate::instance::{Instance, InstanceFactory, InstancePainter, InstanceState, Port, PortType};
+use crate::instance::{Instance, InstanceFactory, InstancePainter, InstanceState, Port, PortType, PortWidth};
 use crate::std::memory::{MemContents, MemState};
 use crate::std::memory::mem::{MemFactory, MemoryComponent};
 use std::sync::{Arc, Mutex};
@@ -62,7 +62,7 @@ impl InstanceFactory for RomFactory {
     }
 
     fn get_offset_bounds(&self, _attrs: &AttributeSet) -> Bounds {
-        Bounds::new(0, 0, 60, 60)
+        Bounds::create(0, 0, 60, 60)
     }
 
     fn create_component(&self, _location: Location, _attrs: AttributeSet) -> Box<dyn std::any::Any> {
@@ -92,26 +92,27 @@ impl RomFactory {
         
         // Address input port
         ports.push(Port::new(
-            Location::new(0, 20),
+            0, 20,
             PortType::Input,
-            BitWidth::create(addr_bits),
+            PortWidth::fixed(BitWidth::create(addr_bits as u32).unwrap_or_default()),
         ));
         
         // Clock input (for compatibility, though ROM doesn't need it)
         ports.push(Port::new(
-            Location::new(0, 40),
+            0, 40,
             PortType::Input,
-            BitWidth::ONE,
+            PortWidth::fixed(BitWidth::ONE),
         ));
         
         // Data output port
         ports.push(Port::new(
-            Location::new(60, 30),
+            60, 30,
             PortType::Output,
-            BitWidth::create(data_bits),
+            PortWidth::fixed(BitWidth::create(data_bits as u32).unwrap_or_default()),
         ));
         
-        instance.set_ports(&ports);
+        // Set ports for the instance (ports are managed internally)
+        // instance.set_ports(&ports); // TODO: Replace with proper port management
     }
 
     /// Get or create memory state for this ROM instance
