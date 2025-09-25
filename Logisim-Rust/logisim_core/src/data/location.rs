@@ -423,16 +423,22 @@ impl super::AttributeValue for Location {
         if !s.starts_with('(') || !s.ends_with(')') {
             return Err("Location must be in format (x, y)".to_string());
         }
-        
-        let inner = &s[1..s.len()-1];
+
+        let inner = &s[1..s.len() - 1];
         let parts: Vec<&str> = inner.split(',').collect();
         if parts.len() != 2 {
             return Err("Location must have exactly two coordinates".to_string());
         }
-        
-        let x = parts[0].trim().parse::<i32>().map_err(|_| "Invalid x coordinate")?;
-        let y = parts[1].trim().parse::<i32>().map_err(|_| "Invalid y coordinate")?;
-        
+
+        let x = parts[0]
+            .trim()
+            .parse::<i32>()
+            .map_err(|_| "Invalid x coordinate")?;
+        let y = parts[1]
+            .trim()
+            .parse::<i32>()
+            .map_err(|_| "Invalid y coordinate")?;
+
         Ok(Location::new(x, y))
     }
 }

@@ -8,7 +8,7 @@ use crate::hdl::strings::HdlStrings;
 use crate::ComponentId;
 
 /// HDL Library
-/// 
+///
 /// Contains the HDL-IP library with VHDL and BLIF components.
 /// Equivalent to Java HdlLibrary class.
 pub struct HdlLibrary {
@@ -97,7 +97,7 @@ mod tests {
         let library = HdlLibrary::new();
         let vhdl_comp = library.create_vhdl_entity(ComponentId(1));
         let blif_comp = library.create_blif_circuit(ComponentId(2));
-        
+
         assert_eq!(vhdl_comp.id(), ComponentId(1));
         assert_eq!(blif_comp.id(), ComponentId(2));
     }
