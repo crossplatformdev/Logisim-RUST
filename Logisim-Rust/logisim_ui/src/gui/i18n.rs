@@ -1,6 +1,5 @@
 /// Complete internationalization system
 /// Provides runtime language switching, string externalization, and locale support
-
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -172,12 +171,12 @@ impl I18nManager {
     pub fn get_string_with_args(&self, key: &str, args: &[&str]) -> String {
         let template = self.get_string(key);
         let mut result = template;
-        
+
         for (i, arg) in args.iter().enumerate() {
             let placeholder = format!("{{{}}}", i);
             result = result.replace(&placeholder, arg);
         }
-        
+
         result
     }
 
@@ -196,20 +195,20 @@ impl I18nManager {
 
     pub fn load_resources_from_string(&mut self, language: Language, content: &str) {
         let mut resources = StringResources::new();
-        
+
         for line in content.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            
+
             if let Some(eq_pos) = line.find('=') {
                 let key = line[..eq_pos].trim().to_string();
                 let value = line[eq_pos + 1..].trim().to_string();
                 resources.insert(key, value);
             }
         }
-        
+
         self.resources.insert(language, resources);
     }
 
@@ -425,7 +424,14 @@ status.loading=Chargement...
         self.load_resources_from_string(Language::French, fr_resources);
 
         // Add basic resources for other languages
-        for language in [Language::German, Language::Italian, Language::Portuguese, Language::Russian, Language::Chinese, Language::Japanese] {
+        for language in [
+            Language::German,
+            Language::Italian,
+            Language::Portuguese,
+            Language::Russian,
+            Language::Chinese,
+            Language::Japanese,
+        ] {
             let basic_resources = r#"
 app.title=Logisim-RUST
 menu.file=File
@@ -450,12 +456,14 @@ status.ready=Ready
 static I18N_INSTANCE: std::sync::OnceLock<Arc<RwLock<I18nManager>>> = std::sync::OnceLock::new();
 
 pub fn get_i18n() -> Arc<RwLock<I18nManager>> {
-    I18N_INSTANCE.get_or_init(|| {
-        let mut manager = I18nManager::new();
-        let system_lang = I18nManager::detect_system_language();
-        manager.set_language(system_lang);
-        Arc::new(RwLock::new(manager))
-    }).clone()
+    I18N_INSTANCE
+        .get_or_init(|| {
+            let mut manager = I18nManager::new();
+            let system_lang = I18nManager::detect_system_language();
+            manager.set_language(system_lang);
+            Arc::new(RwLock::new(manager))
+        })
+        .clone()
 }
 
 // Convenience functions
@@ -489,12 +497,12 @@ mod tests {
     #[test]
     fn test_i18n_manager() {
         let mut manager = I18nManager::new();
-        
+
         assert_eq!(manager.get_string("app.title"), "Logisim-RUST");
-        
+
         manager.set_language(Language::Spanish);
         assert_eq!(manager.get_string("menu.file"), "Archivo");
-        
+
         // Test fallback for nonexistent key - should return key in brackets
         assert!(manager.get_string("nonexistent.key").starts_with("["));
     }
@@ -510,7 +518,7 @@ mod tests {
     fn test_global_functions() {
         set_language(Language::English);
         assert_eq!(tr("app.title"), "Logisim-RUST");
-        
+
         set_language(Language::Spanish);
         assert_eq!(tr("menu.file"), "Archivo");
     }

@@ -1,9 +1,8 @@
+use crate::gui::i18n::tr;
+use logisim_core::{BusWidth, ComponentId};
 /// Complete properties system for component configuration
 /// Provides comprehensive property editing with validation and real-time updates
-
 use std::collections::HashMap;
-use logisim_core::{ComponentId, BusWidth};
-use crate::gui::i18n::tr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PropertyValue {
@@ -101,7 +100,10 @@ impl PropertyDescriptor {
         Self {
             name: name.to_string(),
             key: key.to_string(),
-            property_type: PropertyType::Integer { min: None, max: None },
+            property_type: PropertyType::Integer {
+                min: None,
+                max: None,
+            },
             default_value: PropertyValue::Integer(default),
             description: String::new(),
             category: "General".to_string(),
@@ -127,10 +129,12 @@ impl PropertyDescriptor {
         Self {
             name: name.to_string(),
             key: key.to_string(),
-            property_type: PropertyType::Enum { options: options.clone() },
-            default_value: PropertyValue::Enum { 
-                value: default.to_string(), 
-                options 
+            property_type: PropertyType::Enum {
+                options: options.clone(),
+            },
+            default_value: PropertyValue::Enum {
+                value: default.to_string(),
+                options,
             },
             description: String::new(),
             category: "General".to_string(),
@@ -154,14 +158,20 @@ impl PropertyDescriptor {
 
     pub fn with_range(mut self, min: i64, max: i64) -> Self {
         if let PropertyType::Integer { .. } = self.property_type {
-            self.property_type = PropertyType::Integer { min: Some(min), max: Some(max) };
+            self.property_type = PropertyType::Integer {
+                min: Some(min),
+                max: Some(max),
+            };
         }
         self
     }
 
     pub fn with_float_range(mut self, min: f64, max: f64) -> Self {
         if let PropertyType::Float { .. } = self.property_type {
-            self.property_type = PropertyType::Float { min: Some(min), max: Some(max) };
+            self.property_type = PropertyType::Float {
+                min: Some(min),
+                max: Some(max),
+            };
         }
         self
     }
@@ -210,11 +220,11 @@ impl ComponentProperties {
     pub fn add_property(&mut self, descriptor: PropertyDescriptor) {
         let key = descriptor.key.clone();
         let default_value = descriptor.default_value.clone();
-        
+
         if !self.categories.contains(&descriptor.category) {
             self.categories.push(descriptor.category.clone());
         }
-        
+
         self.descriptors.insert(key.clone(), descriptor);
         self.properties.insert(key, default_value);
     }
@@ -243,13 +253,13 @@ impl ComponentProperties {
             match (&descriptor.property_type, value) {
                 (PropertyType::String, PropertyValue::String(_)) => {
                     // Strings are always valid
-                },
+                }
                 (PropertyType::Boolean, PropertyValue::Boolean(_)) => {
                     // Booleans are always valid
-                },
+                }
                 (PropertyType::Color, PropertyValue::Color(_)) => {
                     // Colors are always valid (already validated during parsing)
-                },
+                }
                 (PropertyType::Integer { min, max }, PropertyValue::Integer(i)) => {
                     if let Some(min_val) = min {
                         if *i < *min_val {
@@ -261,7 +271,7 @@ impl ComponentProperties {
                             return Err(format!("Value {} is above maximum {}", i, max_val));
                         }
                     }
-                },
+                }
                 (PropertyType::Float { min, max }, PropertyValue::Float(f)) => {
                     if let Some(min_val) = min {
                         if *f < *min_val {
@@ -273,12 +283,12 @@ impl ComponentProperties {
                             return Err(format!("Value {} is above maximum {}", f, max_val));
                         }
                     }
-                },
+                }
                 (PropertyType::Enum { options }, PropertyValue::Enum { value, .. }) => {
                     if !options.contains(value) {
                         return Err(format!("Value '{}' is not a valid option", value));
                     }
-                },
+                }
                 (PropertyType::BitWidth { min, max }, PropertyValue::BitWidth(w)) => {
                     if w.0 < *min {
                         return Err(format!("Bit width {} is below minimum {}", w.0, min));
@@ -286,7 +296,7 @@ impl ComponentProperties {
                     if w.0 > *max {
                         return Err(format!("Bit width {} is above maximum {}", w.0, max));
                     }
-                },
+                }
                 _ => {
                     // Type mismatch - could try to convert
                     return Err(format!("Type mismatch for property '{}'", key));
@@ -298,20 +308,23 @@ impl ComponentProperties {
 
     pub fn get_properties_by_category(&self) -> HashMap<String, Vec<String>> {
         let mut categorized = HashMap::new();
-        
+
         for (key, descriptor) in &self.descriptors {
             if descriptor.visible {
-                let category_props = categorized.entry(descriptor.category.clone()).or_insert_with(Vec::new);
+                let category_props = categorized
+                    .entry(descriptor.category.clone())
+                    .or_insert_with(Vec::new);
                 category_props.push(key.clone());
             }
         }
-        
+
         categorized
     }
 
     pub fn reset_to_defaults(&mut self) {
         for (key, descriptor) in &self.descriptors {
-            self.properties.insert(key.clone(), descriptor.default_value.clone());
+            self.properties
+                .insert(key.clone(), descriptor.default_value.clone());
         }
     }
 
@@ -324,54 +337,59 @@ impl ComponentProperties {
 
     pub fn import_properties(&mut self, props: HashMap<String, String>) -> Vec<String> {
         let mut errors = Vec::new();
-        
+
         for (key, value_str) in props {
             if let Some(descriptor) = self.descriptors.get(&key) {
                 let value = match &descriptor.property_type {
                     PropertyType::String => PropertyValue::String(value_str),
-                    PropertyType::Integer { .. } => {
-                        match value_str.parse::<i64>() {
-                            Ok(i) => PropertyValue::Integer(i),
-                            Err(_) => {
-                                errors.push(format!("Invalid integer value for '{}': {}", key, value_str));
-                                continue;
-                            }
+                    PropertyType::Integer { .. } => match value_str.parse::<i64>() {
+                        Ok(i) => PropertyValue::Integer(i),
+                        Err(_) => {
+                            errors.push(format!(
+                                "Invalid integer value for '{}': {}",
+                                key, value_str
+                            ));
+                            continue;
                         }
                     },
-                    PropertyType::Boolean => {
-                        match value_str.to_lowercase().as_str() {
-                            "true" | "yes" | "1" => PropertyValue::Boolean(true),
-                            "false" | "no" | "0" => PropertyValue::Boolean(false),
-                            _ => {
-                                errors.push(format!("Invalid boolean value for '{}': {}", key, value_str));
-                                continue;
-                            }
+                    PropertyType::Boolean => match value_str.to_lowercase().as_str() {
+                        "true" | "yes" | "1" => PropertyValue::Boolean(true),
+                        "false" | "no" | "0" => PropertyValue::Boolean(false),
+                        _ => {
+                            errors.push(format!(
+                                "Invalid boolean value for '{}': {}",
+                                key, value_str
+                            ));
+                            continue;
                         }
                     },
-                    PropertyType::Float { .. } => {
-                        match value_str.parse::<f64>() {
-                            Ok(f) => PropertyValue::Float(f),
-                            Err(_) => {
-                                errors.push(format!("Invalid float value for '{}': {}", key, value_str));
-                                continue;
-                            }
+                    PropertyType::Float { .. } => match value_str.parse::<f64>() {
+                        Ok(f) => PropertyValue::Float(f),
+                        Err(_) => {
+                            errors
+                                .push(format!("Invalid float value for '{}': {}", key, value_str));
+                            continue;
                         }
                     },
                     PropertyType::Enum { options } => {
                         if options.contains(&value_str) {
-                            PropertyValue::Enum { value: value_str, options: options.clone() }
+                            PropertyValue::Enum {
+                                value: value_str,
+                                options: options.clone(),
+                            }
                         } else {
                             errors.push(format!("Invalid enum value for '{}': {}", key, value_str));
                             continue;
                         }
-                    },
-                    PropertyType::BitWidth { .. } => {
-                        match value_str.parse::<u32>() {
-                            Ok(w) => PropertyValue::BitWidth(BusWidth(w)),
-                            Err(_) => {
-                                errors.push(format!("Invalid bit width value for '{}': {}", key, value_str));
-                                continue;
-                            }
+                    }
+                    PropertyType::BitWidth { .. } => match value_str.parse::<u32>() {
+                        Ok(w) => PropertyValue::BitWidth(BusWidth(w)),
+                        Err(_) => {
+                            errors.push(format!(
+                                "Invalid bit width value for '{}': {}",
+                                key, value_str
+                            ));
+                            continue;
                         }
                     },
                     PropertyType::Color => {
@@ -384,11 +402,15 @@ impl ComponentProperties {
                             ) {
                                 PropertyValue::Color([r, g, b])
                             } else {
-                                errors.push(format!("Invalid color value for '{}': {}", key, value_str));
+                                errors.push(format!(
+                                    "Invalid color value for '{}': {}",
+                                    key, value_str
+                                ));
                                 continue;
                             }
                         } else {
-                            errors.push(format!("Invalid color format for '{}': {}", key, value_str));
+                            errors
+                                .push(format!("Invalid color format for '{}': {}", key, value_str));
                             continue;
                         }
                     }
@@ -401,27 +423,36 @@ impl ComponentProperties {
                 errors.push(format!("Unknown property: {}", key));
             }
         }
-        
+
         errors
     }
 }
 
-pub fn create_standard_properties(component_name: &str, component_id: ComponentId) -> ComponentProperties {
+pub fn create_standard_properties(
+    component_name: &str,
+    component_id: ComponentId,
+) -> ComponentProperties {
     let mut props = ComponentProperties::new(component_id, component_name);
-    
+
     // Standard properties for all components
     props.add_property(
         PropertyDescriptor::new_string("label", &tr("properties.label"), "")
-            .with_description("Custom label for this component")
+            .with_description("Custom label for this component"),
     );
-    
+
     props.add_property(
         PropertyDescriptor::new_enum(
             "facing",
             &tr("properties.facing"),
-            vec!["East".to_string(), "West".to_string(), "North".to_string(), "South".to_string()],
-            "East"
-        ).with_description("Direction the component faces")
+            vec![
+                "East".to_string(),
+                "West".to_string(),
+                "North".to_string(),
+                "South".to_string(),
+            ],
+            "East",
+        )
+        .with_description("Direction the component faces"),
     );
 
     // Component-specific properties
@@ -430,53 +461,59 @@ pub fn create_standard_properties(component_name: &str, component_id: ComponentI
             props.add_property(
                 PropertyDescriptor::new_integer("inputs", &tr("properties.inputs"), 2)
                     .with_range(2, 32)
-                    .with_description("Number of input pins")
+                    .with_description("Number of input pins"),
             );
-            
+
             props.add_property(
                 PropertyDescriptor::new_bit_width("width", &tr("properties.width"), 1)
-                    .with_description("Bit width of inputs and output")
+                    .with_description("Bit width of inputs and output"),
             );
-        },
+        }
         "D Flip-Flop" | "JK Flip-Flop" => {
             props.add_property(
                 PropertyDescriptor::new_enum(
                     "trigger",
                     &tr("properties.trigger"),
-                    vec!["Rising Edge".to_string(), "Falling Edge".to_string(), "High Level".to_string(), "Low Level".to_string()],
-                    "Rising Edge"
-                ).with_description("Clock trigger type")
+                    vec![
+                        "Rising Edge".to_string(),
+                        "Falling Edge".to_string(),
+                        "High Level".to_string(),
+                        "Low Level".to_string(),
+                    ],
+                    "Rising Edge",
+                )
+                .with_description("Clock trigger type"),
             );
-        },
+        }
         "Register" | "Counter" => {
             props.add_property(
                 PropertyDescriptor::new_bit_width("width", &tr("properties.width"), 8)
-                    .with_description("Bit width of the register/counter")
+                    .with_description("Bit width of the register/counter"),
             );
-        },
+        }
         "RAM" | "ROM" => {
             props.add_property(
                 PropertyDescriptor::new_integer("address_bits", "Address Bits", 8)
                     .with_range(1, 20)
-                    .with_description("Number of address bits")
+                    .with_description("Number of address bits"),
             );
-            
+
             props.add_property(
                 PropertyDescriptor::new_bit_width("data_width", &tr("properties.width"), 8)
-                    .with_description("Bit width of data")
+                    .with_description("Bit width of data"),
             );
-        },
+        }
         "Input Pin" | "Output Pin" => {
             props.add_property(
                 PropertyDescriptor::new_bit_width("width", &tr("properties.width"), 1)
-                    .with_description("Bit width of the pin")
+                    .with_description("Bit width of the pin"),
             );
-        },
+        }
         _ => {
             // Default properties for unknown components
         }
     }
-    
+
     props
 }
 
@@ -498,32 +535,37 @@ mod tests {
     #[test]
     fn test_component_properties() {
         let mut props = ComponentProperties::new(ComponentId(1), "Test Component");
-        
-        let desc = PropertyDescriptor::new_integer("test_prop", "Test Property", 10)
-            .with_range(1, 100);
+
+        let desc =
+            PropertyDescriptor::new_integer("test_prop", "Test Property", 10).with_range(1, 100);
         props.add_property(desc);
-        
-        assert_eq!(props.get_property("test_prop"), Some(&PropertyValue::Integer(10)));
-        
+
+        assert_eq!(
+            props.get_property("test_prop"),
+            Some(&PropertyValue::Integer(10))
+        );
+
         // Test validation
-        assert!(props.set_property("test_prop", PropertyValue::Integer(50)).is_ok());
-        assert!(props.set_property("test_prop", PropertyValue::Integer(200)).is_err());
+        assert!(props
+            .set_property("test_prop", PropertyValue::Integer(50))
+            .is_ok());
+        assert!(props
+            .set_property("test_prop", PropertyValue::Integer(200))
+            .is_err());
     }
 
     #[test]
     fn test_property_categories() {
         let mut props = ComponentProperties::new(ComponentId(1), "Test");
-        
+
         props.add_property(
-            PropertyDescriptor::new_string("name", "Name", "test")
-                .with_category("Basic")
+            PropertyDescriptor::new_string("name", "Name", "test").with_category("Basic"),
         );
-        
+
         props.add_property(
-            PropertyDescriptor::new_integer("value", "Value", 0)
-                .with_category("Advanced")
+            PropertyDescriptor::new_integer("value", "Value", 0).with_category("Advanced"),
         );
-        
+
         let categorized = props.get_properties_by_category();
         assert_eq!(categorized.len(), 2);
         assert!(categorized.contains_key("Basic"));
@@ -533,21 +575,27 @@ mod tests {
     #[test]
     fn test_property_export_import() {
         let mut props = ComponentProperties::new(ComponentId(1), "Test");
-        
+
         props.add_property(PropertyDescriptor::new_string("name", "Name", "default"));
         props.add_property(PropertyDescriptor::new_integer("count", "Count", 5));
-        
+
         let exported = props.export_properties();
         assert_eq!(exported.get("name"), Some(&"default".to_string()));
         assert_eq!(exported.get("count"), Some(&"5".to_string()));
-        
+
         let mut new_values = HashMap::new();
         new_values.insert("name".to_string(), "updated".to_string());
         new_values.insert("count".to_string(), "10".to_string());
-        
+
         let errors = props.import_properties(new_values);
         assert!(errors.is_empty());
-        assert_eq!(props.get_property("name"), Some(&PropertyValue::String("updated".to_string())));
-        assert_eq!(props.get_property("count"), Some(&PropertyValue::Integer(10)));
+        assert_eq!(
+            props.get_property("name"),
+            Some(&PropertyValue::String("updated".to_string()))
+        );
+        assert_eq!(
+            props.get_property("count"),
+            Some(&PropertyValue::Integer(10))
+        );
     }
 }
