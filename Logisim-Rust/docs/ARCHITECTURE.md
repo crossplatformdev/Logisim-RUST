@@ -530,6 +530,287 @@ The Rust implementation of Logisim maintains full behavioral compatibility with 
 - **Modern tooling**: Advanced debugging, profiling, and testing capabilities
 
 The architecture is designed for extensibility, with clear separation of concerns between simulation engine, component framework, and user interface layers.
+
+## Advanced Simulation Architecture
+
+### Complete Component Lifecycle Management
+
+#### Component Creation and Registration Flow
+
+```mermaid
+graph TD
+    A[Component Factory] --> B[Create Instance]
+    B --> C[Configure Attributes]
+    C --> D[Define Ports]
+    D --> E[Register with Circuit]
+    E --> F[Initialize State]
+    F --> G[Add to Netlist]
+    G --> H[Mark Connectivity Dirty]
+    
+    subgraph "Instance Pattern"
+        I[InstanceFactory]
+        J[Instance Wrapper]
+        K[InstanceState]
+    end
+    
+    subgraph "Direct Pattern"
+        L[ComponentFactory]
+        M[Component Interface]
+        N[ComponentState]
+    end
+    
+    A --> I
+    A --> L
+    I --> J
+    L --> M
+```
+
+#### Advanced Event Scheduling System
+
+```mermaid
+gantt
+    title Simulation Event Timeline
+    dateFormat X
+    axisFormat %L
+    
+    section Component A
+        Output Change    :0, 100
+        Propagation      :100, 150
+    
+    section Component B  
+        Input Received   :150, 160
+        Internal Delay   :160, 300
+        Output Change    :300, 320
+    
+    section Component C
+        Input Received   :320, 330
+        Combinational    :330, 340
+        Output Change    :340, 350
+```
+
+### File Format and Serialization Architecture
+
+#### .circ XML Schema Mapping
+
+```mermaid
+classDiagram
+    class LogisimFile {
+        +circuits: List<Circuit>
+        +libraries: List<Library>
+        +options: Options
+        +toolbar: ToolbarData
+    }
+    
+    class Circuit {
+        +name: String
+        +components: List<Component>
+        +wires: List<Wire>
+        +attributes: AttributeSet
+    }
+    
+    class XmlReader {
+        +readLogisimFile(InputStream)
+        +parseCircuit(Element)
+        +parseComponent(Element)
+        +parseWire(Element)
+    }
+    
+    class XmlWriter {
+        +writeLogisimFile(LogisimFile, OutputStream)
+        +writeCircuit(Circuit, Element)
+        +writeComponent(Component, Element)
+    }
+    
+    LogisimFile ||--o{ Circuit
+    LogisimFile ||--|| XmlReader
+    LogisimFile ||--|| XmlWriter
+```
+
+### Tool System Architecture
+
+#### Interactive Tool State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    
+    Idle --> AddMode: Select Add Tool
+    Idle --> SelectMode: Select Selection Tool
+    Idle --> WireMode: Select Wire Tool
+    Idle --> TextMode: Select Text Tool
+    
+    AddMode --> Placing: Click on Canvas
+    Placing --> Idle: Component Added
+    Placing --> Canceled: Escape/Cancel
+    
+    SelectMode --> Selecting: Click Component
+    Selecting --> Moving: Drag Start
+    Moving --> Moved: Drop Component
+    Moved --> Idle: Transaction Complete
+    
+    WireMode --> Drawing: Click Start Point
+    Drawing --> WireMode: Click End Point
+    Drawing --> Canceled: Escape/Cancel
+    
+    TextMode --> Editing: Click Text Field
+    Editing --> TextMode: Finish Edit
+```
+
+### Performance Optimization Strategies
+
+#### Memory Layout and Cache Efficiency
+
+```rust
+// Optimized component storage for cache locality
+#[repr(C)]
+pub struct ComponentPool {
+    // Structure of Arrays layout for better cache performance
+    ids: Vec<ComponentId>,
+    types: Vec<ComponentType>,
+    locations: Vec<Location>,
+    bounds: Vec<Bounds>,
+    states: Vec<Box<dyn ComponentState>>,
+}
+
+// Efficient event queue implementation
+pub struct OptimizedEventQueue {
+    // Binary heap with custom ordering
+    events: BinaryHeap<SimulationEvent>,
+    // Fast lookup for event cancellation
+    event_index: HashMap<EventId, usize>,
+    // Recycled event objects to reduce allocation
+    event_pool: Vec<SimulationEvent>,
+}
+```
+
+#### SIMD-Optimized Signal Processing
+
+```rust
+use std::simd::*;
+
+impl Signal {
+    /// Vectorized bitwise operations for wide buses
+    pub fn bitwise_and_vectorized(&self, other: &Signal) -> Signal {
+        if self.width >= 8 {
+            // Use SIMD for wide signals
+            let a_vec = u32x8::from_array(self.value_chunks());
+            let b_vec = u32x8::from_array(other.value_chunks());
+            let result = a_vec & b_vec;
+            Signal::from_simd_result(result, self.width)
+        } else {
+            // Fallback to scalar operations
+            self.bitwise_and_scalar(other)
+        }
+    }
+}
+```
+
+### Advanced Chronogram Features
+
+#### Multi-Resolution Timeline Rendering
+
+```mermaid
+graph LR
+    A[Raw Signal Data] --> B{Zoom Level}
+    B -->|Detailed| C[Full Resolution]
+    B -->|Medium| D[Decimated Samples]  
+    B -->|Overview| E[Min/Max Envelope]
+    
+    C --> F[Pixel-Perfect Lines]
+    D --> G[Anti-Aliased Rendering]
+    E --> H[Statistical Waveforms]
+    
+    F --> I[Timeline Canvas]
+    G --> I
+    H --> I
+```
+
+#### Signal Analysis and Measurements
+
+```rust
+pub struct SignalAnalyzer {
+    pub fn calculate_frequency(&self, signal: &SignalTimeSeries) -> Option<f64> {
+        let transitions = self.find_transitions(signal);
+        if transitions.len() >= 2 {
+            let period = self.calculate_average_period(&transitions);
+            Some(1.0 / period.as_secs_f64())
+        } else {
+            None
+        }
+    }
+    
+    pub fn measure_pulse_width(&self, signal: &SignalTimeSeries, 
+                               start_time: Timestamp) -> PulseWidthMeasurement {
+        let rising_edge = self.find_next_rising_edge(signal, start_time);
+        let falling_edge = self.find_next_falling_edge(signal, rising_edge);
+        
+        PulseWidthMeasurement {
+            start: rising_edge,
+            end: falling_edge,
+            width: falling_edge - rising_edge,
+        }
+    }
+}
+```
+
+### Extensibility and Plugin Architecture
+
+#### Dynamic Component Loading System
+
+```mermaid
+graph TD
+    A[Plugin Discovery] --> B[Load Plugin DLL/SO]
+    B --> C[Verify Plugin Interface]
+    C --> D[Register Component Factories]
+    D --> E[Add to Component Palette]
+    E --> F[Enable in Circuits]
+    
+    subgraph "Plugin Interface"
+        G[LogisimPlugin Trait]
+        H[ComponentFactory Trait]
+        I[Component Trait]
+    end
+    
+    C --> G
+    D --> H
+    F --> I
+```
+
+#### Hot Reloading Development Workflow
+
+```rust
+#[cfg(feature = "hot-reload")]
+pub struct HotReloadManager {
+    plugin_watchers: HashMap<PathBuf, FileWatcher>,
+    loaded_plugins: HashMap<String, PluginHandle>,
+}
+
+impl HotReloadManager {
+    pub fn watch_plugin_directory(&mut self, path: PathBuf) {
+        let watcher = FileWatcher::new(path.clone());
+        watcher.on_change(|plugin_path| {
+            self.reload_plugin(plugin_path);
+        });
+        self.plugin_watchers.insert(path, watcher);
+    }
+    
+    fn reload_plugin(&mut self, plugin_path: &Path) {
+        // Unload existing plugin
+        if let Some(handle) = self.loaded_plugins.remove(&plugin_path.to_string()) {
+            handle.unload();
+        }
+        
+        // Load updated plugin
+        match PluginLoader::load(plugin_path) {
+            Ok(plugin) => {
+                self.loaded_plugins.insert(plugin_path.to_string(), plugin);
+                self.notify_plugin_reloaded(plugin_path);
+            }
+            Err(e) => eprintln!("Failed to reload plugin: {}", e),
+        }
+    }
+}
+```
 ```
 
 ### Overview
