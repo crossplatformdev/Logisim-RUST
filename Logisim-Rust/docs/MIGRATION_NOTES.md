@@ -434,3 +434,465 @@ gui = ["egui", "eframe"]
 - Rust GUI development: https://areweguiyet.com/
 - egui documentation: https://docs.rs/egui/
 - Digital simulation in Rust: Community forums and crates.io
+
+## Extensibility and Plugin System Migration
+
+### Overview
+
+The Rust implementation introduces a comprehensive extensibility framework that significantly expands upon the Java version's plugin capabilities. While maintaining compatibility concepts from the Java implementation, the Rust system provides additional advanced modeling features and stronger type safety.
+
+**⚠️ UNSTABLE API WARNING**: All extensibility APIs are experimental and subject to change without major version increments.
+
+### Java Plugin System Comparison
+
+#### Java Logisim-Evolution Plugin Model
+```java
+// Java plugin interface (simplified)
+public interface Library {
+    String getName();
+    List<Tool> getTools();
+    ComponentFactory getFactory(String name);
+}
+
+public interface ComponentFactory {
+    Component createComponent(Location loc, AttributeSet attrs);
+    Bounds getBounds(AttributeSet attrs);
+    void paintIcon(ComponentDrawContext context, int x, int y, AttributeSet attrs);
+}
+```
+
+#### Rust Plugin System Enhancement
+```rust
+// Rust plugin system - significantly more powerful
+pub trait PluginLibrary: Send + Sync {
+    fn info(&self) -> &PluginInfo;
+    fn components(&self) -> Vec<ComponentInfo>;
+    fn create_component(&self, component_type: &str, id: ComponentId) -> PluginResult<Box<dyn Component>>;
+    fn initialize(&mut self) -> PluginResult<()>;
+    fn cleanup(&mut self) -> PluginResult<()>;
+    
+    // Advanced extensibility hooks (NEW)
+    fn register_hooks(&mut self, registry: &mut ExtensionRegistry) -> PluginResult<()>;
+    fn config_schema(&self) -> Option<ConfigSchema>;
+    fn on_plugin_event(&mut self, event: &PluginEvent) -> PluginResult<()>;
+}
+```
+
+### Advanced Modeling Features
+
+#### Observer Pattern Implementation
+
+**Java Implementation:**
+```java
+// Java observer pattern - basic event handling
+public interface CircuitListener {
+    void circuitChanged(CircuitEvent e);
+}
+
+public class CircuitEvent {
+    public static final int ACTION_ADD = 0;
+    public static final int ACTION_REMOVE = 1;
+    // Limited event types
+}
+```
+
+**Rust Implementation:**
+```rust
+// Rust observer pattern - comprehensive event system
+pub trait Observer<E: Event>: Send + Sync {
+    fn on_event(&mut self, event: &E) -> EventResult<()>;
+    fn name(&self) -> &str;
+    fn should_handle(&self, event: &E) -> bool;
+}
+
+// Rich event types with full context
+pub enum CircuitEvent {
+    ComponentAdded { component_id: ComponentId, location: Location, timestamp: u64 },
+    ComponentRemoved { component_id: ComponentId, timestamp: u64 },
+    ComponentMoved { component_id: ComponentId, old_location: Location, new_location: Location, timestamp: u64 },
+    ComponentPropertiesChanged { component_id: ComponentId, properties: HashMap<String, String>, timestamp: u64 },
+    WireAdded { start: Location, end: Location, timestamp: u64 },
+    WireRemoved { start: Location, end: Location, timestamp: u64 },
+}
+
+// Event system with automatic memory management
+pub struct EventSystem {
+    circuit_dispatcher: EventDispatcher<CircuitEvent>,
+    simulation_dispatcher: EventDispatcher<SimulationEvent>,
+}
+```
+
+#### Dynamic Component Registration
+
+**Java Approach:**
+```java
+// Java - static component registration
+public class MyLibrary extends Library {
+    private static Tool[] tools = {
+        new AddTool(new MyComponent.Factory()),
+    };
+    
+    public List<Tool> getTools() {
+        return Arrays.asList(tools);
+    }
+}
+```
+
+**Rust Approach:**
+```rust
+// Rust - dynamic component registration with categories
+pub struct ComponentRegistry {
+    factories: HashMap<String, Box<dyn ComponentFactory>>,
+    categories: HashMap<String, ComponentCategory>,
+}
+
+impl ComponentRegistry {
+    pub fn register_component_type(
+        &mut self,
+        component_type: String,
+        factory: Box<dyn ComponentFactory>,
+        category: ComponentCategory,
+    ) -> PluginResult<()> {
+        // Runtime registration with type safety
+        self.factories.insert(component_type.clone(), factory);
+        self.categories.insert(component_type, category);
+        Ok(())
+    }
+}
+
+// Rich component categories
+pub enum ComponentCategory {
+    Gates,
+    Memory,
+    IO,
+    Arithmetic,
+    Plexers,
+    Wiring,
+    Custom(String),
+}
+```
+
+### Extension Points Migration
+
+#### Java Extension Limitations
+- **Limited extensibility**: Mainly component addition
+- **No lifecycle hooks**: Components couldn't hook into simulation events
+- **Static discovery**: Fixed library loading at startup
+- **No advanced modeling**: Limited ability to extend simulation behavior
+
+#### Rust Extension Capabilities
+
+1. **Modeling Extensions** (NEW):
+```rust
+pub trait ModelingExtension: Send + Sync {
+    fn process_step(&mut self, step_data: &SimulationStepData) -> PluginResult<()>;
+    // Custom simulation behavior, timing analysis, fault injection, etc.
+}
+```
+
+2. **UI Extensions** (NEW):
+```rust
+pub trait UiExtension: Send + Sync {
+    fn render(&mut self, ui_context: &mut UiContext) -> PluginResult<()>;
+    fn handle_event(&mut self, event: &UiEvent) -> PluginResult<()>;
+    // Custom UI panels, tools, visualizations
+}
+```
+
+3. **Simulation Hooks** (NEW):
+```rust
+pub trait SimulationHook: Send + Sync {
+    fn before_simulation_start(&mut self) -> PluginResult<()>;
+    fn after_simulation_stop(&mut self) -> PluginResult<()>;
+    fn before_step(&mut self, step_count: u64) -> PluginResult<()>;
+    fn after_step(&mut self, step_count: u64) -> PluginResult<()>;
+}
+```
+
+4. **Event Observers** (NEW):
+```rust
+// Rich event system with circuit and simulation events
+registry.add_circuit_observer(Arc::new(Mutex::new(MyCircuitObserver::new())));
+registry.add_simulation_observer(Arc::new(Mutex::new(MySimulationObserver::new())));
+```
+
+### Plugin Configuration Migration
+
+#### Java Configuration
+```java
+// Java - basic attribute system
+public class MyComponent extends ManagedComponent {
+    public static final Attribute<Integer> DELAY = 
+        Attributes.forInteger("delay", S.getter("gateDelayAttr"));
+}
+```
+
+#### Rust Configuration
+```rust
+// Rust - comprehensive configuration schema
+pub struct ConfigSchema {
+    pub fields: Vec<ConfigField>,
+    pub version: String,
+}
+
+pub struct ConfigField {
+    pub name: String,
+    pub field_type: ConfigFieldType,
+    pub default_value: Option<String>,
+    pub description: String,
+    pub required: bool,
+}
+
+pub enum ConfigFieldType {
+    String,
+    Integer,
+    Float,
+    Boolean,
+    Choice(Vec<String>),
+    Path,
+}
+
+// Example plugin configuration
+impl PluginLibrary for MyPlugin {
+    fn config_schema(&self) -> Option<ConfigSchema> {
+        Some(ConfigSchema {
+            fields: vec![
+                ConfigField {
+                    name: "gate_delay".to_string(),
+                    field_type: ConfigFieldType::Integer,
+                    default_value: Some("10".to_string()),
+                    description: "Default gate delay in nanoseconds".to_string(),
+                    required: false,
+                },
+                ConfigField {
+                    name: "enable_timing_analysis".to_string(),
+                    field_type: ConfigFieldType::Boolean,
+                    default_value: Some("true".to_string()),
+                    description: "Enable advanced timing analysis".to_string(),
+                    required: false,
+                },
+            ],
+            version: "1.0".to_string(),
+        })
+    }
+}
+```
+
+### Component Implementation Migration
+
+#### Java Component Structure
+```java
+public class MyGate extends ManagedComponent {
+    public MyGate(Location loc, AttributeSet attrs) {
+        super(loc, attrs, 2); // 2 inputs
+        setEnd(0, loc.translate(-30, -10), BitWidth.ONE, EndData.INPUT_ONLY);
+        setEnd(1, loc.translate(-30, 10), BitWidth.ONE, EndData.INPUT_ONLY);
+        setEnd(2, loc.translate(0, 0), BitWidth.ONE, EndData.OUTPUT_ONLY);
+    }
+    
+    @Override
+    public void propagate(InstanceState state) {
+        Value a = state.getPortValue(0);
+        Value b = state.getPortValue(1);
+        state.setPort(2, a.xor(b), 1); // 1 ns delay
+    }
+}
+```
+
+#### Rust Component Structure
+```rust
+#[derive(Debug)]
+pub struct MyCustomGate {
+    id: ComponentId,
+    location: Option<Location>,
+    pins: HashMap<String, Pin>,
+    properties: HashMap<String, String>,
+}
+
+impl Component for MyCustomGate {
+    fn id(&self) -> ComponentId { self.id }
+    fn name(&self) -> &str { "CustomXORGate" }
+    fn pins(&self) -> &HashMap<String, Pin> { &self.pins }
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> { &mut self.pins }
+    
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        // Custom logic with full type safety
+        let input_a = self.pins.get("A").unwrap().get_signal();
+        let input_b = self.pins.get("B").unwrap().get_signal();
+        
+        // XOR logic implementation
+        let output = match (input_a.as_single(), input_b.as_single()) {
+            (Some(Value::High), Some(Value::Low)) => Signal::new_single(Value::High),
+            (Some(Value::Low), Some(Value::High)) => Signal::new_single(Value::High),
+            (Some(Value::High), Some(Value::High)) => Signal::new_single(Value::Low),
+            (Some(Value::Low), Some(Value::Low)) => Signal::new_single(Value::Low),
+            _ => Signal::new_single(Value::Unknown),
+        };
+        
+        let mut outputs = HashMap::new();
+        outputs.insert("Y".to_string(), output);
+        
+        UpdateResult::with_outputs(outputs, self.propagation_delay())
+    }
+    
+    fn reset(&mut self) {
+        // Safe reset with ownership semantics
+    }
+    
+    fn propagation_delay(&self) -> u64 {
+        self.properties.get("delay")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(10)
+    }
+}
+```
+
+### Memory Management Differences
+
+#### Java Memory Model
+- **Garbage Collection**: Automatic but unpredictable cleanup
+- **Memory Leaks**: Possible with listener patterns
+- **Thread Safety**: Manual synchronization required
+
+#### Rust Memory Model
+- **Ownership System**: Compile-time memory safety
+- **RAII**: Automatic resource cleanup
+- **Thread Safety**: Built into type system with Send + Sync
+
+```rust
+// Rust automatically prevents memory leaks in observer pattern
+pub struct EventDispatcher<E: Event> {
+    observers: HashMap<ObserverId, Weak<Mutex<dyn Observer<E>>>>, // Weak references prevent cycles
+}
+
+impl<E: Event> EventDispatcher<E> {
+    fn deliver_event(&mut self, event: &E) -> EventResult<()> {
+        // Automatic cleanup of dead observers
+        self.observers.retain(|_, weak| weak.strong_count() > 0);
+        // Safe concurrent access guaranteed by type system
+    }
+}
+```
+
+### Error Handling Migration
+
+#### Java Error Handling
+```java
+// Java - exceptions and null checks
+public void loadPlugin(String pluginName) throws PluginException {
+    Plugin plugin = findPlugin(pluginName);
+    if (plugin == null) {
+        throw new PluginException("Plugin not found: " + pluginName);
+    }
+    try {
+        plugin.initialize();
+    } catch (Exception e) {
+        throw new PluginException("Plugin initialization failed", e);
+    }
+}
+```
+
+#### Rust Error Handling
+```rust
+// Rust - Result types and comprehensive error information
+pub fn load_plugin(&mut self, plugin_name: &str) -> PluginResult<()> {
+    let plugin = self.plugins.get_mut(plugin_name)
+        .ok_or_else(|| PluginError::PluginNotFound(plugin_name.to_string()))?;
+    
+    plugin.initialize()
+        .map_err(|e| PluginError::LoadingFailed(format!("Initialization failed: {}", e)))?;
+    
+    // Automatically register extension hooks
+    plugin.register_hooks(&mut self.extension_registry)?;
+    
+    Ok(())
+}
+
+#[derive(Error, Debug)]
+pub enum PluginError {
+    #[error("Plugin not found: {0}")]
+    PluginNotFound(String),
+    #[error("Plugin loading failed: {0}")]
+    LoadingFailed(String),
+    #[error("Component type already registered: {0}")]
+    ComponentTypeExists(String),
+    #[error("Extension point not found: {0}")]
+    ExtensionPointNotFound(String),
+    #[error("Hook registration failed: {0}")]
+    HookRegistrationFailed(String),
+}
+```
+
+### Migration Benefits
+
+#### Type Safety
+- **Compile-time verification**: Plugin interfaces checked at compile time
+- **No runtime type errors**: Generic system prevents type mismatches
+- **Memory safety**: No null pointer exceptions or buffer overflows
+
+#### Performance
+- **Zero-cost abstractions**: Plugin system has minimal runtime overhead
+- **Efficient event dispatch**: Weak references and automatic cleanup
+- **Native performance**: No JVM overhead
+
+#### Concurrency
+- **Thread-safe by design**: Send + Sync bounds ensure safe concurrent access
+- **Lock-free where possible**: Ownership system reduces need for locks
+- **Deadlock prevention**: Rust's ownership model prevents many concurrency issues
+
+### Migration Path for Plugin Developers
+
+#### 1. Component Migration Checklist
+- [ ] Port component logic from Java to Rust Component trait
+- [ ] Convert attribute system to Rust configuration schema
+- [ ] Implement proper pin management with HashMap<String, Pin>
+- [ ] Add proper error handling with Result types
+- [ ] Ensure thread safety with Send + Sync bounds
+
+#### 2. Extension Hook Integration
+- [ ] Identify Java event listeners to convert to Rust observers
+- [ ] Implement modeling extensions for custom simulation behavior
+- [ ] Add UI extensions for custom interface elements
+- [ ] Register simulation hooks for lifecycle events
+
+#### 3. Configuration Migration
+- [ ] Convert Java attributes to Rust ConfigSchema
+- [ ] Add validation logic for configuration values
+- [ ] Implement configuration change handling
+
+#### 4. Testing Strategy
+- [ ] Port Java unit tests to Rust test framework
+- [ ] Add property-based tests with proptest
+- [ ] Test plugin loading and unloading
+- [ ] Verify memory safety and thread safety
+
+### Example Migration
+
+See `logisim_core/src/integrations/plugin_examples.rs` for complete examples of:
+- Custom component implementation
+- Factory pattern usage
+- Extension hook registration
+- Event observer implementation
+- Configuration schema definition
+
+### Future Plugin System Roadmap
+
+#### Phase 1 (Current - Experimental)
+- ✅ Basic plugin trait framework
+- ✅ Dynamic component registration
+- ✅ Event system infrastructure
+- ✅ Extension registry pattern
+
+#### Phase 2 (Stabilization)
+- API stabilization and documentation
+- Native dynamic library loading (.so/.dll/.dylib)
+- WebAssembly plugin support
+- Plugin marketplace integration
+
+#### Phase 3 (Advanced Features)
+- Hot-reload capabilities
+- Plugin sandboxing and security
+- Advanced debugging tools
+- Distributed plugin systems
+
+The Rust extensibility system provides a significantly more powerful and safer foundation for plugin development compared to the Java implementation, while maintaining familiar concepts for easier migration.
