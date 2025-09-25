@@ -95,7 +95,7 @@ impl Component for XnorGate {
         for &input in &inputs {
             match input {
                 Value::High => high_count += 1,
-                Value::Unknown | Value::Error => has_unknown = true,
+                Value::Unknown | Value::Error | Value::HighZ => has_unknown = true,
                 Value::Low => {} // No effect on XOR
             }
         }

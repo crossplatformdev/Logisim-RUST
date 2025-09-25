@@ -17,7 +17,7 @@
 //! and creation of the appropriate actions for undo/redo functionality.
 
 use crate::{
-    comp::{Component, ComponentFactory},
+    comp::{Component, ComponentFactory, SimpleComponentFactory, ComponentId},
     data::{AttributeSet, Bounds, Location},
     tools::{
         tool::{Canvas, ComponentDrawContext, CursorType, MouseEvent, Tool},
@@ -79,8 +79,8 @@ impl AddTool {
 
     /// Create a new AddTool from a ComponentFactory
     pub fn new(factory: Box<dyn ComponentFactory>) -> Self {
-        let name = factory.get_name();
-        let display_name = factory.get_display_name();
+        let name = factory.name();
+        let display_name = factory.display_name();
         let description = format!("Add {}", display_name);
 
         Self {
@@ -90,8 +90,8 @@ impl AddTool {
             last_x: Self::INVALID_COORD,
             last_y: Self::INVALID_COORD,
             state: AddToolState::ShowGhost,
-            name,
-            display_name,
+            name: name.to_string(),
+            display_name: display_name.to_string(),
             description,
             factory,
         }
@@ -143,8 +143,11 @@ impl AddTool {
 
     /// Create a new component at the specified location
     fn create_component_at(&self, location: Location) -> Box<dyn Component> {
-        let mut component = self.factory.create_component();
-        // TODO: Set component location and attributes
+        let component = self.factory.create_component(
+            ComponentId::new(0), // TODO: Generate proper component ID
+            location,
+            &self.attrs,
+        );
         component
     }
 
@@ -172,6 +175,33 @@ impl AddTool {
 // Temporary mock factory for compilation
 struct MockComponentFactory {
     name: String,
+}
+
+impl ComponentFactory for MockComponentFactory {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn display_name(&self) -> &str {
+        &self.name
+    }
+
+    fn create_component(
+        &self,
+        _id: ComponentId,
+        _location: Location,
+        _attrs: &AttributeSet,
+    ) -> Box<dyn Component> {
+        panic!("Mock component creation not implemented")
+    }
+
+    fn create_attribute_set(&self) -> AttributeSet {
+        AttributeSet::new()
+    }
+
+    fn get_bounds(&self, _attrs: &AttributeSet) -> Bounds {
+        Bounds::create(0, 0, 40, 30) // Default bounds
+    }
 }
 
 impl SimpleComponentFactory for MockComponentFactory {
@@ -296,7 +326,7 @@ impl Tool for AddTool {
     fn shares_source(&self, other: &dyn Tool) -> bool {
         if let Some(other_add_tool) = other.as_any().downcast_ref::<AddTool>() {
             // Two AddTools share source if they use the same factory type
-            self.factory.get_name() == other_add_tool.factory.get_name()
+            self.factory.name() == other_add_tool.factory.name()
         } else {
             false
         }

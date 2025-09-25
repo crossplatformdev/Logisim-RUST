@@ -175,6 +175,16 @@ pub trait Component: std::fmt::Debug + Send + Sync {
             false
         })
     }
+
+    /// Check if this component is sequential (has state that depends on clock)
+    fn is_sequential(&self) -> bool {
+        false // Default: most components are combinational
+    }
+
+    /// Handle a clock edge if this is a sequential component
+    fn clock_edge(&mut self, _edge: ClockEdge, _current_time: Timestamp) -> UpdateResult {
+        UpdateResult::new() // Default: no response to clock edges
+    }
 }
 
 /// Abstract base implementation providing common component functionality
