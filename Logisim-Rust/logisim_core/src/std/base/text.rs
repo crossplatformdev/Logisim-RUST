@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Text component for circuit annotations
-/// 
+///
 /// A text component allows users to add text annotations to their circuits
 /// for documentation purposes. It has no electrical properties.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,7 +32,7 @@ pub struct Text {
 impl Text {
     /// Unique identifier for the text component
     pub const ID: &'static str = "Text";
-    
+
     /// Create a new text component
     pub fn new(id: ComponentId) -> Self {
         Text {
@@ -42,7 +42,7 @@ impl Text {
             font_size: 12,
         }
     }
-    
+
     /// Create a new text component with specified text
     pub fn new_with_text(id: ComponentId, text: String) -> Self {
         Text {
@@ -52,22 +52,22 @@ impl Text {
             font_size: 12,
         }
     }
-    
+
     /// Get the text content
     pub fn get_text(&self) -> &str {
         &self.text
     }
-    
+
     /// Set the text content
     pub fn set_text(&mut self, text: String) {
         self.text = text;
     }
-    
+
     /// Get the font size
     pub fn get_font_size(&self) -> u32 {
         self.font_size
     }
-    
+
     /// Set the font size
     pub fn set_font_size(&mut self, size: u32) {
         self.font_size = size;
@@ -128,10 +128,10 @@ mod tests {
     #[test]
     fn test_text_modification() {
         let mut text = Text::new(ComponentId(1));
-        
+
         text.set_text("Test Text".to_string());
         assert_eq!(text.get_text(), "Test Text");
-        
+
         text.set_font_size(16);
         assert_eq!(text.get_font_size(), 16);
     }
@@ -140,7 +140,7 @@ mod tests {
     fn test_text_update() {
         let mut text = Text::new(ComponentId(1));
         let result = text.update(Timestamp(0));
-        
+
         // Text components should not produce any outputs
         assert_eq!(result.get_outputs().len(), 0);
         assert_eq!(result.get_delay(), 0);

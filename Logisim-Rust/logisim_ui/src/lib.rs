@@ -55,7 +55,7 @@ pub use gui::selection::Selection;
 pub use hex::{HexModel, HexModelListener, Measures, MemoryHexModel};
 
 #[cfg(feature = "gui")]
-pub use hex::{HexEditor, Caret, Highlighter};
+pub use hex::{Caret, HexEditor, Highlighter};
 
 /// UI-specific error types
 #[derive(Debug, thiserror::Error)]

@@ -83,7 +83,10 @@ mod integration_tests {
         // Test all component events
         let comp_event = ComponentEvent {
             component_id: 1,
-            event_type: ComponentEventType::Resized { width: 100, height: 200 },
+            event_type: ComponentEventType::Resized {
+                width: 100,
+                height: 200,
+            },
         };
         component.component_resized(&comp_event);
         component.component_moved(&comp_event);
