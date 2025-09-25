@@ -60,6 +60,7 @@ pub mod file;
 pub mod hdl;
 pub mod instance;
 pub mod integrations;
+pub mod modeling;
 pub mod netlist;
 pub mod prefs;
 pub mod signal;
@@ -100,6 +101,11 @@ pub use instance::{
     PortWidth,
 };
 pub use integrations::{FpgaError, PluginError, TclError, VhdlError};
+pub use modeling::{
+    ClockEdgeType, ComponentFactory as DynamicComponentFactory, DynamicComponentRegistry, 
+    ExtensionPoint, ExtensionRegistry, ModelingContext, ModelingError, ModelingResult,
+    ObserverManager, SimulationEvent, SimulationObserver,
+};
 pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
