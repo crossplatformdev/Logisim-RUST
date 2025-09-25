@@ -51,7 +51,7 @@ pub enum BlifGate {
 }
 
 /// BLIF Parser
-/// 
+///
 /// Parses BLIF (Berkeley Logic Interchange Format) files.
 /// Equivalent to Java BlifParser class.
 pub struct BlifParser {
@@ -76,7 +76,7 @@ impl BlifParser {
             input_names: HashSet::new(),
             output_names: HashSet::new(),
         };
-        
+
         parser.parse()?;
         Ok(parser)
     }
@@ -108,7 +108,7 @@ impl BlifParser {
 
         while i < lines.len() {
             let line = lines[i].trim();
-            
+
             // Skip empty lines and comments
             if line.is_empty() || line.starts_with('#') {
                 i += 1;
@@ -147,7 +147,7 @@ impl BlifParser {
             ".names" => self.parse_names(&tokens, line_num)?,
             ".latch" => self.parse_latch(&tokens, line_num)?,
             ".subckt" => self.parse_subcircuit(&tokens, line_num)?,
-            ".end" => {}, // End of model, nothing to do
+            ".end" => {} // End of model, nothing to do
             directive if directive.starts_with('.') => {
                 return Err(BlifParseError::UnknownDirective(directive.to_string()));
             }
@@ -198,8 +198,11 @@ impl BlifParser {
             });
         }
 
-        let inputs: Vec<String> = tokens[1..tokens.len()-1].iter().map(|s| s.to_string()).collect();
-        let output = tokens[tokens.len()-1].to_string();
+        let inputs: Vec<String> = tokens[1..tokens.len() - 1]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let output = tokens[tokens.len() - 1].to_string();
 
         // For now, we'll create the gate without the truth table
         // In a full implementation, we'd need to parse the following lines for the truth table
@@ -224,8 +227,16 @@ impl BlifParser {
 
         let input = tokens[1].to_string();
         let output = tokens[2].to_string();
-        let clock = if tokens.len() > 3 { Some(tokens[3].to_string()) } else { None };
-        let initial_value = if tokens.len() > 4 { Some(tokens[4].to_string()) } else { None };
+        let clock = if tokens.len() > 3 {
+            Some(tokens[3].to_string())
+        } else {
+            None
+        };
+        let initial_value = if tokens.len() > 4 {
+            Some(tokens[4].to_string())
+        } else {
+            None
+        };
 
         let gate = BlifGate::Latch {
             input,
@@ -254,7 +265,7 @@ impl BlifParser {
         for &token in &tokens[2..] {
             if let Some(eq_pos) = token.find('=') {
                 let formal = token[..eq_pos].to_string();
-                let actual = token[eq_pos+1..].to_string();
+                let actual = token[eq_pos + 1..].to_string();
                 connections.insert(formal, actual);
             }
         }
@@ -291,7 +302,7 @@ impl BlifParser {
 }
 
 /// BLIF content component
-/// 
+///
 /// Manages BLIF content similar to VhdlContentComponent.
 /// Equivalent to Java BlifContentComponent.
 #[derive(Debug, Clone)]
@@ -321,22 +332,23 @@ impl BlifContentComponent {
 .inputs 
 .outputs 
 # Add your logic here
-.end"#.to_string()
+.end"#
+            .to_string()
     }
 
     /// Update content from BLIF source
     pub fn set_content(&mut self, blif_source: String) -> BlifResult<()> {
         let parser = BlifParser::new(blif_source.clone())?;
-        
+
         self.content = blif_source;
         self.inputs = parser.get_inputs().to_vec();
         self.outputs = parser.get_outputs().to_vec();
         self.gates = parser.get_gates().to_vec();
-        
+
         if let Some(name) = parser.get_name() {
             self.name = name.to_string();
         }
-        
+
         Ok(())
     }
 
@@ -367,10 +379,10 @@ impl BlifContentComponent {
 
     /// Compare with another BLIF model
     pub fn compare(&self, other: &BlifContentComponent) -> bool {
-        self.content == other.content &&
-        self.name == other.name &&
-        self.inputs == other.inputs &&
-        self.outputs == other.outputs
+        self.content == other.content
+            && self.name == other.name
+            && self.inputs == other.inputs
+            && self.outputs == other.outputs
     }
 }
 
@@ -427,12 +439,12 @@ mod tests {
     #[test]
     fn test_input_output_extraction() {
         let parser = BlifParser::new(SAMPLE_BLIF.to_string()).unwrap();
-        
+
         let inputs = parser.get_inputs();
         assert_eq!(inputs.len(), 2);
         assert_eq!(inputs[0].get_name(), "a");
         assert_eq!(inputs[1].get_name(), "b");
-        
+
         let outputs = parser.get_outputs();
         assert_eq!(outputs.len(), 1);
         assert_eq!(outputs[0].get_name(), "y");
@@ -443,7 +455,7 @@ mod tests {
         let parser = BlifParser::new(SAMPLE_BLIF.to_string()).unwrap();
         let gates = parser.get_gates();
         assert_eq!(gates.len(), 1);
-        
+
         if let BlifGate::Names { inputs, output, .. } = &gates[0] {
             assert_eq!(inputs.len(), 2);
             assert_eq!(inputs[0], "a");
@@ -457,16 +469,19 @@ mod tests {
     #[test]
     fn test_complex_blif_parsing() {
         let parser = BlifParser::new(COMPLEX_BLIF.to_string()).unwrap();
-        
+
         assert_eq!(parser.get_name(), Some("counter"));
         assert_eq!(parser.get_inputs().len(), 3);
         assert_eq!(parser.get_outputs().len(), 3);
-        
+
         let gates = parser.get_gates();
         assert!(gates.len() > 1);
-        
+
         // Check for latch gates
-        let latch_count = gates.iter().filter(|g| matches!(g, BlifGate::Latch { .. })).count();
+        let latch_count = gates
+            .iter()
+            .filter(|g| matches!(g, BlifGate::Latch { .. }))
+            .count();
         assert!(latch_count > 0);
     }
 
@@ -474,7 +489,7 @@ mod tests {
     fn test_blif_content_component() {
         let mut component = BlifContentComponent::create();
         assert!(component.set_content(SAMPLE_BLIF.to_string()).is_ok());
-        
+
         assert_eq!(component.get_name(), "and_gate");
         assert_eq!(component.get_inputs().len(), 2);
         assert_eq!(component.get_outputs().len(), 1);
@@ -485,7 +500,7 @@ mod tests {
         let invalid_blif = ".unknown_directive test";
         let result = BlifParser::new(invalid_blif.to_string());
         assert!(result.is_err());
-        
+
         if let Err(BlifParseError::UnknownDirective(directive)) = result {
             assert_eq!(directive, ".unknown_directive");
         } else {

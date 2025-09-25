@@ -23,17 +23,20 @@
 //! The Rust implementation maintains API compatibility while leveraging
 //! Rust's type safety and memory management features.
 
-pub mod model;
-pub mod content;
-pub mod parsers;
 pub mod components;
+pub mod content;
 pub mod file_io;
+pub mod model;
+pub mod parsers;
 pub mod strings;
 
 // Re-export public types for convenience
-pub use model::*;
-pub use content::{HdlContent, HdlContentEditor, HdlContentAttribute, BasicHdlContentEditor};
-pub use parsers::*;
-pub use components::{VhdlEntityComponent, BlifCircuitComponent, HdlLibrary, VhdlEntityAttributes, BlifCircuitAttributes, GenericInterfaceAttributes, HdlAttributeFactory, HdlAttributeConstants};
+pub use components::{
+    BlifCircuitAttributes, BlifCircuitComponent, GenericInterfaceAttributes, HdlAttributeConstants,
+    HdlAttributeFactory, HdlLibrary, VhdlEntityAttributes, VhdlEntityComponent,
+};
+pub use content::{BasicHdlContentEditor, HdlContent, HdlContentAttribute, HdlContentEditor};
 pub use file_io::*;
+pub use model::*;
+pub use parsers::*;
 pub use strings::*;

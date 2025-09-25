@@ -155,7 +155,7 @@ impl AppearanceType {
     pub fn display_name(&self) -> &'static str {
         match self {
             AppearanceType::Classic => "Classic",
-            AppearanceType::Modern => "Modern", 
+            AppearanceType::Modern => "Modern",
             AppearanceType::Evolution => "Evolution",
         }
     }
@@ -196,10 +196,9 @@ impl StdAttr {
     /// A suitable default location for the label.
     pub fn default_label_location(facing: Direction, bounds: crate::data::Bounds) -> Location {
         match facing {
-            Direction::North => Location::new(
-                bounds.get_x() + bounds.get_width() / 2,
-                bounds.get_y() - 5,
-            ),
+            Direction::North => {
+                Location::new(bounds.get_x() + bounds.get_width() / 2, bounds.get_y() - 5)
+            }
             Direction::South => Location::new(
                 bounds.get_x() + bounds.get_width() / 2,
                 bounds.get_y() + bounds.get_height() + 15,
@@ -208,10 +207,9 @@ impl StdAttr {
                 bounds.get_x() + bounds.get_width() + 5,
                 bounds.get_y() + bounds.get_height() / 2,
             ),
-            Direction::West => Location::new(
-                bounds.get_x() - 5,
-                bounds.get_y() + bounds.get_height() / 2,
-            ),
+            Direction::West => {
+                Location::new(bounds.get_x() - 5, bounds.get_y() + bounds.get_height() / 2)
+            }
         }
     }
 
@@ -245,13 +243,13 @@ mod tests {
     fn test_trigger_type_properties() {
         assert!(TriggerType::RisingEdge.is_edge());
         assert!(!TriggerType::RisingEdge.is_level());
-        
+
         assert!(TriggerType::FallingEdge.is_edge());
         assert!(!TriggerType::FallingEdge.is_level());
-        
+
         assert!(!TriggerType::HighLevel.is_edge());
         assert!(TriggerType::HighLevel.is_level());
-        
+
         assert!(!TriggerType::LowLevel.is_edge());
         assert!(TriggerType::LowLevel.is_level());
     }
@@ -290,19 +288,19 @@ mod tests {
     #[test]
     fn test_default_label_location() {
         let bounds = Bounds::create(10, 20, 30, 40);
-        
+
         let north_loc = StdAttr::default_label_location(Direction::North, bounds);
         assert_eq!(north_loc.x, 25); // center x: 10 + 30/2
         assert_eq!(north_loc.y, 15); // above: 20 - 5
-        
+
         let south_loc = StdAttr::default_label_location(Direction::South, bounds);
         assert_eq!(south_loc.x, 25); // center x: 10 + 30/2
         assert_eq!(south_loc.y, 75); // below: 20 + 40 + 15
-        
+
         let east_loc = StdAttr::default_label_location(Direction::East, bounds);
         assert_eq!(east_loc.x, 45); // right: 10 + 30 + 5
         assert_eq!(east_loc.y, 40); // center y: 20 + 40/2
-        
+
         let west_loc = StdAttr::default_label_location(Direction::West, bounds);
         assert_eq!(west_loc.x, 5); // left: 10 - 5
         assert_eq!(west_loc.y, 40); // center y: 20 + 40/2

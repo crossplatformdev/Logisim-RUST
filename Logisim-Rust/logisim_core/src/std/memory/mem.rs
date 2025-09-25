@@ -51,7 +51,7 @@ pub trait MemoryComponent: Send + Sync {
 /// Base memory component factory
 pub struct MemFactory {
     name: String,
-    description: StringGetter,
+    description: crate::util::ConstantStringGetter,
     extra_ports: i32,
     needs_label: bool,
     current_files: HashMap<u32, PathBuf>, // Instance ID -> File path

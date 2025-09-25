@@ -15,7 +15,7 @@
 use crate::component::{Component, ComponentId};
 
 /// Odd parity gate implementation (placeholder)
-/// 
+///
 /// Outputs high when an odd number of inputs are high.
 #[derive(Debug)]
 pub struct OddParityGate {
@@ -45,7 +45,10 @@ impl Component for OddParityGate {
         todo!("OddParityGate implementation needed")
     }
 
-    fn update(&mut self, _current_time: crate::signal::Timestamp) -> crate::component::UpdateResult {
+    fn update(
+        &mut self,
+        _current_time: crate::signal::Timestamp,
+    ) -> crate::component::UpdateResult {
         todo!("OddParityGate implementation needed")
     }
 
