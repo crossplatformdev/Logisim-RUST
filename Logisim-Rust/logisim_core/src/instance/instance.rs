@@ -13,7 +13,7 @@
 //! metadata and lifecycle management. This is equivalent to Java's `Instance` class.
 
 use crate::data::{Attribute, AttributeSet, Bounds, Location};
-use crate::instance::{InstanceComponent, InstanceData, InstanceFactory, Port};
+use crate::instance::{InstanceComponent, InstanceFactory, Port};
 use std::fmt;
 use std::sync::{Arc, Weak};
 
@@ -228,7 +228,6 @@ impl Instance {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::BitWidth;
     use crate::instance::{PortType, PortWidth};
     use std::sync::Arc;
 

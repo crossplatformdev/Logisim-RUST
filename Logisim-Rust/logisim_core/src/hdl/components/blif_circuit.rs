@@ -3,8 +3,7 @@
 //! BLIF circuit component implementation.
 //! This module ports functionality from Java BlifCircuitComponent.
 
-use crate::comp::{Component, ComponentId, Pin};
-use crate::component::UpdateResult;
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 use crate::hdl::parsers::BlifContentComponent;
 use crate::{Timestamp};
 use std::collections::HashMap;

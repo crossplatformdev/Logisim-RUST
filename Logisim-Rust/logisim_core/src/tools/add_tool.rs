@@ -17,14 +17,13 @@
 //! and creation of the appropriate actions for undo/redo functionality.
 
 use crate::{
-    component::{Component, ComponentFactory, ComponentId},
+    component::{Component, ComponentFactory},
     data::{AttributeSet, Location, Bounds},
     tools::{
-        tool::{Tool, Canvas, ComponentDrawContext, MouseEvent, KeyEvent, LogisimVersion, CursorType},
+        tool::{Tool, Canvas, ComponentDrawContext, MouseEvent, CursorType},
         ToolResult,
     },
 };
-use std::collections::HashSet;
 
 /// State of the AddTool during interaction
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

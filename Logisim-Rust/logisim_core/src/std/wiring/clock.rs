@@ -13,8 +13,8 @@
 //! to drive sequential logic circuits.
 
 use crate::{
-    component::{ClockEdge, Pin as ComponentPin, UpdateResult},
-    comp::component::{Component, ComponentId},
+    component::{UpdateResult},
+    comp::{Component, ComponentId, Pin},
     data::Direction,
     signal::{BusWidth, Signal, Timestamp, Value},
     std::wiring::WiringComponentFactory,
@@ -70,7 +70,7 @@ pub struct Clock {
     id: ComponentId,
     attributes: ClockAttributes,
     state: ClockState,
-    pins: HashMap<String, ComponentPin>,
+    pins: HashMap<String, Pin>,
 }
 
 impl Clock {
@@ -83,8 +83,8 @@ impl Clock {
         state.next_transition_time = attributes.low_duration;
         
         // Create the output pin - always 1-bit wide
-        let mut output_pin = ComponentPin::new_output("out", BusWidth(1));
-        output_pin.signal = Signal::new_single(state.current_value);
+        let mut output_pin = Pin::new_output("out", BusWidth(1));
+        output_pin.set_signal(Signal::new_single(state.current_value)).unwrap();
         
         let mut pins = HashMap::new();
         pins.insert("out".to_string(), output_pin);
@@ -176,11 +176,11 @@ impl Component for Clock {
         CLOCK_ID
     }
 
-    fn pins(&self) -> &HashMap<String, ComponentPin> {
+    fn pins(&self) -> &HashMap<String, Pin> {
         &self.pins
     }
 
-    fn pins_mut(&mut self) -> &mut HashMap<String, ComponentPin> {
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
         &mut self.pins
     }
 

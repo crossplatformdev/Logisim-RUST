@@ -12,10 +12,9 @@
 //! This module provides the `InstancePainter` struct for rendering component instances.
 //! This is equivalent to Java's `InstancePainter` class.
 
-use crate::data::{Attribute, AttributeSet, Bounds, Direction};
+use crate::data::{AttributeSet, Bounds, Direction};
 use crate::{Value};
 use crate::instance::{Instance, InstanceFactory, InstanceState, Port};
-use std::fmt;
 
 /// Drawing context and utilities for rendering component instances.
 ///
@@ -386,7 +385,6 @@ impl InstanceState for InstancePainter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::Location;
 
     #[test]
     fn test_instance_painter_creation() {
