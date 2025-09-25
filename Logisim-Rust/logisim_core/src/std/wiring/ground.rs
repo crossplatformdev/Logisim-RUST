@@ -13,8 +13,8 @@
 //! They are essential for providing known reference levels.
 
 use crate::{
-    component::{Component, ComponentId, Pin as ComponentPin, UpdateResult},
-    signal::{BusWidth, Signal, Timestamp, Value},
+    comp::{Component, ComponentId, Pin, UpdateResult},
+    signal::{BusWidth, Signal, Timestamp},
     std::wiring::WiringComponentFactory,
 };
 use std::collections::HashMap;
@@ -40,7 +40,7 @@ impl Default for GroundAttributes {
 pub struct Ground {
     id: ComponentId,
     attributes: GroundAttributes,
-    pins: HashMap<String, ComponentPin>,
+    pins: HashMap<String, Pin>,
 }
 
 impl Ground {
@@ -49,7 +49,7 @@ impl Ground {
         let attributes = GroundAttributes::default();
 
         // Create the output pin - ground always outputs low
-        let mut output_pin = ComponentPin::new_output("out", attributes.width);
+        let mut output_pin = Pin::new_output("out", attributes.width);
         output_pin.signal = Signal::all_low(attributes.width);
 
         let mut pins = HashMap::new();
@@ -88,11 +88,11 @@ impl Component for Ground {
         GROUND_ID
     }
 
-    fn pins(&self) -> &HashMap<String, ComponentPin> {
+    fn pins(&self) -> &HashMap<String, Pin> {
         &self.pins
     }
 
-    fn pins_mut(&mut self) -> &mut HashMap<String, ComponentPin> {
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
         &mut self.pins
     }
 

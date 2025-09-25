@@ -15,7 +15,7 @@
 use crate::{
     data::{BitWidth, Bounds, Direction, Location},
     tools::{Library, Tool, AddTool},
-    component::{ComponentFactory, ComponentId},
+    comp::{ComponentFactory, ComponentId},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

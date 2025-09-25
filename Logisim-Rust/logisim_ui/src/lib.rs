@@ -40,6 +40,8 @@ mod main_lib;
 
 // Re-export main UI types for convenience
 pub use gui::app::LogisimApp;
+
+#[cfg(feature = "gui")]
 pub use gui::frame::MainFrame;
 
 #[cfg(feature = "gui")]

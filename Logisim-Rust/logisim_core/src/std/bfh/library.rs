@@ -13,7 +13,7 @@
 //! equivalent to Java's `BfhLibrary` class. It contains educational and practical
 //! digital components like BCD converters and display decoders.
 
-use crate::component::ComponentId;
+use crate::comp::ComponentId;
 use super::{BinToBcd, BcdToSevenSegmentDisplay};
 
 /// BFH Components Library
@@ -51,12 +51,12 @@ impl BfhLibrary {
     }
 
     /// Create a Binary to BCD converter
-    pub fn create_bin_to_bcd(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_bin_to_bcd(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(BinToBcd::new(id))
     }
 
     /// Create a BCD to 7-Segment Display decoder
-    pub fn create_bcd_to_seven_segment(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_bcd_to_seven_segment(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(BcdToSevenSegmentDisplay::new(id))
     }
 }

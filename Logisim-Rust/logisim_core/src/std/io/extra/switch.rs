@@ -15,7 +15,7 @@
 //! Users can click the switch to toggle between on/off states.
 
 use crate::{
-    comp::{component::{Component, ComponentId, UpdateResult}, pin::Pin},
+    comp::{Component, ComponentId, Pin, UpdateResult},
     data::{AttributeSet, Bounds, Location},
     signal::{BusWidth, Signal, Timestamp, Value},
 };
@@ -81,12 +81,18 @@ impl Switch {
     /// Create a new switch component
     pub fn new(id: ComponentId) -> Self {
         let mut pins = HashMap::new();
-        
+
         // Input pin for the signal to switch
-        pins.insert("input".to_string(), Pin::new_input("input", BusWidth::new(1)));
+        pins.insert(
+            "input".to_string(),
+            Pin::new_input("input", BusWidth::new(1)),
+        );
         // Output pin for the switched signal
-        pins.insert("output".to_string(), Pin::new_output("output", BusWidth::new(1)));
-        
+        pins.insert(
+            "output".to_string(),
+            Pin::new_output("output", BusWidth::new(1)),
+        );
+
         Self {
             id,
             data: SwitchData::new(),
@@ -150,7 +156,7 @@ impl Component for Switch {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         let mut result = UpdateResult::new();
-        
+
         if let Some(input_pin) = self.get_pin("input") {
             let output_value = if self.data.is_active() {
                 // Pass through input when switch is active
@@ -159,12 +165,12 @@ impl Component for Switch {
                 // Output unknown/floating when inactive
                 Value::Unknown
             };
-            
+
             let output_signal = Signal::new_single(output_value);
             result.add_output("output".to_string(), output_signal);
             result.set_delay(1); // Minimal propagation delay
         }
-        
+
         result
     }
 
@@ -201,14 +207,14 @@ mod tests {
     #[test]
     fn test_switch_toggle() {
         let mut switch = Switch::new(ComponentId::new(1));
-        
+
         // Initially inactive
         assert!(!switch.get_data().is_active());
-        
+
         // Toggle to active
         switch.toggle();
         assert!(switch.get_data().is_active());
-        
+
         // Toggle back to inactive
         switch.toggle();
         assert!(!switch.get_data().is_active());
@@ -226,7 +232,7 @@ mod tests {
     fn test_switch_bounds() {
         let switch = Switch::new(ComponentId::new(1));
         let bounds = switch.bounds();
-        
+
         assert!(bounds.is_some());
         assert_eq!(bounds.unwrap(), Bounds::create(-20, -15, 20, 30));
     }

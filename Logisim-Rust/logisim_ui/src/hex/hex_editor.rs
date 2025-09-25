@@ -79,7 +79,12 @@ impl HexEditor {
     /// Set the data model
     pub fn set_model(&mut self, model: Option<Arc<Mutex<dyn HexModel>>>) {
         self.model = model;
-        self.measures.recompute(self.get_model_ref().as_deref());
+        if let Some(model) = &self.model {
+            let model_guard = model.lock().unwrap();
+            self.measures.recompute(Some(&*model_guard));
+        } else {
+            self.measures.recompute(None);
+        }
         self.caret.clear_selection(&mut self.highlighter);
         self.update_preferred_size();
     }
@@ -92,7 +97,12 @@ impl HexEditor {
     /// Set font size
     pub fn set_font_size(&mut self, size: f32) {
         self.font_size = size;
-        self.measures.recompute(self.get_model_ref().as_deref());
+        if let Some(model) = &self.model {
+            let model_guard = model.lock().unwrap();
+            self.measures.recompute(Some(&*model_guard));
+        } else {
+            self.measures.recompute(None);
+        }
         self.update_preferred_size();
     }
 
@@ -104,21 +114,35 @@ impl HexEditor {
     /// Set whether to show addresses
     pub fn set_show_addresses(&mut self, show: bool) {
         self.show_addresses = show;
-        self.measures.recompute(self.get_model_ref().as_deref());
+        if let Some(model) = &self.model {
+            let model_guard = model.lock().unwrap();
+            self.measures.recompute(Some(&*model_guard));
+        } else {
+            self.measures.recompute(None);
+        }
         self.update_preferred_size();
     }
 
     /// Set bytes per row (None for auto-calculation)
     pub fn set_bytes_per_row(&mut self, bytes: Option<usize>) {
         self.bytes_per_row = bytes;
-        self.measures.recompute(self.get_model_ref().as_deref());
+        if let Some(model) = &self.model {
+            let model_guard = model.lock().unwrap();
+            self.measures.recompute(Some(&*model_guard));
+        } else {
+            self.measures.recompute(None);
+        }
         self.update_preferred_size();
     }
 
     /// Add a highlight
     pub fn add_highlight(&mut self, start: u64, end: u64, color: Color32) -> Option<usize> {
-        self.highlighter
-            .add(start, end, color, self.get_model_ref().as_deref())
+        if let Some(model) = &self.model {
+            let model_guard = model.lock().unwrap();
+            self.highlighter.add(start, end, color, Some(&*model_guard))
+        } else {
+            self.highlighter.add(start, end, color, None)
+        }
     }
 
     /// Remove a highlight
@@ -133,8 +157,13 @@ impl HexEditor {
 
     /// Select all content
     pub fn select_all(&mut self) {
-        self.caret
-            .select_all(&mut self.highlighter, self.get_model_ref().as_deref());
+        if let Some(model) = &self.model {
+            let model_guard = model.lock().unwrap();
+            self.caret
+                .select_all(&mut self.highlighter, Some(&*model_guard));
+        } else {
+            self.caret.select_all(&mut self.highlighter, None);
+        }
     }
 
     /// Clear selection
@@ -149,12 +178,18 @@ impl HexEditor {
 
     /// Set cursor position
     pub fn set_cursor(&mut self, address: u64) {
-        self.caret.set_dot(
-            address as i64,
-            false,
-            &mut self.highlighter,
-            self.get_model_ref().as_deref(),
-        );
+        if let Some(model) = &self.model {
+            let model_guard = model.lock().unwrap();
+            self.caret.set_dot(
+                address as i64,
+                false,
+                &mut self.highlighter,
+                Some(&*model_guard),
+            );
+        } else {
+            self.caret
+                .set_dot(address as i64, false, &mut self.highlighter, None);
+        }
     }
 
     /// Get cursor position
@@ -180,6 +215,17 @@ impl HexEditor {
     /// Get model reference for internal use
     fn get_model_ref(&self) -> Option<Arc<Mutex<dyn HexModel>>> {
         self.model.clone()
+    }
+
+    /// Get model for functions that need &dyn HexModel
+    fn with_model_ref<T, F>(&self, f: F) -> Option<T>
+    where
+        F: FnOnce(&dyn HexModel) -> T,
+    {
+        self.model.as_ref().map(|model| {
+            let model_guard = model.lock().unwrap();
+            f(&*model_guard)
+        })
     }
 
     /// Update preferred size based on model and measurements
@@ -329,16 +375,22 @@ impl HexEditor {
                     ..
                 } = event
                 {
+                    // Extract model reference to avoid borrowing conflicts
+                    let model_ref = self.model.as_ref();
+                    let model_guard;
+                    let model_ptr = if let Some(model) = model_ref {
+                        model_guard = model.lock().unwrap();
+                        Some(&*model_guard as &dyn HexModel)
+                    } else {
+                        None
+                    };
+
                     if self.caret.handle_key_input(
                         key,
                         modifiers,
                         &self.measures,
                         &mut self.highlighter,
-                        self.get_model_ref()
-                            .as_deref()
-                            .map(|m| m.lock().ok())
-                            .flatten()
-                            .as_deref(),
+                        model_ptr,
                     ) {
                         ui.ctx().request_repaint();
                     }
@@ -350,31 +402,39 @@ impl HexEditor {
         if let Some(pos) = response.interact_pointer_pos() {
             if response.clicked() {
                 let extend_selection = ui.input(|i| i.modifiers.shift);
+                // Extract model reference to avoid borrowing conflicts
+                let model_ref = self.model.as_ref();
+                let model_guard;
+                let model_ptr = if let Some(model) = model_ref {
+                    model_guard = model.lock().unwrap();
+                    Some(&*model_guard as &dyn HexModel)
+                } else {
+                    None
+                };
+
                 self.caret.handle_mouse_click(
                     pos,
                     extend_selection,
                     &self.measures,
                     &mut self.highlighter,
-                    self.get_model_ref()
-                        .as_deref()
-                        .map(|m| m.lock().ok())
-                        .flatten()
-                        .as_deref(),
+                    model_ptr,
                 );
                 ui.ctx().request_repaint();
             }
 
             if response.dragged() {
-                self.caret.handle_mouse_drag(
-                    pos,
-                    &self.measures,
-                    &mut self.highlighter,
-                    self.get_model_ref()
-                        .as_deref()
-                        .map(|m| m.lock().ok())
-                        .flatten()
-                        .as_deref(),
-                );
+                // Extract model reference to avoid borrowing conflicts
+                let model_ref = self.model.as_ref();
+                let model_guard;
+                let model_ptr = if let Some(model) = model_ref {
+                    model_guard = model.lock().unwrap();
+                    Some(&*model_guard as &dyn HexModel)
+                } else {
+                    None
+                };
+
+                self.caret
+                    .handle_mouse_drag(pos, &self.measures, &mut self.highlighter, model_ptr);
                 ui.ctx().request_repaint();
             }
         }
@@ -383,8 +443,6 @@ impl HexEditor {
 
 #[cfg(feature = "gui")]
 impl Widget for &mut HexEditor {
-    type Response = Response;
-
     fn ui(self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(self.preferred_size, Sense::click_and_drag());
 
@@ -436,8 +494,6 @@ impl<'a> ScrollableHexEditor<'a> {
 
 #[cfg(feature = "gui")]
 impl<'a> Widget for ScrollableHexEditor<'a> {
-    type Response = Response;
-
     fn ui(self, ui: &mut Ui) -> Response {
         let mut scroll_area = ScrollArea::both().auto_shrink([false, false]);
 

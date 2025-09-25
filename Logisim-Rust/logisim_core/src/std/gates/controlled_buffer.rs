@@ -12,7 +12,7 @@
 //! Rust port of `com.cburch.logisim.std.gates.ControlledBuffer`
 //! TODO: Full implementation needed
 
-use crate::component::{Component, ComponentId};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 
 /// Controlled buffer implementation (placeholder)
 ///
@@ -38,18 +38,15 @@ impl Component for ControlledBuffer {
         "Controlled Buffer"
     }
 
-    fn pins(&self) -> &std::collections::HashMap<String, crate::component::Pin> {
+    fn pins(&self) -> &std::collections::HashMap<String, Pin> {
         todo!("ControlledBuffer implementation needed")
     }
 
-    fn pins_mut(&mut self) -> &mut std::collections::HashMap<String, crate::component::Pin> {
+    fn pins_mut(&mut self) -> &mut std::collections::HashMap<String, Pin> {
         todo!("ControlledBuffer implementation needed")
     }
 
-    fn update(
-        &mut self,
-        _current_time: crate::signal::Timestamp,
-    ) -> crate::component::UpdateResult {
+    fn update(&mut self, _current_time: crate::signal::Timestamp) -> UpdateResult {
         todo!("ControlledBuffer implementation needed")
     }
 

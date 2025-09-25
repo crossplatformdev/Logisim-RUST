@@ -13,7 +13,7 @@
 //! TTL integrated circuit.
 
 use crate::{
-    component::{Component, ComponentId, Pin},
+    comp::{Component, ComponentId, Pin},
     data::{AttributeSet, Bounds, Direction, Location},
     signal::Value,
     instance::{Instance, InstanceFactory, InstancePainter, InstanceState},
@@ -189,9 +189,9 @@ impl Component for Ttl7400 {
         &mut self.pins
     }
     
-    fn update(&mut self, current_time: crate::signal::Timestamp) -> crate::component::UpdateResult {
+    fn update(&mut self, current_time: crate::signal::Timestamp) -> crate::comp::UpdateResult {
         // Implementation for updating TTL 7400
-        crate::component::UpdateResult::Continue
+        crate::comp::UpdateResult::Continue
     }
     
     fn reset(&mut self) {
