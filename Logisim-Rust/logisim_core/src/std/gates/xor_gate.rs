@@ -11,7 +11,7 @@
 //!
 //! Rust port of `com.cburch.logisim.std.gates.XorGate`
 
-use crate::component::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -95,7 +95,7 @@ impl Component for XorGate {
         for &input in &inputs {
             match input {
                 Value::High => high_count += 1,
-                Value::Unknown | Value::Error => has_unknown = true,
+                Value::Unknown | Value::Error | Value::HighZ => has_unknown = true,
                 Value::Low => {} // No effect on XOR
             }
         }
@@ -130,20 +130,6 @@ impl Component for XorGate {
 
     fn propagation_delay(&self) -> u64 {
         3 // 3 time units for XOR gate
-    }
-}
-
-impl Propagator for XorGate {
-    fn propagate(
-        &mut self,
-        input_pin: &str,
-        signal: Signal,
-        current_time: Timestamp,
-    ) -> UpdateResult {
-        if let Some(pin) = self.pins.get_mut(input_pin) {
-            let _ = pin.set_signal(signal);
-        }
-        self.update(current_time)
     }
 }
 

@@ -13,7 +13,7 @@
 //! TTL integrated circuit.
 
 use crate::{
-    component::{Component, ComponentId},
+    comp::{Component, ComponentId},
     instance::{InstancePainter, InstanceState},
 };
 use super::abstract_ttl_gate::{AbstractTtlGate, TtlGateImpl};

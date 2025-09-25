@@ -13,7 +13,7 @@
 //! It can select a single bit or a range of bits from a wider bus.
 
 use crate::{
-    component::{Component, ComponentId, Pin, Propagator, UpdateResult},
+    comp::{Component, ComponentId, Pin, Propagator, UpdateResult},
     data::{BitWidth, Bounds, Direction, Location},
     signal::{BusWidth, Signal, Timestamp, Value},
 };
@@ -87,7 +87,7 @@ impl BitSelector {
         let input_pin = Pin::new(
             "Input".to_string(),
             self.input_width,
-            crate::component::PinDirection::Input,
+            crate::comp::PinDirection::Input,
             Location::new(0, 15),
         );
         self.pins.insert("input".to_string(), input_pin);
@@ -96,7 +96,7 @@ impl BitSelector {
         let output_pin = Pin::new(
             "Output".to_string(),
             self.output_width,
-            crate::component::PinDirection::Output,
+            crate::comp::PinDirection::Output,
             Location::new(40, 15),
         );
         self.pins.insert("output".to_string(), output_pin);
