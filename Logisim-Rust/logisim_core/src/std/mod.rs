@@ -26,6 +26,7 @@
 
 pub mod base;
 pub mod gates;
+pub mod io;
 pub mod wiring;
 pub mod arith;
 
@@ -33,5 +34,6 @@ pub mod arith;
 // Re-export commonly used types
 pub use base::*;
 pub use gates::*;
+pub use io::*;
 pub use wiring::*;
 pub use arith::*;
