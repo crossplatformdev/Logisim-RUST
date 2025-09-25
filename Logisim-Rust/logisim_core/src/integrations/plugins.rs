@@ -25,6 +25,8 @@ pub enum PluginError {
     DependencyMissing(String),
     #[error("Plugin version incompatible: {0}")]
     VersionIncompatible(String),
+    #[error("Observer error: {0}")]
+    ObserverError(#[from] crate::observers::ObserverError),
 }
 
 /// Plugin operation result

@@ -6,8 +6,12 @@
 //! # API Stability Warning
 //! These observers use **UNSTABLE** APIs that may change without notice.
 
-use logisim_core::*;
-use std::collections::HashMap;
+use logisim_core::{
+    SimulationObserver, ComponentObserver, SystemObserver,
+    SimulationEvent, ObserverComponentEvent as ComponentEvent, // Use the aliased version
+    ObserverId, ObserverResult, ComponentId, Timestamp,
+};
+use ::std::collections::HashMap;
 
 /// A plugin event logger that logs all events it observes
 /// 
@@ -368,59 +372,83 @@ impl ComponentObserver for ComponentStateTracker {
             }
             
             ComponentEvent::StateChanged { component_id, timestamp } => {
+                let current_count = if let Some(stats) = self.component_stats.get(component_id) {
+                    stats.state_changes + 1
+                } else {
+                    1
+                };
+                
                 if let Some(stats) = self.component_stats.get_mut(component_id) {
-                    stats.state_changes += 1;
+                    stats.state_changes = current_count;
                     stats.last_activity = *timestamp;
-                    
-                    self.log_activity(
-                        *component_id, 
-                        ActivityType::StateChanged, 
-                        format!("State change #{}", stats.state_changes),
-                        *timestamp
-                    );
                 }
+                
+                self.log_activity(
+                    *component_id, 
+                    ActivityType::StateChanged, 
+                    format!("State change #{}", current_count),
+                    *timestamp
+                );
             }
             
             ComponentEvent::InputChanged { component_id, pin_name, old_signal, new_signal, timestamp } => {
+                let current_count = if let Some(stats) = self.component_stats.get(component_id) {
+                    stats.input_changes + 1
+                } else {
+                    1
+                };
+                
                 if let Some(stats) = self.component_stats.get_mut(component_id) {
-                    stats.input_changes += 1;
+                    stats.input_changes = current_count;
                     stats.last_activity = *timestamp;
-                    
-                    self.log_activity(
-                        *component_id, 
-                        ActivityType::InputChanged, 
-                        format!("Input {} changed: {:?} -> {:?}", pin_name, old_signal, new_signal),
-                        *timestamp
-                    );
                 }
+                
+                self.log_activity(
+                    *component_id, 
+                    ActivityType::InputChanged, 
+                    format!("Input {} changed: {:?} -> {:?}", pin_name, old_signal, new_signal),
+                    *timestamp
+                );
             }
             
             ComponentEvent::OutputChanged { component_id, pin_name, old_signal, new_signal, timestamp } => {
+                let current_count = if let Some(stats) = self.component_stats.get(component_id) {
+                    stats.output_changes + 1
+                } else {
+                    1
+                };
+                
                 if let Some(stats) = self.component_stats.get_mut(component_id) {
-                    stats.output_changes += 1;
+                    stats.output_changes = current_count;
                     stats.last_activity = *timestamp;
-                    
-                    self.log_activity(
-                        *component_id, 
-                        ActivityType::OutputChanged, 
-                        format!("Output {} changed: {:?} -> {:?}", pin_name, old_signal, new_signal),
-                        *timestamp
-                    );
                 }
+                
+                self.log_activity(
+                    *component_id, 
+                    ActivityType::OutputChanged, 
+                    format!("Output {} changed: {:?} -> {:?}", pin_name, old_signal, new_signal),
+                    *timestamp
+                );
             }
             
             ComponentEvent::Reset { component_id } => {
+                let current_count = if let Some(stats) = self.component_stats.get(component_id) {
+                    stats.reset_count + 1
+                } else {
+                    1
+                };
+                
                 if let Some(stats) = self.component_stats.get_mut(component_id) {
-                    stats.reset_count += 1;
+                    stats.reset_count = current_count;
                     stats.last_activity = Timestamp(0); // Reset events don't have timestamps
-                    
-                    self.log_activity(
-                        *component_id, 
-                        ActivityType::Reset, 
-                        format!("Reset #{}", stats.reset_count),
-                        Timestamp(0)
-                    );
                 }
+                
+                self.log_activity(
+                    *component_id, 
+                    ActivityType::Reset, 
+                    format!("Reset #{}", current_count),
+                    Timestamp(0)
+                );
             }
         }
         
@@ -543,7 +571,7 @@ mod tests {
     #[test]
     fn test_plugin_event_logger_creation() {
         let logger = PluginEventLogger::new();
-        assert_eq!(logger.name(), "Plugin Event Logger");
+        assert_eq!(SystemObserver::name(&logger), "Plugin Event Logger");
         assert_eq!(logger.get_total_event_count(), 0);
     }
 
@@ -567,7 +595,7 @@ mod tests {
     #[test]
     fn test_component_state_tracker_creation() {
         let tracker = ComponentStateTracker::new();
-        assert_eq!(tracker.name(), "Component State Tracker");
+        assert_eq!(ComponentObserver::name(&tracker), "Component State Tracker");
         assert_eq!(tracker.get_all_stats().len(), 0);
     }
 

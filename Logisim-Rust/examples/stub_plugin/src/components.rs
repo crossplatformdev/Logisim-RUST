@@ -6,8 +6,12 @@
 //! # API Stability Warning  
 //! These components use **UNSTABLE** APIs that may change without notice.
 
-use logisim_core::*;
-use std::collections::HashMap;
+use logisim_core::{
+    Component, ComponentId, 
+    comp::{UpdateResult, ClockEdge},
+    Pin, Signal, Value, BusWidth, Timestamp, PinDirection,
+};
+use ::std::collections::HashMap;
 
 /// A custom XOR gate with enhanced features
 /// 

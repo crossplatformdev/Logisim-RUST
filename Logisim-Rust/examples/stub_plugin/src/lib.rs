@@ -13,8 +13,12 @@
 //! This is an example/demonstration plugin and should not be used in production.
 //! Plugin developers should expect breaking changes and plan for migration.
 
-use logisim_core::*;
-use std::collections::HashMap;
+use logisim_core::{
+    PluginLibrary, PluginInfo, ComponentInfo, PluginResult, PluginError,
+    PluginCapabilities, PluginConfig, DynamicComponentFactory, PluginManager,
+    SystemObserver,
+};
+use ::std::collections::HashMap;
 use log::{info, warn};
 
 pub mod components;
@@ -49,7 +53,6 @@ impl StubPlugin {
             info,
             observers: vec![
                 Box::new(PluginEventLogger::new()),
-                Box::new(ComponentStateTracker::new()),
             ],
         }
     }
@@ -84,8 +87,8 @@ impl PluginLibrary for StubPlugin {
     fn create_component(
         &self,
         component_type: &str,
-        id: ComponentId,
-    ) -> PluginResult<Box<dyn Component>> {
+        id: logisim_core::ComponentId,
+    ) -> PluginResult<Box<dyn logisim_core::Component>> {
         match component_type {
             "CustomXOR" => {
                 info!("Creating CustomXOR component with ID: {}", id);
@@ -129,7 +132,7 @@ impl PluginLibrary for StubPlugin {
     }
 
     fn api_version(&self) -> u32 {
-        API_VERSION
+        1 // Hard-coded for now since API_VERSION isn't exported
     }
 
     fn capabilities(&self) -> PluginCapabilities {
@@ -195,15 +198,15 @@ impl DynamicComponentFactory for CustomXorFactory {
         }
     }
     
-    fn create_component(&self, id: ComponentId) -> PluginResult<Box<dyn Component>> {
+    fn create_component(&self, id: logisim_core::ComponentId) -> PluginResult<Box<dyn logisim_core::Component>> {
         Ok(Box::new(CustomXor::new(id)))
     }
     
     fn create_component_with_params(
         &self, 
-        id: ComponentId, 
+        id: logisim_core::ComponentId, 
         params: &HashMap<String, String>
-    ) -> PluginResult<Box<dyn Component>> {
+    ) -> PluginResult<Box<dyn logisim_core::Component>> {
         let mut component = CustomXor::new(id);
         
         // Configure component based on parameters
@@ -254,15 +257,15 @@ impl DynamicComponentFactory for CustomCounterFactory {
         }
     }
     
-    fn create_component(&self, id: ComponentId) -> PluginResult<Box<dyn Component>> {
+    fn create_component(&self, id: logisim_core::ComponentId) -> PluginResult<Box<dyn logisim_core::Component>> {
         Ok(Box::new(CustomCounter::new(id, 8))) // Default 8-bit
     }
     
     fn create_component_with_params(
         &self, 
-        id: ComponentId, 
+        id: logisim_core::ComponentId, 
         params: &HashMap<String, String>
-    ) -> PluginResult<Box<dyn Component>> {
+    ) -> PluginResult<Box<dyn logisim_core::Component>> {
         let bit_width = if let Some(width_str) = params.get("bit_width") {
             width_str.parse::<u32>().map_err(|_| {
                 PluginError::InvalidFormat("bit_width must be a valid integer".to_string())
@@ -361,6 +364,7 @@ pub fn register_observers(plugin_manager: &mut PluginManager) -> PluginResult<()
 #[cfg(test)]
 mod tests {
     use super::*;
+    use logisim_core::ComponentId;
 
     #[test]
     fn test_plugin_creation() {
