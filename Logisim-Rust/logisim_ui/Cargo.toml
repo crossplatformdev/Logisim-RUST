@@ -28,9 +28,8 @@ chrono = "0.4"
 # Additional dependencies for UI functionality
 indexmap = { version = "2.0", features = ["serde"] }
 
-# GUI framework dependencies - conditionally included for supported platforms
-# winit/egui requires proper display server setup, so we make these optional
-# and let the build system decide when to include them
+# GUI framework dependencies - conditionally included for GUI feature
+# Note: These may fail to compile on unsupported platforms (e.g., headless CI)
 egui = { version = "0.30", optional = true }
 eframe = { version = "0.30", default-features = false, features = [
     "default_fonts", # Embed the default egui fonts

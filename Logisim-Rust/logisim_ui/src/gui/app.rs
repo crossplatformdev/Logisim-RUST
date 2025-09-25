@@ -12,7 +12,7 @@ use super::frame::MainFrame;
 /// Main Logisim application struct - equivalent to the Java Frame class
 pub struct LogisimApp {
     /// The main frame containing all UI elements
-    #[cfg(feature = "gui")]
+    #[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     main_frame: MainFrame,
 
     /// Currently loaded project file path
@@ -22,7 +22,7 @@ pub struct LogisimApp {
     title: String,
 
     /// Current simulation (headless mode)
-    #[cfg(not(feature = "gui"))]
+    #[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
     simulation: Option<Simulation>,
 }
 
@@ -30,11 +30,11 @@ impl LogisimApp {
     /// Create a new Logisim application
     pub fn new() -> Self {
         Self {
-            #[cfg(feature = "gui")]
+            #[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
             main_frame: MainFrame::new(),
             current_file: None,
             title: "Logisim-RUST".to_string(),
-            #[cfg(not(feature = "gui"))]
+            #[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
             simulation: None,
         }
     }
@@ -44,10 +44,10 @@ impl LogisimApp {
         let simulation = CircIntegration::load_into_simulation(&path)
             .map_err(|e| UiError::FileError(format!("Failed to load circuit file: {}", e)))?;
 
-        #[cfg(feature = "gui")]
+        #[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
         self.main_frame.set_simulation(simulation);
 
-        #[cfg(not(feature = "gui"))]
+        #[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
         {
             self.simulation = Some(simulation);
         }
@@ -76,7 +76,7 @@ impl LogisimApp {
     }
 
     /// Get the current simulation (for headless mode)
-    #[cfg(not(feature = "gui"))]
+    #[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
     pub fn simulation(&self) -> Option<&Simulation> {
         self.simulation.as_ref()
     }
@@ -88,7 +88,7 @@ impl Default for LogisimApp {
     }
 }
 
-#[cfg(feature = "gui")]
+#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
 impl eframe::App for LogisimApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Update the main frame UI
@@ -105,7 +105,7 @@ impl eframe::App for LogisimApp {
 }
 
 /// Launch the Logisim application
-#[cfg(feature = "gui")]
+#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
 pub fn run_app() -> UiResult<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -138,7 +138,7 @@ pub fn run_app() -> UiResult<()> {
 }
 
 /// Launch the Logisim application with a circuit file
-#[cfg(feature = "gui")]
+#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
 pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -161,9 +161,13 @@ pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
 }
 
 /// Run in headless mode (for testing and non-GUI environments)
-#[cfg(not(feature = "gui"))]
+#[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
 pub fn run_app() -> UiResult<()> {
     println!("Logisim-RUST running in headless mode");
+    #[cfg(feature = "gui")]
+    {
+        println!("Note: GUI features requested but not available on this platform");
+    }
     Ok(())
 }
 
@@ -203,12 +207,17 @@ pub fn run_app_with_files(file_paths: Vec<PathBuf>) -> UiResult<()> {
 }
 
 /// Run with a file in headless mode
-#[cfg(not(feature = "gui"))]
+#[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
 pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
     let mut app = LogisimApp::new();
     app.load_circuit_file(file_path)?;
 
     println!("Loaded circuit file: {}", app.title());
+    #[cfg(feature = "gui")]
+    {
+        println!("Note: GUI features requested but not available on this platform");
+    }
+    #[cfg(not(feature = "gui"))]
     if let Some(sim) = app.simulation() {
         let stats = sim.netlist().stats();
         println!(
