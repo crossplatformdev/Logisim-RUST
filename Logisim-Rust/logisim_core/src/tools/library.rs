@@ -16,7 +16,7 @@
 //! functionality to the circuit designer. They can be built-in libraries
 //! like the base gate library, or external libraries loaded from files.
 
-use crate::{component::ComponentFactory, tools::tool::Tool};
+use crate::{comp::ComponentFactory, tools::tool::Tool};
 
 /// Trait for all libraries in the Logisim-RUST system
 ///
@@ -63,7 +63,7 @@ pub trait Library: Send + Sync {
     }
 
     /// Remove a sub-library by name
-    fn remove_library(&mut self, name: &str) -> bool {
+    fn remove_library(&mut self, _name: &str) -> bool {
         false // Default: cannot remove libraries
     }
 

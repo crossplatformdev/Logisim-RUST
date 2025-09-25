@@ -13,7 +13,7 @@
 //! communication between subcircuits and external interfaces.
 
 use crate::{
-    comp::{ComponentId, Component, Pin as CompPin, UpdateResult},
+    comp::{Component, ComponentId, Pin as CompPin, PinDirection, UpdateResult},
     data::Direction,
     signal::{BusWidth, Signal, Timestamp, Value},
     std::wiring::WiringComponentFactory,
@@ -116,15 +116,15 @@ impl Pin {
 
         // Create the component pin based on pin type
         let pin_direction = if attributes.is_output() {
-            Direction::Output
+            PinDirection::Output
         } else {
-            Direction::Input
+            PinDirection::Input
         };
 
         let component_pin = match pin_direction {
-            Direction::Input => CompPin::new_input("pin", attributes.width),
-            Direction::Output => CompPin::new_output("pin", attributes.width),
-            Direction::InOut => Pin::new_inout("pin", attributes.width),
+            PinDirection::Input => CompPin::new_input("pin", attributes.width),
+            PinDirection::Output => CompPin::new_output("pin", attributes.width),
+            PinDirection::InOut => CompPin::new_inout("pin", attributes.width),
         };
 
         let mut pins = HashMap::new();

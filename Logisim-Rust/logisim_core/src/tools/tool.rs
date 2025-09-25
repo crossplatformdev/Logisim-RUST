@@ -17,7 +17,7 @@
 //! to add components, make connections, and edit circuits.
 
 use crate::{
-    component::{Component, ComponentId},
+    comp::{Component, ComponentId},
     data::{AttributeSet, Location},
 };
 use std::collections::HashSet;
@@ -220,12 +220,12 @@ pub trait Tool: Send + Sync {
     fn clone_tool(&self) -> Box<dyn Tool>;
 
     /// Called when this tool is deselected from the toolbar
-    fn deselect(&mut self, canvas: &dyn Canvas) {
+    fn deselect(&mut self, _canvas: &dyn Canvas) {
         // Default implementation does nothing
     }
 
     /// Draw the tool's visual representation on the canvas
-    fn draw(&self, canvas: &dyn Canvas, context: &ComponentDrawContext) {
+    fn draw(&self, _canvas: &dyn Canvas, _context: &ComponentDrawContext) {
         // Default implementation does nothing
     }
 
@@ -235,7 +235,7 @@ pub trait Tool: Send + Sync {
     }
 
     /// Get the attribute set for this tool with canvas context
-    fn get_attribute_set_with_canvas(&self, canvas: &dyn Canvas) -> Option<&AttributeSet> {
+    fn get_attribute_set_with_canvas(&self, _canvas: &dyn Canvas) -> Option<&AttributeSet> {
         self.get_attribute_set()
     }
 
@@ -245,7 +245,11 @@ pub trait Tool: Send + Sync {
     }
 
     /// Get the default value for an attribute
-    fn get_default_attribute_value(&self, attr: &str, version: &LogisimVersion) -> Option<String> {
+    fn get_default_attribute_value(
+        &self,
+        _attr: &str,
+        _version: &LogisimVersion,
+    ) -> Option<String> {
         None
     }
 
@@ -259,77 +263,77 @@ pub trait Tool: Send + Sync {
     fn get_name(&self) -> String;
 
     /// Get components that should be hidden when this tool is active
-    fn get_hidden_components(&self, canvas: &dyn Canvas) -> Option<HashSet<ComponentId>> {
+    fn get_hidden_components(&self, _canvas: &dyn Canvas) -> Option<HashSet<ComponentId>> {
         None
     }
 
     /// Check if all attributes have default values
-    fn is_all_default_values(&self, attrs: &AttributeSet, version: &LogisimVersion) -> bool {
+    fn is_all_default_values(&self, _attrs: &AttributeSet, _version: &LogisimVersion) -> bool {
         false
     }
 
     /// Handle key press events
-    fn key_pressed(&mut self, canvas: &dyn Canvas, event: &KeyEvent) {
+    fn key_pressed(&mut self, _canvas: &dyn Canvas, _event: &KeyEvent) {
         // Default implementation does nothing
     }
 
     /// Handle key release events
-    fn key_released(&mut self, canvas: &dyn Canvas, event: &KeyEvent) {
+    fn key_released(&mut self, _canvas: &dyn Canvas, _event: &KeyEvent) {
         // Default implementation does nothing
     }
 
     /// Handle key typed events
-    fn key_typed(&mut self, canvas: &dyn Canvas, event: &KeyEvent) {
+    fn key_typed(&mut self, _canvas: &dyn Canvas, _event: &KeyEvent) {
         // Default implementation does nothing
     }
 
     /// Handle mouse drag events
-    fn mouse_dragged(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
+    fn mouse_dragged(&mut self, _canvas: &dyn Canvas, _event: &MouseEvent) {
         // Default implementation does nothing
     }
 
     /// Handle mouse enter events
-    fn mouse_entered(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
+    fn mouse_entered(&mut self, _canvas: &dyn Canvas, _event: &MouseEvent) {
         // Default implementation does nothing
     }
 
     /// Handle mouse exit events
-    fn mouse_exited(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
+    fn mouse_exited(&mut self, _canvas: &dyn Canvas, _event: &MouseEvent) {
         // Default implementation does nothing
     }
 
     /// Handle mouse move events
-    fn mouse_moved(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
+    fn mouse_moved(&mut self, _canvas: &dyn Canvas, _event: &MouseEvent) {
         // Default implementation does nothing
     }
 
     /// Handle mouse press events
-    fn mouse_pressed(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
+    fn mouse_pressed(&mut self, _canvas: &dyn Canvas, _event: &MouseEvent) {
         // Default implementation does nothing
     }
 
     /// Handle mouse release events
-    fn mouse_released(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
+    fn mouse_released(&mut self, _canvas: &dyn Canvas, _event: &MouseEvent) {
         // Default implementation does nothing
     }
 
     /// Paint the tool's icon at the specified location
-    fn paint_icon(&self, context: &ComponentDrawContext, x: i32, y: i32) {
+    fn paint_icon(&self, _context: &ComponentDrawContext, _x: i32, _y: i32) {
         // Default implementation does nothing
     }
 
     /// Called when this tool is selected from the toolbar
-    fn select(&mut self, canvas: &dyn Canvas) {
+    fn select(&mut self, _canvas: &dyn Canvas) {
         // Default implementation does nothing
     }
 
     /// Set the attribute set for this tool
-    fn set_attribute_set(&mut self, attrs: AttributeSet) {
+    fn set_attribute_set(&mut self, _attrs: AttributeSet) {
         // Default implementation does nothing
     }
 
     /// Check if this tool shares the same source as another tool
-    fn shares_source(&self, other: &dyn Tool) -> bool {
+    fn shares_source(&self, _other: &dyn Tool) -> bool {
         // Default implementation: tools are equal only if they're the same instance
         // We can't use ptr::eq here due to trait object limitations
         false // Conservative default - subclasses should override

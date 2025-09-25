@@ -45,10 +45,7 @@ impl Component for OddParityGate {
         todo!("OddParityGate implementation needed")
     }
 
-    fn update(
-        &mut self,
-        _current_time: crate::signal::Timestamp,
-    ) -> UpdateResult {
+    fn update(&mut self, _current_time: crate::signal::Timestamp) -> UpdateResult {
         todo!("OddParityGate implementation needed")
     }
 

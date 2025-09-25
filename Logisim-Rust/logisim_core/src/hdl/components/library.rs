@@ -76,7 +76,7 @@ impl HdlLibraryFactory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::component::Component;
+    use crate::comp::Component;
 
     #[test]
     fn test_hdl_library_creation() {

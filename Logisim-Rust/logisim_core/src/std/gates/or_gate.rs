@@ -122,7 +122,6 @@ impl Component for OrGate {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

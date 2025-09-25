@@ -11,7 +11,7 @@
 //!
 //! Rust port of `com.cburch.logisim.std.base.Text`
 
-use crate::component::{Component, ComponentId, Pin, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 use crate::signal::Timestamp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

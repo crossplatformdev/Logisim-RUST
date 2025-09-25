@@ -15,7 +15,6 @@ use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ops::Not;
 
 /// NOT Gate (Inverter) implementation
 ///
@@ -97,7 +96,6 @@ impl Component for NotGate {
         1 // 1 time unit for NOT gate
     }
 }
-
 
 #[cfg(test)]
 mod tests {

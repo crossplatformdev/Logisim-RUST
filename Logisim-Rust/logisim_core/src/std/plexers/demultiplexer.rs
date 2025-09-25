@@ -13,7 +13,7 @@
 //! based on a selection signal. The selection signal determines which output receives the input data.
 
 use crate::{
-    component::{Component, ComponentId, Pin, Propagator, UpdateResult},
+    comp::{Component, ComponentId, Pin, Propagator, UpdateResult},
     data::{BitWidth, Bounds, Direction, Location},
     signal::{BusWidth, Signal, Timestamp, Value},
 };
@@ -92,7 +92,7 @@ impl Demultiplexer {
         let input_pin = Pin::new(
             "Input".to_string(),
             self.data_width,
-            crate::component::PinDirection::Input,
+            crate::comp::PinDirection::Input,
             Location::new(0, 15),
         );
         self.pins.insert("input".to_string(), input_pin);
@@ -103,7 +103,7 @@ impl Demultiplexer {
             let pin = Pin::new(
                 format!("Output {}", i),
                 self.data_width,
-                crate::component::PinDirection::Output,
+                crate::comp::PinDirection::Output,
                 Location::new(40, 10 + i * 10),
             );
             self.pins.insert(pin_name, pin);
@@ -113,7 +113,7 @@ impl Demultiplexer {
         let select_pin = Pin::new(
             "Select".to_string(),
             BusWidth(self.select_bits as u32),
-            crate::component::PinDirection::Input,
+            crate::comp::PinDirection::Input,
             Location::new(20, 30),
         );
         self.pins.insert("select".to_string(), select_pin);
@@ -123,7 +123,7 @@ impl Demultiplexer {
             let enable_pin = Pin::new(
                 "Enable".to_string(),
                 BusWidth(1),
-                crate::component::PinDirection::Input,
+                crate::comp::PinDirection::Input,
                 Location::new(20, 0),
             );
             self.pins.insert("enable".to_string(), enable_pin);

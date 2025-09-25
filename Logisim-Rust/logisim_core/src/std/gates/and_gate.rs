@@ -122,7 +122,6 @@ impl Component for AndGate {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

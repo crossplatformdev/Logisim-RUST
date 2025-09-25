@@ -46,10 +46,7 @@ impl Component for Pla {
         todo!("PLA implementation needed")
     }
 
-    fn update(
-        &mut self,
-        _current_time: crate::signal::Timestamp,
-    ) -> UpdateResult {
+    fn update(&mut self, _current_time: crate::signal::Timestamp) -> UpdateResult {
         todo!("PLA implementation needed")
     }
 

@@ -15,7 +15,6 @@ use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ops::Not;
 
 /// NAND Gate implementation
 ///
@@ -123,7 +122,6 @@ impl Component for NandGate {
         2 // 2 time units for NAND gate
     }
 }
-
 
 #[cfg(test)]
 mod tests {

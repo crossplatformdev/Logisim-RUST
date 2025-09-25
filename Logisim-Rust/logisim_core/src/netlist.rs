@@ -4,7 +4,7 @@
 //! (the network of connected components), including nodes, nets, and
 //! the connections between components.
 
-use crate::component::ComponentId;
+use crate::comp::ComponentId;
 use crate::signal::{BusWidth, Signal};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};

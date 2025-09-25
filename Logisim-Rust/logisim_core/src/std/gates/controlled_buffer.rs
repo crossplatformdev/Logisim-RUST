@@ -46,10 +46,7 @@ impl Component for ControlledBuffer {
         todo!("ControlledBuffer implementation needed")
     }
 
-    fn update(
-        &mut self,
-        _current_time: crate::signal::Timestamp,
-    ) -> UpdateResult {
+    fn update(&mut self, _current_time: crate::signal::Timestamp) -> UpdateResult {
         todo!("ControlledBuffer implementation needed")
     }
 
