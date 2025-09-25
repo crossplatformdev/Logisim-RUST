@@ -135,6 +135,27 @@ impl Pin {
     pub fn get_signal(&self) -> &Signal {
         &self.signal
     }
+
+    /// Get the current signal (alias for get_signal)
+    pub fn signal(&self) -> &Signal {
+        &self.signal
+    }
+
+    /// Reset this pin to unknown state
+    pub fn reset(&mut self) {
+        self.signal = Signal::unknown(self.width);
+    }
+
+    /// Set the width of this pin
+    pub fn set_width(&mut self, width: BusWidth) {
+        self.width = width;
+        self.signal = Signal::unknown(width);
+    }
+
+    /// Get the width of this pin
+    pub fn width(&self) -> BusWidth {
+        self.width
+    }
 }
 
 /// Result of a component update
@@ -191,6 +212,24 @@ impl UpdateResult {
     /// Check if the component state changed
     pub fn has_state_changed(&self) -> bool {
         self.state_changed
+    }
+
+    /// Create result indicating no change occurred
+    pub fn no_change() -> Self {
+        UpdateResult {
+            outputs: HashMap::new(),
+            delay: 0,
+            state_changed: false,
+        }
+    }
+
+    /// Create result indicating change occurred  
+    pub fn changed() -> Self {
+        UpdateResult {
+            outputs: HashMap::new(),
+            delay: 0,
+            state_changed: true,
+        }
     }
 }
 
