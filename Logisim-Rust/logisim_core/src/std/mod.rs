@@ -18,6 +18,8 @@
 //! The module is organized to mirror the Java package structure:
 //! - `base`: Basic utilities and text components (BaseLibrary)
 //! - `gates`: Logic gates and related components (GatesLibrary)
+//! - `memory`: Memory components like RAM, ROM, flip-flops (MemoryLibrary)
+//! - `wiring`: Wiring components like pins, tunnels, splitters (WiringLibrary)
 //!
 //! ## Migration Status
 //!
@@ -26,10 +28,12 @@
 
 pub mod base;
 pub mod gates;
+pub mod memory;
 pub mod wiring;
 
 
 // Re-export commonly used types
 pub use base::*;
 pub use gates::*;
+pub use memory::*;
 pub use wiring::*;
