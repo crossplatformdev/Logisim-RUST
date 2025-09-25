@@ -30,10 +30,14 @@ pub mod base;
 pub mod bfh;
 pub mod gates;
 <<<<<<< HEAD
+<<<<<<< HEAD
 pub mod io;
 =======
 pub mod ttl;    // TTL integrated circuits
 >>>>>>> origin/copilot/fix-8670ab67-e80b-4622-811f-2cfa65e1bade
+=======
+pub mod io;
+>>>>>>> origin/copilot/fix-f356266b-bb16-4b5b-92f6-f52c4c0f6a69
 pub mod wiring;
 pub mod arith;
 
@@ -43,9 +47,13 @@ pub use base::*;
 pub use bfh::*;
 pub use gates::*;
 <<<<<<< HEAD
+<<<<<<< HEAD
 pub use io::*;
 =======
 pub use ttl::*;  // Export TTL components
 >>>>>>> origin/copilot/fix-8670ab67-e80b-4622-811f-2cfa65e1bade
+=======
+pub use io::*;
+>>>>>>> origin/copilot/fix-f356266b-bb16-4b5b-92f6-f52c4c0f6a69
 pub use wiring::*;
 pub use arith::*;
