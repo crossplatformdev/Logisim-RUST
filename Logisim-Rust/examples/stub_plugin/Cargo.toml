@@ -16,8 +16,8 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 logisim_core = { path = "../../logisim_core" }
 log = "0.4"
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "2.0"
+serde.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 env_logger = "0.10"

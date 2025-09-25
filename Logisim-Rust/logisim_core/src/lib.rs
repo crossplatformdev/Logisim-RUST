@@ -109,7 +109,7 @@ pub use integrations::plugins::{
 };
 pub use observers::{
     SimulationObserver, ComponentObserver, SystemObserver,
-    SimulationEvent, ComponentEvent,
+    SimulationEvent, ComponentEvent as ObserverComponentEvent,
     SimulationObserverManager, ComponentObserverManager, SystemObserverManager,
     ObserverId, ObserverError, ObserverResult,
     // Mark this as unstable API

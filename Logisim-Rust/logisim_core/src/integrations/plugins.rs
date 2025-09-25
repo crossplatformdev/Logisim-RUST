@@ -97,7 +97,7 @@ pub trait PluginLibrary: Send + Sync {
     }
     
     /// Validate plugin configuration
-    fn validate_config(&self, config: &PluginConfig) -> PluginResult<()> {
+    fn validate_config(&self, _config: &PluginConfig) -> PluginResult<()> {
         // Default implementation accepts any config
         Ok(())
     }
@@ -445,6 +445,11 @@ pub fn get_plugin_capabilities() -> PluginCapabilities {
         wasm_plugins: false,
         dynamic_loading: false,
         hot_reload: false,
+        observer_support: true,
+        custom_events: true,
+        custom_rendering: false,
+        ui_extensions: false,
+        custom_formats: false,
     }
 }
 
@@ -541,14 +546,14 @@ pub trait DynamicComponentFactory: Send + Sync {
     fn create_component_with_params(
         &self, 
         id: ComponentId, 
-        params: &std::collections::HashMap<String, String>
+        _params: &std::collections::HashMap<String, String>
     ) -> PluginResult<Box<dyn Component>> {
         // Default implementation ignores parameters
         self.create_component(id)
     }
     
     /// Validate component parameters before creation
-    fn validate_parameters(&self, params: &std::collections::HashMap<String, String>) -> PluginResult<()> {
+    fn validate_parameters(&self, _params: &std::collections::HashMap<String, String>) -> PluginResult<()> {
         // Default implementation accepts any parameters
         Ok(())
     }
@@ -659,7 +664,7 @@ impl ComponentRegistry {
         };
         
         self.factories.insert(component_type.clone(), factory);
-        self.component_metadata.insert(component_type, metadata);
+        self.component_metadata.insert(component_type.clone(), metadata);
         
         log::info!("Registered component factory for type: {}", component_type);
         Ok(())

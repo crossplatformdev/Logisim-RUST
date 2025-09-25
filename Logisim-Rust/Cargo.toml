@@ -1,5 +1,5 @@
 [workspace]
-members = ["logisim_core", "logisim_ui"]
+members = ["logisim_core", "logisim_ui", "examples/stub_plugin"]
 resolver = "2"
 
 [workspace.package]

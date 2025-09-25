@@ -4,9 +4,8 @@
 //! with custom behavior and plugins. The observer pattern allows external code
 //! to react to simulation events, component state changes, and other system events.
 
-use crate::{Component, ComponentId, Signal, Timestamp};
+use crate::{ComponentId, Signal, Timestamp};
 use std::collections::HashMap;
-use std::sync::{Arc, Weak};
 use thiserror::Error;
 
 /// Errors that can occur in the observer system
@@ -524,7 +523,7 @@ impl SystemObserver for LoggingObserver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::signal::{Signal, Value, Timestamp, BusWidth};
+    use crate::signal::{Timestamp};
 
     #[test]
     fn test_observer_manager_creation() {
