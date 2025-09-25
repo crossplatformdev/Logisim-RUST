@@ -1,0 +1,31 @@
+[package]
+name = "logisim_cli"
+version.workspace = true
+edition.workspace = true
+description = "Command-line interface for Logisim-RUST digital logic simulator"
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[[bin]]
+name = "logisim-cli"
+path = "src/main.rs"
+
+[dependencies]
+logisim_core = { path = "../logisim_core" }
+logisim_formats = { path = "../logisim_formats" }
+serde = { workspace = true }
+thiserror = { workspace = true }
+log = "0.4"
+env_logger = "0.10"
+clap = { version = "4.0", features = ["derive"] }
+anyhow = "1.0"
+
+[dev-dependencies]
+# Testing dependencies
+proptest = "1.0"
+tempfile = "3.0"
