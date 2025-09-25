@@ -17,7 +17,7 @@
 //! and creation of the appropriate actions for undo/redo functionality.
 
 use crate::{
-    component::{Component, ComponentFactory},
+    comp::{Component, ComponentFactory},
     data::{AttributeSet, Bounds, Location},
     tools::{
         tool::{Canvas, ComponentDrawContext, CursorType, MouseEvent, Tool},
@@ -174,7 +174,7 @@ struct MockComponentFactory {
     name: String,
 }
 
-impl ComponentFactory for MockComponentFactory {
+impl SimpleComponentFactory for MockComponentFactory {
     fn create_component(&self) -> Box<dyn Component> {
         panic!("Mock component creation not implemented")
     }
@@ -330,7 +330,7 @@ impl AddComponentAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::component::ComponentFactory;
+    use crate::comp::SimpleComponentFactory;
 
     struct MockComponentFactory {
         name: String,

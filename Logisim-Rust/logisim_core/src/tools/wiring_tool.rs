@@ -17,7 +17,7 @@
 //! provides visual feedback during wire placement.
 
 use crate::{
-    component::ComponentId,
+    comp::ComponentId,
     data::Location,
     tools::{
         tool::{Canvas, ComponentDrawContext, CursorType, KeyEvent, MouseButton, MouseEvent, Tool},

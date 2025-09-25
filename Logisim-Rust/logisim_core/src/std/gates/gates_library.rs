@@ -12,7 +12,7 @@
 //! Rust port of `com.cburch.logisim.std.gates.GatesLibrary`
 
 use super::*;
-use crate::component::ComponentId;
+use crate::comp::ComponentId;
 
 /// Gates Library - collection of all logic gate components
 ///
@@ -40,62 +40,62 @@ impl GatesLibrary {
     }
 
     /// Create an AND gate
-    pub fn create_and_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_and_gate(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(AndGate::new(id))
     }
 
     /// Create an OR gate
-    pub fn create_or_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_or_gate(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(OrGate::new(id))
     }
 
     /// Create a NOT gate
-    pub fn create_not_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_not_gate(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(NotGate::new(id))
     }
 
     /// Create a NAND gate
-    pub fn create_nand_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_nand_gate(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(NandGate::new(id))
     }
 
     /// Create a NOR gate
-    pub fn create_nor_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_nor_gate(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(NorGate::new(id))
     }
 
     /// Create an XOR gate
-    pub fn create_xor_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_xor_gate(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(XorGate::new(id))
     }
 
     /// Create an XNOR gate
-    pub fn create_xnor_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_xnor_gate(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(XnorGate::new(id))
     }
 
     /// Create a buffer
-    pub fn create_buffer(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_buffer(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Buffer::new(id))
     }
 
     /// Create a controlled buffer
-    pub fn create_controlled_buffer(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_controlled_buffer(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(ControlledBuffer::new(id))
     }
 
     /// Create an even parity gate
-    pub fn create_even_parity_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_even_parity_gate(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(EvenParityGate::new(id))
     }
 
     /// Create an odd parity gate
-    pub fn create_odd_parity_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_odd_parity_gate(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(OddParityGate::new(id))
     }
 
     /// Create a PLA
-    pub fn create_pla(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_pla(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Pla::new(id))
     }
 
@@ -121,7 +121,7 @@ impl GatesLibrary {
     pub fn create_gate_by_name(
         name: &str,
         id: ComponentId,
-    ) -> Option<Box<dyn crate::component::Component>> {
+    ) -> Option<Box<dyn crate::comp::Component>> {
         match name {
             "AND Gate" => Some(Self::create_and_gate(id)),
             "OR Gate" => Some(Self::create_or_gate(id)),

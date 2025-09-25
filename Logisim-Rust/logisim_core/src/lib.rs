@@ -19,7 +19,7 @@
 //!
 //! ```rust
 //! use logisim_core::*;
-//! use logisim_core::component::AndGate;
+//! use logisim_core::comp::AndGate;
 //! use logisim_core::signal::{Value, BusWidth};
 //! use logisim_core::simulation::Simulation;
 //!
@@ -52,7 +52,6 @@ pub mod circ_format;
 pub mod circ_parser;
 pub mod circ_serializer;
 pub mod comp;
-pub mod component;
 pub mod components;
 pub mod contracts;
 pub mod data;

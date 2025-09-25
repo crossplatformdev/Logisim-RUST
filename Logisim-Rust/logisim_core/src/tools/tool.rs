@@ -17,7 +17,7 @@
 //! to add components, make connections, and edit circuits.
 
 use crate::{
-    component::{Component, ComponentId},
+    comp::{Component, ComponentId},
     data::{AttributeSet, Location},
 };
 use std::collections::HashSet;

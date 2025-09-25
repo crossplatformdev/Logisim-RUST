@@ -19,7 +19,7 @@
 //! - Access component properties and context menus
 
 use crate::{
-    component::ComponentId,
+    comp::ComponentId,
     data::{Bounds, Location},
     tools::tool::{
         Canvas, ComponentDrawContext, CursorType, KeyEvent, KeyModifiers, MouseButton, MouseEvent,

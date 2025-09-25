@@ -16,7 +16,7 @@
 //! functionality to the circuit designer. They can be built-in libraries
 //! like the base gate library, or external libraries loaded from files.
 
-use crate::{component::ComponentFactory, tools::tool::Tool};
+use crate::{comp::ComponentFactory, tools::tool::Tool};
 
 /// Trait for all libraries in the Logisim-RUST system
 ///

@@ -37,7 +37,7 @@ use crate::comp::{Component, ComponentId};
 use crate::netlist::NodeId;
 use crate::simulation::Simulation;
 use crate::std::gates::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate};
-use crate::std::wiring::pin::Pin;
+use crate::std::wiring::{Pin, Constant};
 
 /// Errors that can occur during .circ file processing
 #[derive(Error, Debug)]
@@ -805,14 +805,7 @@ impl CircIntegration {
         circuit: &CircuitDefinition,
         circuit_file: &CircuitFile,
     ) -> CircResult<()> {
-        use crate::component::{
-            Adder, AndGate, BitAdder, BitExtender, BitSelector, Buffer, Clock, ClockedLatch,
-            Comparator, Constant, ControlledBuffer, Counter, DFlipFlop, Decoder, Demultiplexer,
-            Divider, Ground, HexDigitDisplay, Keyboard, Led, Multiplexer, Multiplier, NandGate,
-            Negator, NorGate, NotGate, OrGate, PinComponent, Power, PriorityEncoder, Probe, Ram,
-            Random, Register, RgbVideo, Rom, ShiftRegister, Splitter, Subtractor, Telnet, Text,
-            Tty, Tunnel, XnorGate, XorGate,
-        };
+        // Components will be looked up dynamically based on name
         use crate::signal::{BusWidth, Value};
 
         // Create a mapping from locations to node IDs for wire connections
@@ -833,26 +826,20 @@ impl CircIntegration {
                 "XOR Gate" => Box::new(XorGate::new(component_id)),
                 "XNOR Gate" => Box::new(XnorGate::new(component_id)),
                 "Pin" => {
-                    // Determine if it's input or output based on attributes
-                    let is_output = comp_instance
-                        .attributes
-                        .get("output")
-                        .map(|v| v == "true")
-                        .unwrap_or(false);
-                    let width = comp_instance
-                        .attributes
-                        .get("width")
-                        .and_then(|w| w.parse::<u32>().ok())
-                        .map(BusWidth)
-                        .unwrap_or(BusWidth(1));
-
-                    if is_output {
-                        Box::new(PinComponent::new_output(component_id, width))
-                    } else {
-                        Box::new(PinComponent::new_input(component_id, width))
-                    }
+                    // Create a basic pin component from std::wiring
+                    Box::new(Pin::new(component_id))
                 }
-                "Clocked Latch" => Box::new(ClockedLatch::new(component_id)),
+                "Constant" => {
+                    // Create a basic constant from std::wiring
+                    Box::new(Constant::new(component_id))
+                }
+                // For now, return an error for unsupported component types
+                _ => {
+                    return Err(CircFormatError::UnsupportedComponent(format!(
+                        "Component type '{}' is not yet supported in the Rust implementation",
+                        comp_instance.name
+                    )));
+                }
                 "Constant" => {
                     let value_str = comp_instance
                         .attributes

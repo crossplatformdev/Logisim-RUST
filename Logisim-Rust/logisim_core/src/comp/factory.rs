@@ -294,6 +294,29 @@ impl ComponentFactoryRegistry {
     }
 }
 
+/// Simple component factory trait for compatibility
+/// 
+/// This provides a simplified interface for basic component creation,
+/// used by tools and legacy code that doesn't need the full factory interface.
+pub trait SimpleComponentFactory: Send + Sync {
+    /// Create a new component instance
+    fn create_component(&self) -> Box<dyn Component>;
+
+    /// Get the name of this component type
+    fn get_name(&self) -> String;
+
+    /// Get the display name of this component type
+    fn get_display_name(&self) -> String {
+        self.get_name()
+    }
+}
+
+impl std::fmt::Debug for dyn SimpleComponentFactory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SimpleComponentFactory({})", self.get_name())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,8 +349,8 @@ mod tests {
         fn update(
             &mut self,
             _current_time: crate::signal::Timestamp,
-        ) -> crate::comp::component::UpdateResult {
-            crate::comp::component::UpdateResult::new()
+        ) -> crate::comp::UpdateResult {
+            crate::comp::UpdateResult::new()
         }
 
         fn reset(&mut self) {}

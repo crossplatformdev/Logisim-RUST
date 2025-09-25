@@ -97,6 +97,15 @@ impl Default for UpdateResult {
     }
 }
 
+/// Clock edge types for sequential components
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ClockEdge {
+    /// Rising edge (low to high)
+    Rising,
+    /// Falling edge (high to low)
+    Falling,
+}
+
 /// Trait that all simulation components must implement
 ///
 /// This is the core interface equivalent to Java's `Component` interface.
