@@ -7,17 +7,6 @@
  * This is free software released under GNU GPLv3 license
  */
 
-<<<<<<< HEAD
-//! Input/Output Components
-//!
-//! Rust port of `com.cburch.logisim.std.io` package containing
-//! input/output components for interfacing with users.
-
-pub mod extra;
-
-// Re-export extra IO components
-pub use extra::*;
-=======
 //! Input/Output Components Library
 //!
 //! This module contains the I/O component implementations that are equivalent
@@ -84,6 +73,7 @@ pub mod telnet;
 pub mod tty;
 pub mod video;
 pub mod hdl_generators;
+pub mod extra;
 
 // Re-export library
 pub use crate::std::io::io_library::IoLibrary;
@@ -108,10 +98,10 @@ pub use telnet::*;
 pub use tty::*;
 pub use video::*;
 pub use hdl_generators::*;
+pub use extra::*;
 
 use crate::data::{Attribute, Attributes};
 use crate::comp::Color;
 
 /// Default background color (transparent white)
 pub const DEFAULT_BACKGROUND: Color = Color::new(255, 255, 255, 0);
->>>>>>> origin/copilot/fix-f356266b-bb16-4b5b-92f6-f52c4c0f6a69

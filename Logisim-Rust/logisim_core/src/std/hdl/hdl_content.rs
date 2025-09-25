@@ -19,7 +19,6 @@ pub trait HdlContent {
     /// Check if the content is valid
     fn is_valid(&self) -> bool;
 }
-}
 
 impl std::fmt::Debug for HdlContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

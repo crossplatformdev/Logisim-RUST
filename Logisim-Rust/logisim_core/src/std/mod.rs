@@ -18,17 +18,13 @@
 //! The module is organized to mirror the Java package structure:
 //! - `base`: Basic utilities and text components (BaseLibrary)
 //! - `gates`: Logic gates and related components (GatesLibrary)
-<<<<<<< HEAD
-<<<<<<< HEAD
-//! - `ttl`: TTL integrated circuits (TtlLibrary)
-//! - `wiring`: Wiring and connection components (WiringLibrary)
-=======
-//! - `hdl`: HDL components and parsers (HdlLibrary)
->>>>>>> origin/copilot/fix-1c9fc52b-264e-4c3a-9b7c-05621b80788e
-=======
+//! - `io`: Input/output components
 //! - `memory`: Memory components like RAM, ROM, flip-flops (MemoryLibrary)
 //! - `wiring`: Wiring components like pins, tunnels, splitters (WiringLibrary)
->>>>>>> origin/copilot/fix-19481340-5a30-4cd5-b8ee-114850e6083a
+//! - `ttl`: TTL integrated circuits (TtlLibrary)
+//! - `hdl`: HDL components and parsers (HdlLibrary)
+//! - `plexers`: Multiplexer and demultiplexer components
+//! - `arith`: Arithmetic components
 //!
 //! ## Migration Status
 //!
@@ -38,28 +34,12 @@
 pub mod base;
 pub mod bfh;
 pub mod gates;
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 pub mod io;
-=======
-pub mod ttl;    // TTL integrated circuits
->>>>>>> origin/copilot/fix-8670ab67-e80b-4622-811f-2cfa65e1bade
-=======
-pub mod io;
->>>>>>> origin/copilot/fix-f356266b-bb16-4b5b-92f6-f52c4c0f6a69
-=======
-pub mod hdl;
->>>>>>> origin/copilot/fix-1c9fc52b-264e-4c3a-9b7c-05621b80788e
-=======
-pub mod plexers;
->>>>>>> origin/copilot/fix-3257658f-2b32-41b0-9150-144ce65274f6
-=======
 pub mod memory;
->>>>>>> origin/copilot/fix-19481340-5a30-4cd5-b8ee-114850e6083a
 pub mod wiring;
+pub mod ttl;
+pub mod hdl;
+pub mod plexers;
 pub mod arith;
 
 
@@ -67,26 +47,10 @@ pub mod arith;
 pub use base::*;
 pub use bfh::*;
 pub use gates::*;
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 pub use io::*;
-=======
-pub use ttl::*;  // Export TTL components
->>>>>>> origin/copilot/fix-8670ab67-e80b-4622-811f-2cfa65e1bade
-=======
-pub use io::*;
->>>>>>> origin/copilot/fix-f356266b-bb16-4b5b-92f6-f52c4c0f6a69
-=======
-pub use hdl::*;
->>>>>>> origin/copilot/fix-1c9fc52b-264e-4c3a-9b7c-05621b80788e
-=======
-pub use plexers::*;
->>>>>>> origin/copilot/fix-3257658f-2b32-41b0-9150-144ce65274f6
-=======
 pub use memory::*;
->>>>>>> origin/copilot/fix-19481340-5a30-4cd5-b8ee-114850e6083a
 pub use wiring::*;
+pub use ttl::*;
+pub use hdl::*;
+pub use plexers::*;
 pub use arith::*;
