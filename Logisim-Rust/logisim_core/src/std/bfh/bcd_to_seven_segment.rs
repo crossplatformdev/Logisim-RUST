@@ -13,7 +13,7 @@
 //! 4-bit BCD input to seven individual segment outputs for driving a
 //! 7-segment display.
 
-use crate::component::{Component, ComponentId, Pin, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

@@ -13,7 +13,7 @@
 //! TTL integrated circuit components for Logisim.
 
 use crate::{
-    component::ComponentFactory,
+    comp::ComponentFactory,
     tools::{Library, Tool},
 };
 use super::{

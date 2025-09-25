@@ -11,7 +11,7 @@
 //!
 //! Rust port of `com.cburch.logisim.std.arith.Subtractor`
 
-use crate::component::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

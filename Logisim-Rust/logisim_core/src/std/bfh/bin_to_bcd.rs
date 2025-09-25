@@ -13,7 +13,7 @@
 //! that converts binary input values to multiple BCD outputs based on the decimal
 //! representation of the input value.
 
-use crate::component::{Component, ComponentId, Pin, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
