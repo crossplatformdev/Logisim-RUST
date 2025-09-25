@@ -18,6 +18,7 @@
 //! The module is organized to mirror the Java package structure:
 //! - `base`: Basic utilities and text components (BaseLibrary)
 //! - `gates`: Logic gates and related components (GatesLibrary)
+//! - `hdl`: HDL components and parsers (HdlLibrary)
 //!
 //! ## Migration Status
 //!
@@ -26,10 +27,12 @@
 
 pub mod base;
 pub mod gates;
+pub mod hdl;
 pub mod wiring;
 
 
 // Re-export commonly used types
 pub use base::*;
 pub use gates::*;
+pub use hdl::*;
 pub use wiring::*;
