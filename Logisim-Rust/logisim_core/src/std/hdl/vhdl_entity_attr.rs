@@ -12,9 +12,6 @@
 //! Equivalent to Java VhdlEntityAttributes.java
 //! Provides attributes specific to VHDL entity components.
 
-use crate::data::{Attribute, AttributeValue};
-use std::fmt;
-
 /// VHDL Entity Content Attribute
 #[derive(Debug, Clone)]
 pub struct VhdlEntityContentAttribute {

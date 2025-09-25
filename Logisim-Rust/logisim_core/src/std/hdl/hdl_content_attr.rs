@@ -12,7 +12,7 @@
 //! Equivalent to Java HdlContentAttribute.java
 //! Provides attribute support for HDL content components.
 
-use crate::data::{Attribute, AttributeValue};
+use crate::data::AttributeValue;
 use std::fmt;
 
 /// HDL Content Attribute

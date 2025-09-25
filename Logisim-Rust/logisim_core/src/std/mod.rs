@@ -26,11 +26,11 @@
 
 pub mod base;
 pub mod gates;
-pub mod io;
+pub mod hdl;
 pub mod wiring;
 
 // Re-export commonly used types
 pub use base::*;
 pub use gates::*;
-pub use io::*;
+pub use hdl::*;
 pub use wiring::*;

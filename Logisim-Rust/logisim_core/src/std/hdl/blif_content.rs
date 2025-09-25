@@ -12,7 +12,8 @@
 //! Equivalent to Java BlifContentComponent.java
 //! Manages BLIF content for circuit components.
 
-use crate::hdl::{HdlContent, PortDescription};
+use super::HdlContent;
+use crate::hdl::model::PortDescription;
 
 /// BLIF Content Component
 /// 

@@ -4,7 +4,7 @@
 //! This module ports functionality from Java VhdlEntityComponent.
 
 use crate::comp::{Component, Pin, UpdateResult};
-use super::{VhdlContentComponent};
+use super::vhdl_content::VhdlContentComponent;
 use crate::{ComponentId, Timestamp};
 use std::collections::HashMap;
 

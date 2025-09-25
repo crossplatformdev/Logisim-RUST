@@ -4,7 +4,7 @@
 //! This module ports functionality from Java BlifCircuitComponent.
 
 use crate::comp::{Component, Pin, UpdateResult};
-use super::{BlifContentComponent};
+use super::blif_content::BlifContentComponent;
 use crate::{ComponentId, Timestamp};
 use std::collections::HashMap;
 
