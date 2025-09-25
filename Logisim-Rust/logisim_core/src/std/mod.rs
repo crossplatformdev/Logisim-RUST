@@ -36,6 +36,7 @@ pub mod gates;
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 pub mod io;
 =======
 pub mod ttl;    // TTL integrated circuits
@@ -46,6 +47,9 @@ pub mod io;
 =======
 pub mod hdl;
 >>>>>>> origin/copilot/fix-1c9fc52b-264e-4c3a-9b7c-05621b80788e
+=======
+pub mod plexers;
+>>>>>>> origin/copilot/fix-3257658f-2b32-41b0-9150-144ce65274f6
 pub mod wiring;
 pub mod arith;
 
@@ -54,6 +58,7 @@ pub mod arith;
 pub use base::*;
 pub use bfh::*;
 pub use gates::*;
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -67,5 +72,8 @@ pub use io::*;
 =======
 pub use hdl::*;
 >>>>>>> origin/copilot/fix-1c9fc52b-264e-4c3a-9b7c-05621b80788e
+=======
+pub use plexers::*;
+>>>>>>> origin/copilot/fix-3257658f-2b32-41b0-9150-144ce65274f6
 pub use wiring::*;
 pub use arith::*;
