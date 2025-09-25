@@ -311,10 +311,21 @@ impl ExampleCircuitObserver {
     }
 }
 
+// Helper function to get the type of a CircuitEvent as a string
+fn circuit_event_type(event: &CircuitEvent) -> &'static str {
+    match event {
+        CircuitEvent::ComponentAdded { .. } => "ComponentAdded",
+        CircuitEvent::ComponentRemoved { .. } => "ComponentRemoved",
+        CircuitEvent::PropertyChanged { .. } => "PropertyChanged",
+        CircuitEvent::PinChanged { .. } => "PinChanged",
+        CircuitEvent::Other { .. } => "Other",
+    }
+}
+
 impl Observer<CircuitEvent> for ExampleCircuitObserver {
     fn on_event(&mut self, event: &CircuitEvent) -> EventResult<()> {
         self.event_count += 1;
-        log::debug!("Circuit event #{}: {:?}", self.event_count, event.event_type());
+        log::debug!("Circuit event #{}: {:?}", self.event_count, circuit_event_type(event));
         
         match event {
             CircuitEvent::ComponentAdded { component_id, location, .. } => {
