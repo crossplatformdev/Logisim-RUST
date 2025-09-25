@@ -14,9 +14,8 @@
 //! Programmable Logic Array ROM with configurable data editor.
 
 use crate::{
-    component::{Component, ComponentId},
-    data::{Attribute, BitWidth, Bounds, Direction, Value},
-    signal::Signal,
+    data::{Attribute, BitWidth, Bounds, Direction},
+    signal::{Signal, Value},
     util::StringGetter,
 };
 use serde::{Deserialize, Serialize};

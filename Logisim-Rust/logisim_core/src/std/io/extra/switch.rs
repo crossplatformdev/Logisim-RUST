@@ -14,8 +14,13 @@
 //! A toggle switch component that allows manual input control.
 //! Users can click the switch to toggle between on/off states.
 
-use crate::data::{BitWidth, Bounds, Direction, Location};
+use crate::{
+    comp::{component::{Component, ComponentId, UpdateResult}, pin::Pin},
+    data::{AttributeSet, Bounds, Location},
+    signal::{BusWidth, Signal, Timestamp, Value},
+};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Unique identifier for the Switch component
 pub const SWITCH_ID: &str = "Switch";
@@ -63,17 +68,30 @@ impl Default for SwitchData {
 #[derive(Debug, Clone)]
 pub struct Switch {
     /// Component identifier
-    id: u32,
+    id: ComponentId,
     /// Current switch state
     data: SwitchData,
+    /// Component pins
+    pins: HashMap<String, Pin>,
+    /// Location of the component
+    location: Option<Location>,
 }
 
 impl Switch {
     /// Create a new switch component
-    pub fn new(id: u32) -> Self {
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        
+        // Input pin for the signal to switch
+        pins.insert("input".to_string(), Pin::new_input("input", BusWidth::new(1)));
+        // Output pin for the switched signal
+        pins.insert("output".to_string(), Pin::new_output("output", BusWidth::new(1)));
+        
         Self {
             id,
             data: SwitchData::new(),
+            pins,
+            location: None,
         }
     }
 
@@ -107,25 +125,63 @@ impl Switch {
         SWITCH_ID
     }
 
-    /// Get component ID
-    pub fn get_id(&self) -> u32 {
-        self.id
-    }
-
-    /// Get component type name
-    pub fn get_type_name(&self) -> &'static str {
-        "Switch"
-    }
-
-    /// Get component bounds
-    pub fn get_bounds(&self) -> Bounds {
-        // Switch bounds: 20x30 pixels with depth effect
-        Bounds::new(-20, -15, 20, 30)
-    }
-
     /// Check if component is interactive
     pub fn is_interactive(&self) -> bool {
         true
+    }
+}
+
+impl Component for Switch {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        "Switch"
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
+        let mut result = UpdateResult::new();
+        
+        if let Some(input_pin) = self.get_pin("input") {
+            let output_value = if self.data.is_active() {
+                // Pass through input when switch is active
+                input_pin.signal.as_single().unwrap_or(Value::Unknown)
+            } else {
+                // Output unknown/floating when inactive
+                Value::Unknown
+            };
+            
+            let output_signal = Signal::new_single(output_value);
+            result.add_output("output".to_string(), output_signal);
+            result.set_delay(1); // Minimal propagation delay
+        }
+        
+        result
+    }
+
+    fn reset(&mut self) {
+        self.data = SwitchData::new();
+    }
+
+    fn location(&self) -> Option<Location> {
+        self.location
+    }
+
+    fn bounds(&self) -> Option<Bounds> {
+        Some(Bounds::create(-20, -15, 20, 30))
+    }
+
+    fn attribute_set(&self) -> Option<&AttributeSet> {
+        None // Simple implementation without attributes for now
     }
 }
 
@@ -135,16 +191,16 @@ mod tests {
 
     #[test]
     fn test_switch_creation() {
-        let switch = Switch::new(1);
-        assert_eq!(switch.get_id(), 1);
-        assert_eq!(switch.get_type_name(), "Switch");
+        let switch = Switch::new(ComponentId::new(1));
+        assert_eq!(switch.id(), ComponentId::new(1));
+        assert_eq!(switch.name(), "Switch");
         assert!(!switch.get_data().is_active());
         assert!(switch.is_interactive());
     }
 
     #[test]
     fn test_switch_toggle() {
-        let mut switch = Switch::new(1);
+        let mut switch = Switch::new(ComponentId::new(1));
         
         // Initially inactive
         assert!(!switch.get_data().is_active());
@@ -168,9 +224,18 @@ mod tests {
 
     #[test]
     fn test_switch_bounds() {
-        let switch = Switch::new(1);
-        let bounds = switch.get_bounds();
+        let switch = Switch::new(ComponentId::new(1));
+        let bounds = switch.bounds();
         
-        assert_eq!(bounds, Bounds::new(-20, -15, 20, 30));
+        assert!(bounds.is_some());
+        assert_eq!(bounds.unwrap(), Bounds::create(-20, -15, 20, 30));
+    }
+
+    #[test]
+    fn test_switch_pins() {
+        let switch = Switch::new(ComponentId::new(1));
+        assert_eq!(switch.pins().len(), 2);
+        assert!(switch.get_pin("input").is_some());
+        assert!(switch.get_pin("output").is_some());
     }
 }

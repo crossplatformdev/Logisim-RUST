@@ -79,18 +79,16 @@ pub use comp::{
     DrawCommand, EndData, GraphicsContext, Pin, PinDirection,
 };
 pub use component::{
-    Component as SimComponent, ComponentId as SimComponentId, Pin as SimPin,
+    Component as SimComponent, ComponentId as SimComponentId, Pin as SimPin, ComponentFactory as SimComponentFactory,
 };
-pub use component::{Component, ComponentId, Pin, ComponentFactory};
-pub use component::{Component, ComponentId, Pin};
 pub use contracts::{
     BaseComponentListenerContract, BaseDocumentListenerContract, BaseKeyListenerContract,
     BaseLayoutManagerContract, BaseListDataListenerContract, BaseMouseInputListenerContract,
     BaseMouseListenerContract, BaseMouseMotionListenerContract, BaseWindowFocusListenerContract,
-    BaseWindowListenerContract, ComponentEvent, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
+    BaseWindowListenerContract, ComponentEvent as ContractComponentEvent, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
 };
 pub use components::gray::*;
-pub use std::{base::*, gates::*};
+pub use std::{base::*, gates::*, io::*};
 pub use data::{
     Attribute, AttributeSet, AttributeValue, BitWidth, Bounds, Direction, Location, StdAttr,
 };

@@ -14,9 +14,8 @@
 //! A slider component that allows variable value input with visual position control.
 
 use crate::{
-    component::{Component, ComponentId},
-    data::{Attribute, BitWidth, Bounds, Direction, Location, Value},
-    signal::Signal,
+    data::{Attribute, BitWidth, Bounds, Direction, Location},
+    signal::{Signal, Value},
     util::StringGetter,
 };
 use serde::{Deserialize, Serialize};

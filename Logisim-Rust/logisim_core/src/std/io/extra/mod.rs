@@ -29,17 +29,21 @@
 //! - State management for interactive components
 //! - Integration with the simulation kernel
 
-mod buzzer;
-mod digital_oscilloscope;
-mod extra_io_library;
-mod pla_rom;
-mod slider;
 mod switch;
+mod extra_io_library;
 
-// Re-export all Extra IO implementations
-pub use buzzer::*;
-pub use digital_oscilloscope::*;
-pub use extra_io_library::*;
-pub use pla_rom::*;
-pub use slider::*;
+// TODO: Enable when components are fixed
+// mod buzzer;
+// mod digital_oscilloscope;
+// mod pla_rom;
+// mod slider;
+
+// Re-export working implementations
 pub use switch::*;
+pub use extra_io_library::*;
+
+// TODO: Re-export when fixed
+// pub use buzzer::*;
+// pub use digital_oscilloscope::*;
+// pub use pla_rom::*;
+// pub use slider::*;

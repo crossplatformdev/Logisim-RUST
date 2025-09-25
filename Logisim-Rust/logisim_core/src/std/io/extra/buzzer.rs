@@ -14,9 +14,8 @@
 //! An audio output component with configurable waveforms, frequency, and volume.
 
 use crate::{
-    component::{Component, ComponentId},
-    data::{Attribute, BitWidth, Bounds, Direction, Value},
-    signal::Signal,
+    data::{Attribute, BitWidth, Bounds, Direction},
+    signal::{Signal, Value},
     util::StringGetter,
 };
 use serde::{Deserialize, Serialize};
