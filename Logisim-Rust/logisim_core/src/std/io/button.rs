@@ -14,7 +14,7 @@
 
 use crate::{
     data::{AttributeSet, Bounds, Location},
-    instance::{InstanceFactory, InstancePainter, InstanceState, Port},
+    instance::{InstanceFactory, InstancePainter, InstanceState, Port, PortType, PortWidth},
 };
 use std::any::Any;
 
@@ -30,7 +30,7 @@ pub struct Button {
 impl Button {
     pub fn new() -> Self {
         Self {
-            ports: vec![Port::new(20, 0, Port::OUTPUT, 1)],
+            ports: vec![Port::new(20, 0, PortType::Output, PortWidth::fixed_bits(1))],
         }
     }
 }
