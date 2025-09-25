@@ -337,7 +337,7 @@ impl Waveform {
         match value {
             Value::High => high_y,
             Value::Low => low_y,
-            Value::Unknown | Value::Error => (high_y + low_y) / 2.0,
+            Value::Unknown | Value::Error | Value::HighZ => (high_y + low_y) / 2.0,
         }
     }
 
@@ -348,6 +348,7 @@ impl Waveform {
             Value::Low => self.colors.low,
             Value::Unknown => self.colors.unknown,
             Value::Error => self.colors.error,
+            Value::HighZ => self.colors.unknown, // Treat HighZ similar to unknown
         }
     }
 
@@ -360,7 +361,7 @@ impl Waveform {
     fn format_signal_value_internal(&self, signal: &Signal) -> String {
         // Convert signal to numeric value for display
         let mut value = 0u64;
-        for (i, bit_value) in signal.values().iter().enumerate() {
+        for (i, bit_value) in signal.value().iter().enumerate() {
             match bit_value {
                 Value::High => value |= 1 << i,
                 Value::Low => {} // Already 0
@@ -380,7 +381,7 @@ impl Waveform {
             }
         } else {
             // For multi-bit, show hex for wider buses, decimal for narrow ones
-            if signal.values().len() > 4 {
+            if signal.value().len() > 4 {
                 format!("{:X}", value)
             } else {
                 format!("{}", value)

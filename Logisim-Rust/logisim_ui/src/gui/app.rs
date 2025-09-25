@@ -115,9 +115,10 @@ pub fn run_app() -> UiResult<()> {
     };
 
     let app = LogisimApp::new();
+    let title = app.title().to_string(); // Extract title to avoid borrow issue
 
     eframe::run_native(
-        &app.title(),
+        &title,
         options,
         Box::new(|_cc| {
             // Set up custom fonts if needed
@@ -145,9 +146,10 @@ pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
 
     let mut app = LogisimApp::new();
     app.load_circuit_file(file_path)?;
+    let title = app.title().to_string(); // Extract title to avoid borrow issue
 
     eframe::run_native(
-        &app.title(),
+        &title,
         options,
         Box::new(move |_cc| Ok(Box::new(app))),
     )
@@ -179,9 +181,10 @@ pub fn run_app_with_template(template_path: PathBuf) -> UiResult<()> {
 
     let mut app = LogisimApp::new();
     app.load_circuit_file(template_path)?;
+    let title = app.title().to_string(); // Extract title to avoid borrow issue
 
     eframe::run_native(
-        &app.title(),
+        &title,
         options,
         Box::new(move |_cc| Ok(Box::new(app))),
     )
