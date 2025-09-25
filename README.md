@@ -2,6 +2,11 @@
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0--or--later-green)
+![Build Status](https://github.com/crossplatformdev/Logisim-RUST/actions/workflows/rust-build-test.yml/badge.svg)
+![Clippy](https://github.com/crossplatformdev/Logisim-RUST/actions/workflows/rust-clippy.yml/badge.svg)
+![Format](https://github.com/crossplatformdev/Logisim-RUST/actions/workflows/rust-fmt.yml/badge.svg)
+![Security](https://github.com/crossplatformdev/Logisim-RUST/actions/workflows/rust-codeql.yml/badge.svg)
+![Tests](https://github.com/crossplatformdev/Logisim-RUST/actions/workflows/comprehensive-test.yml/badge.svg)
 
 🎉 **Version 1.0.0 Release** - The first official release is now available!
 
@@ -56,6 +61,7 @@ cd Logisim-Evolution
 
 - **[Logisim-Rust Documentation](./Logisim-Rust/BUILD.md)** - Rust implementation build and usage
 - **[Logisim-Evolution Documentation](./Logisim-Evolution/docs/)** - Java implementation documentation
+- **[Repository Health](./HEALTH.md)** - CI/CD status, test coverage, and development policies
 
 ## Migration Notes
 
