@@ -78,13 +78,11 @@ pub use comp::{
     ComponentEvent, ComponentFactory, ComponentId, ComponentListener, ComponentUserEvent,
     DrawCommand, EndData, GraphicsContext, Pin, PinDirection,
 };
-pub use component::{ComponentId, Pin};
-pub use component::{ComponentId, Pin};
 pub use contracts::{
     BaseComponentListenerContract, BaseDocumentListenerContract, BaseKeyListenerContract,
     BaseLayoutManagerContract, BaseListDataListenerContract, BaseMouseInputListenerContract,
     BaseMouseListenerContract, BaseMouseMotionListenerContract, BaseWindowFocusListenerContract,
-    BaseWindowListenerContract, ComponentEvent, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
+    BaseWindowListenerContract, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
 };
 pub use components::gray::*;
 pub use std::{base::*, gates::*};

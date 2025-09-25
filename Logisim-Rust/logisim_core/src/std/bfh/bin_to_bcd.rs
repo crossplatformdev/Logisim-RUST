@@ -13,10 +13,10 @@
 //! that converts binary input values to multiple BCD outputs based on the decimal
 //! representation of the input value.
 
-use crate::data::{Attribute, AttributeSet, Attributes, BitWidth, Bounds, Direction, Value, Location};
-use crate::instance::{InstanceFactory, InstancePainter, InstanceState, Port, Instance};
-use crate::tools::Tool;
-use std::fmt::Debug;
+use crate::component::{Component, ComponentId, Pin, UpdateResult};
+use crate::signal::{BusWidth, Signal, Timestamp, Value};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Binary to BCD Converter
 ///
@@ -36,9 +36,11 @@ use std::fmt::Debug;
 /// - Output 1: BCD 3 (0b0011) - ones digit
 /// - Output 2: BCD 2 (0b0010) - tens digit  
 /// - Output 3: BCD 1 (0b0001) - hundreds digit
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BinToBcd {
-    bit_width_attr: Attribute<BitWidth>,
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+    bit_width: u32,
 }
 
 impl BinToBcd {
@@ -47,214 +49,185 @@ impl BinToBcd {
     pub const ID: &'static str = "Binary_to_BCD_converter";
 
     /// Propagation delay in time units
-    pub const PROPAGATION_DELAY: i32 = 1;
+    pub const PROPAGATION_DELAY: u64 = 1;
 
-    /// Input port index
-    const BIN_INPUT_PORT: usize = 0;
+    /// Default input bit width
+    const DEFAULT_BIT_WIDTH: u32 = 9;
 
-    /// Distance between output ports
-    const INNER_DISTANCE: i32 = 60;
+    /// Creates a new Binary to BCD converter with default bit width
+    pub fn new(id: ComponentId) -> Self {
+        Self::new_with_width(id, Self::DEFAULT_BIT_WIDTH)
+    }
 
-    /// Creates a new Binary to BCD converter
-    pub fn new() -> Self {
-        Self {
-            bit_width_attr: Attributes::for_bit_width(
-                "binvalue",
-                "Binary Data Bits",
-                4,
-                13,
-            ),
+    /// Creates a new Binary to BCD converter with specified bit width
+    pub fn new_with_width(id: ComponentId, bit_width: u32) -> Self {
+        let bit_width = bit_width.clamp(4, 13);
+        let num_bcd_outputs = Self::calculate_bcd_outputs(bit_width);
+        
+        let mut pins = HashMap::new();
+        
+        // Input pin
+        pins.insert("BIN_IN".to_string(), Pin::new_input("BIN_IN", BusWidth(bit_width)));
+        
+        // BCD output pins (from most significant to least significant)
+        for i in 0..num_bcd_outputs {
+            let power = num_bcd_outputs - 1 - i;
+            let decimal_value = 10_u32.pow(power as u32);
+            let pin_name = format!("BCD_{}", decimal_value);
+            pins.insert(pin_name.clone(), Pin::new_output(&pin_name, BusWidth(4)));
         }
+
+        BinToBcd { id, pins, bit_width }
     }
 
     /// Calculate number of BCD output ports needed based on bit width
-    fn calculate_bcd_ports(bit_width: &BitWidth) -> usize {
-        let max_value = (1u32 << bit_width.width()) - 1;
+    fn calculate_bcd_outputs(bit_width: u32) -> usize {
+        let max_value = (1u32 << bit_width) - 1;
         let max_decimal = max_value as f64;
         (max_decimal.log10().floor() as usize) + 1
     }
 
-    /// Calculate the bounds for the component based on number of ports
-    fn calculate_bounds(num_ports: usize) -> Bounds {
-        let width = (num_ports as i32) * Self::INNER_DISTANCE;
-        let x_offset = -(Self::INNER_DISTANCE / 2);
-        Bounds::create(x_offset, -20, width, 40)
-    }
-
-    /// Update the component's ports based on current bit width
-    fn update_ports(&self, instance: &mut Instance) {
-        let bit_width = instance.get_attribute_value(&self.bit_width_attr)
-            .unwrap_or(BitWidth::create(9));
-        let num_bcd_ports = Self::calculate_bcd_ports(&bit_width);
+    /// Convert binary value to BCD digits
+    fn binary_to_bcd_digits(&self, mut binary_value: u32) -> Vec<u8> {
+        let num_outputs = Self::calculate_bcd_outputs(self.bit_width);
+        let mut digits = Vec::with_capacity(num_outputs);
         
-        let mut ports = Vec::with_capacity(num_bcd_ports + 1);
-        
-        // Input port
-        ports.push(Port::new(
-            Location::create(-(Self::INNER_DISTANCE / 2), 0),
-            Port::INPUT,
-            bit_width,
-        ).with_tooltip("Binary Input"));
-
-        // BCD output ports (from most significant to least significant)
-        for i in 0..num_bcd_ports {
-            let x = (i as i32) * Self::INNER_DISTANCE;
-            let power = num_bcd_ports - 1 - i;
-            let decimal_value = 10_i32.pow(power as u32);
-            
-            ports.push(Port::new(
-                Location::create(x, -20),
-                Port::OUTPUT,
-                BitWidth::create(4),
-            ).with_tooltip(&format!("{}", decimal_value)));
+        // Extract digits from least significant to most significant
+        for _ in 0..num_outputs {
+            digits.push((binary_value % 10) as u8);
+            binary_value /= 10;
         }
         
-        instance.set_ports(ports);
+        // Reverse to get most significant digit first
+        digits.reverse();
+        digits
+    }
+
+    /// Convert BCD digit to 4-bit signal
+    fn digit_to_signal(&self, digit: u8) -> Signal {
+        let values = vec![
+            if (digit & 1) != 0 { Value::High } else { Value::Low },
+            if (digit & 2) != 0 { Value::High } else { Value::Low },
+            if (digit & 4) != 0 { Value::High } else { Value::Low },
+            if (digit & 8) != 0 { Value::High } else { Value::Low },
+        ];
+        Signal::new_bus(values)
+    }
+
+    /// Get the bit width of this converter
+    pub fn get_bit_width(&self) -> u32 {
+        self.bit_width
+    }
+
+    /// Get the number of BCD outputs
+    pub fn get_num_bcd_outputs(&self) -> usize {
+        Self::calculate_bcd_outputs(self.bit_width)
     }
 }
 
-impl Default for BinToBcd {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Tool for BinToBcd {
-    fn get_name(&self) -> &str {
-        "Bin2BCD"
+impl Component for BinToBcd {
+    fn id(&self) -> ComponentId {
+        self.id
     }
 
-    fn get_display_name(&self) -> &str {
-        "Binary to BCD Converter"
+    fn name(&self) -> &str {
+        Self::ID
     }
 
-    fn get_description(&self) -> Option<String> {
-        Some("Converts binary input to Binary Coded Decimal (BCD) output digits".to_string())
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
     }
 
-    fn clone_tool(&self) -> Box<dyn Tool> {
-        Box::new(self.clone())
-    }
-}
-
-impl InstanceFactory for BinToBcd {
-    fn create_instance(&self, id: crate::ComponentId, location: Location) -> Instance {
-        let mut instance = Instance::new(id, Self::ID.to_string(), location);
-        
-        // Set default attributes
-        let mut attrs = AttributeSet::new();
-        attrs.set_value(self.bit_width_attr.clone(), BitWidth::create(9));
-        instance.set_attribute_set(attrs);
-        
-        // Initialize ports
-        self.update_ports(&mut instance);
-        
-        instance
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
     }
 
-    fn paint_instance(&self, painter: &mut InstancePainter) {
-        let bounds = painter.get_bounds();
-        let bit_width = painter.get_attribute_value(&self.bit_width_attr)
-            .unwrap_or(BitWidth::create(9));
-        let num_ports = Self::calculate_bcd_ports(&bit_width);
-
-        // Draw component body
-        painter.draw_rectangle(bounds, "");
-        
-        // Draw input port
-        painter.draw_port(Self::BIN_INPUT_PORT, "Bin", Direction::East);
-        
-        // Draw output ports with labels
-        for i in 0..num_ports {
-            let port_index = i + 1;
-            let power = num_ports - 1 - i;
-            let decimal_value = 10_i32.pow(power as u32);
-            painter.draw_port(port_index, &decimal_value.to_string(), Direction::North);
-        }
+    fn update(&mut self, timestamp: Timestamp) -> UpdateResult {
+        self.propagate(timestamp)
     }
 
-    fn get_offset_bounds(&self, attrs: &AttributeSet) -> Bounds {
-        let bit_width = attrs.get_value(&self.bit_width_attr)
-            .unwrap_or(BitWidth::create(9));
-        let num_ports = Self::calculate_bcd_ports(&bit_width);
-        Self::calculate_bounds(num_ports)
-    }
-
-    fn propagate(&self, state: &mut InstanceState) {
-        let input_value = state.get_port_value(Self::BIN_INPUT_PORT);
-        
-        // Check if input is valid
-        let binary_value = if input_value.is_fully_defined() 
-            && !input_value.is_unknown() 
-            && !input_value.is_error_value() {
-            input_value.to_long_value().unwrap_or(0) as u32
-        } else {
-            // Set all outputs to unknown
-            let bit_width = state.get_attribute_value(&self.bit_width_attr)
-                .unwrap_or(BitWidth::create(9));
-            let num_ports = Self::calculate_bcd_ports(&bit_width);
-            
-            for i in 1..=num_ports {
-                state.set_port(i, Value::create_unknown(BitWidth::create(4)), Self::PROPAGATION_DELAY);
-            }
-            return;
-        };
-
-        // Convert to BCD digits
-        let bit_width = state.get_attribute_value(&self.bit_width_attr)
-            .unwrap_or(BitWidth::create(9));
-        let num_ports = Self::calculate_bcd_ports(&bit_width);
-        
-        let mut remaining_value = binary_value;
-        
-        // Process each decimal digit from most significant to least significant
-        for i in 0..num_ports {
-            let port_index = num_ports - i; // Reverse order for port indexing
-            let power = i as u32;
-            let divisor = 10_u32.pow(power);
-            
-            let digit = remaining_value % 10;
-            remaining_value /= 10;
-            
-            let bcd_value = Value::create_known(BitWidth::create(4), digit as i64);
-            state.set_port(port_index, bcd_value, Self::PROPAGATION_DELAY);
-        }
-    }
-
-    fn configure_new_instance(&self, instance: &mut Instance) {
-        // Add attribute listener for dynamic port updates
-        instance.add_attribute_listener();
-        self.update_ports(instance);
-    }
-
-    fn instance_attribute_changed(&self, instance: &mut Instance, attr: &dyn std::any::Any) {
-        // Check if the bit width attribute changed
-        if let Some(bit_width_attr) = attr.downcast_ref::<Attribute<BitWidth>>() {
-            if bit_width_attr == &self.bit_width_attr {
-                instance.recompute_bounds();
-                self.update_ports(instance);
+    fn reset(&mut self) {
+        // Reset all outputs to unknown
+        for pin in self.pins.values_mut() {
+            if pin.is_output() {
+                pin.set_signal(Signal::unknown(pin.get_width()));
             }
         }
     }
+}
 
-    fn get_hdl_name(&self, attrs: &AttributeSet) -> String {
-        let bit_width = attrs.get_value(&self.bit_width_attr)
-            .unwrap_or(BitWidth::create(9));
-        let num_ports = Self::calculate_bcd_ports(&bit_width);
-        format!("Bin2BCD_{}_bcd_ports", num_ports)
+impl BinToBcd {
+    /// Convert signal to u32 value if possible
+    fn signal_to_u32(&self, signal: &Signal) -> Option<u32> {
+        if signal.width().as_u32() > 32 {
+            return None;
+        }
+        
+        let mut value = 0u32;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            match bit {
+                Value::High => value |= 1 << i,
+                Value::Low => {},
+                Value::Unknown | Value::Error => return None,
+            }
+        }
+        Some(value)
+    }
+
+    /// Perform the propagation logic - convert binary input to BCD outputs
+    fn propagate(&mut self, _timestamp: Timestamp) -> UpdateResult {
+        let mut updates = Vec::new();
+        
+        if let Some(input_pin) = self.pins.get("BIN_IN") {
+            let input_signal = input_pin.get_signal();
+            
+            // Check if input is valid
+            if let Some(binary_value) = self.signal_to_u32(input_signal) {
+                // Convert to BCD digits
+                let bcd_digits = self.binary_to_bcd_digits(binary_value);
+                let num_outputs = self.get_num_bcd_outputs();
+                
+                // Set each BCD output
+                for (i, &digit) in bcd_digits.iter().enumerate() {
+                    let power = num_outputs - 1 - i;
+                    let decimal_value = 10_u32.pow(power as u32);
+                    let pin_name = format!("BCD_{}", decimal_value);
+                    
+                    if let Some(output_pin) = self.pins.get_mut(&pin_name) {
+                        let signal = self.digit_to_signal(digit);
+                        output_pin.set_signal(signal);
+                        updates.push((self.id, pin_name, Self::PROPAGATION_DELAY));
+                    }
+                }
+            } else {
+                // Invalid input, set all outputs to unknown
+                let num_outputs = self.get_num_bcd_outputs();
+                for i in 0..num_outputs {
+                    let power = num_outputs - 1 - i;
+                    let decimal_value = 10_u32.pow(power as u32);
+                    let pin_name = format!("BCD_{}", decimal_value);
+                    
+                    if let Some(output_pin) = self.pins.get_mut(&pin_name) {
+                        output_pin.set_signal(Signal::unknown(BusWidth(4)));
+                        updates.push((self.id, pin_name, Self::PROPAGATION_DELAY));
+                    }
+                }
+            }
+        }
+        
+        UpdateResult { updates }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ComponentId;
 
     #[test]
     fn test_component_creation() {
-        let converter = BinToBcd::new();
-        assert_eq!(converter.get_name(), "Bin2BCD");
-        assert_eq!(converter.get_display_name(), "Binary to BCD Converter");
+        let converter = BinToBcd::new(ComponentId(1));
+        assert_eq!(converter.id(), ComponentId(1));
+        assert_eq!(converter.get_bit_width(), 9);
     }
 
     #[test]
@@ -264,75 +237,86 @@ mod tests {
     }
 
     #[test]
-    fn test_bcd_ports_calculation() {
+    fn test_bcd_outputs_calculation() {
         // 4 bits: max 15, needs 2 BCD digits
-        let bit_width_4 = BitWidth::create(4);
-        assert_eq!(BinToBcd::calculate_bcd_ports(&bit_width_4), 2);
+        assert_eq!(BinToBcd::calculate_bcd_outputs(4), 2);
         
         // 8 bits: max 255, needs 3 BCD digits  
-        let bit_width_8 = BitWidth::create(8);
-        assert_eq!(BinToBcd::calculate_bcd_ports(&bit_width_8), 3);
+        assert_eq!(BinToBcd::calculate_bcd_outputs(8), 3);
         
         // 10 bits: max 1023, needs 4 BCD digits
-        let bit_width_10 = BitWidth::create(10);
-        assert_eq!(BinToBcd::calculate_bcd_ports(&bit_width_10), 4);
+        assert_eq!(BinToBcd::calculate_bcd_outputs(10), 4);
     }
 
     #[test]
-    fn test_bounds_calculation() {
-        let bounds_2_ports = BinToBcd::calculate_bounds(2);
-        assert_eq!(bounds_2_ports.width(), 120); // 2 * 60
+    fn test_binary_to_bcd_conversion() {
+        let converter = BinToBcd::new_with_width(ComponentId(1), 8);
         
-        let bounds_3_ports = BinToBcd::calculate_bounds(3);
-        assert_eq!(bounds_3_ports.width(), 180); // 3 * 60
-    }
-
-    #[test]
-    fn test_instance_creation() {
-        let converter = BinToBcd::new();
-        let instance = converter.create_instance(
-            ComponentId(1), 
-            Location::create(100, 100)
-        );
-        
-        assert_eq!(instance.get_factory_id(), BinToBcd::ID);
-        assert_eq!(instance.get_location(), Location::create(100, 100));
-    }
-
-    #[test]
-    fn test_hdl_name_generation() {
-        let converter = BinToBcd::new();
-        let mut attrs = AttributeSet::new();
-        attrs.set_value(converter.bit_width_attr.clone(), BitWidth::create(8));
-        
-        let hdl_name = converter.get_hdl_name(&attrs);
-        assert_eq!(hdl_name, "Bin2BCD_3_bcd_ports");
-    }
-
-    #[test]
-    fn test_binary_to_bcd_conversion_logic() {
-        // Test the core conversion logic
         let test_cases = vec![
-            (0, vec![0]),
-            (7, vec![7]),
-            (10, vec![1, 0]),
-            (99, vec![9, 9]),
+            (0, vec![0, 0, 0]),
+            (7, vec![0, 0, 7]),
+            (10, vec![0, 1, 0]),
+            (99, vec![0, 9, 9]),
             (123, vec![1, 2, 3]),
             (255, vec![2, 5, 5]),
         ];
 
         for (binary, expected_digits) in test_cases {
-            let mut remaining = binary;
-            let mut digits = Vec::new();
-            
-            // Extract digits (same logic as component)
-            while remaining > 0 || digits.is_empty() {
-                digits.push(remaining % 10);
-                remaining /= 10;
-            }
-            digits.reverse();
-            
+            let digits = converter.binary_to_bcd_digits(binary);
             assert_eq!(digits, expected_digits, "Failed for input {}", binary);
+        }
+    }
+
+    #[test]
+    fn test_digit_to_signal_conversion() {
+        let converter = BinToBcd::new(ComponentId(1));
+        
+        let signal_0 = converter.digit_to_signal(0);
+        assert_eq!(signal_0.values(), &[Value::Low, Value::Low, Value::Low, Value::Low]);
+        
+        let signal_5 = converter.digit_to_signal(5);
+        assert_eq!(signal_5.values(), &[Value::High, Value::Low, Value::High, Value::Low]);
+        
+        let signal_9 = converter.digit_to_signal(9);
+        assert_eq!(signal_9.values(), &[Value::High, Value::Low, Value::Low, Value::High]);
+    }
+
+    #[test]
+    fn test_pin_configuration() {
+        let converter = BinToBcd::new_with_width(ComponentId(1), 8);
+        let pins = converter.pins();
+        
+        // Should have 1 input + 3 outputs for 8-bit input
+        assert_eq!(pins.len(), 4);
+        
+        // Check input pin
+        let input_pin = pins.get("BIN_IN").unwrap();
+        assert!(input_pin.is_input());
+        assert_eq!(input_pin.get_width(), BusWidth(8));
+        
+        // Check output pins
+        assert!(pins.contains_key("BCD_100"));
+        assert!(pins.contains_key("BCD_10"));
+        assert!(pins.contains_key("BCD_1"));
+        
+        for pin_name in ["BCD_100", "BCD_10", "BCD_1"] {
+            let pin = pins.get(pin_name).unwrap();
+            assert!(pin.is_output());
+            assert_eq!(pin.get_width(), BusWidth(4));
+        }
+    }
+
+    #[test]
+    fn test_component_reset() {
+        let mut converter = BinToBcd::new(ComponentId(1));
+        converter.reset();
+        
+        // All output pins should be unknown after reset
+        for (name, pin) in converter.pins() {
+            if pin.is_output() {
+                assert!(name.starts_with("BCD_"));
+                // Signal should be unknown (we can't easily test this without more infrastructure)
+            }
         }
     }
 }

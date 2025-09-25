@@ -13,10 +13,10 @@
 //! 4-bit BCD input to seven individual segment outputs for driving a
 //! 7-segment display.
 
-use crate::data::{Attribute, AttributeSet, BitWidth, Bounds, Direction, Value, Location};
-use crate::instance::{InstanceFactory, InstancePainter, InstanceState, Port, Instance, StdAttr};
-use crate::tools::Tool;
-use std::fmt::Debug;
+use crate::component::{Component, ComponentId, Pin, UpdateResult};
+use crate::signal::{BusWidth, Signal, Timestamp, Value};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// BCD to Seven Segment Display Decoder
 ///
@@ -55,9 +55,12 @@ use std::fmt::Debug;
 /// |  7  | 1 | 1 | 1 | 0 | 0 | 0 | 0 |    7    |
 /// |  8  | 1 | 1 | 1 | 1 | 1 | 1 | 1 |    8    |
 /// |  9  | 1 | 1 | 1 | 1 | 0 | 1 | 1 |    9    |
-/// | >9  | X | X | X | X | X | X | X |  blank  |
-#[derive(Debug, Clone)]
-pub struct BcdToSevenSegmentDisplay;
+/// | >9  | 0 | 0 | 0 | 0 | 0 | 0 | 0 |  blank  |
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BcdToSevenSegmentDisplay {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
 
 impl BcdToSevenSegmentDisplay {
     /// Unique identifier of the tool, used as reference in project files.
@@ -65,21 +68,22 @@ impl BcdToSevenSegmentDisplay {
     pub const ID: &'static str = "BCD_to_7_Segment_decoder";
 
     /// Propagation delay in time units
-    pub const PROPAGATION_DELAY: i32 = 1;
-
-    // Port indices
-    pub const SEGMENT_A: usize = 0;
-    pub const SEGMENT_B: usize = 1;
-    pub const SEGMENT_C: usize = 2;
-    pub const SEGMENT_D: usize = 3;
-    pub const SEGMENT_E: usize = 4;
-    pub const SEGMENT_F: usize = 5;
-    pub const SEGMENT_G: usize = 6;
-    pub const BCD_INPUT: usize = 7;
+    pub const PROPAGATION_DELAY: u64 = 1;
 
     /// Creates a new BCD to Seven Segment Display decoder
-    pub fn new() -> Self {
-        Self
+    pub fn new(id: ComponentId) -> Self {
+        let mut pins = HashMap::new();
+        
+        // BCD input pin
+        pins.insert("BCD_IN".to_string(), Pin::new_input("BCD_IN", BusWidth(4)));
+        
+        // Seven segment output pins
+        let segment_names = ["SEG_A", "SEG_B", "SEG_C", "SEG_D", "SEG_E", "SEG_F", "SEG_G"];
+        for &name in &segment_names {
+            pins.insert(name.to_string(), Pin::new_output(name, BusWidth(1)));
+        }
+
+        BcdToSevenSegmentDisplay { id, pins }
     }
 
     /// Get the 7-segment pattern for a given BCD digit
@@ -100,185 +104,129 @@ impl BcdToSevenSegmentDisplay {
         }
     }
 
-    /// Set all segment outputs to known values based on the pattern
-    fn set_segments_known(&self, state: &mut InstanceState, pattern: u8) {
-        for segment in 0..7 {
-            let bit_value = (pattern >> segment) & 1;
-            let value = Value::create_known(BitWidth::create(1), bit_value as i64);
-            state.set_port(segment, value, Self::PROPAGATION_DELAY);
+    /// Convert BCD signal to u8 value if possible
+    fn signal_to_bcd(&self, signal: &Signal) -> Option<u8> {
+        if signal.width() != BusWidth(4) {
+            return None;
         }
+        
+        let mut value = 0u8;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            match bit {
+                Value::High => value |= 1 << i,
+                Value::Low => {},
+                Value::Unknown | Value::Error => return None,
+            }
+        }
+        Some(value)
     }
 
-    /// Set all segment outputs to unknown
-    fn set_segments_unknown(&self, state: &mut InstanceState) {
-        for segment in 0..7 {
-            let value = Value::create_unknown(BitWidth::create(1));
-            state.set_port(segment, value, Self::PROPAGATION_DELAY);
+    /// Convert single bit to signal
+    fn bit_to_signal(&self, bit: bool) -> Signal {
+        Signal::new_single(if bit { Value::High } else { Value::Low })
+    }
+}
+
+impl Component for BcdToSevenSegmentDisplay {
+    fn id(&self) -> ComponentId {
+        self.id
+    }
+
+    fn name(&self) -> &str {
+        Self::ID
+    }
+
+    fn pins(&self) -> &HashMap<String, Pin> {
+        &self.pins
+    }
+
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
+        &mut self.pins
+    }
+
+    fn update(&mut self, timestamp: Timestamp) -> UpdateResult {
+        self.propagate(timestamp)
+    }
+
+    fn reset(&mut self) {
+        // Reset all outputs to unknown
+        for pin in self.pins.values_mut() {
+            if pin.is_output() {
+                pin.set_signal(Signal::unknown(pin.get_width()));
+            }
         }
     }
 }
 
-impl Default for BcdToSevenSegmentDisplay {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Tool for BcdToSevenSegmentDisplay {
-    fn get_name(&self) -> &str {
-        "BCD2SevenSegment"
-    }
-
-    fn get_display_name(&self) -> &str {
-        "BCD to 7-Segment Display"
-    }
-
-    fn get_description(&self) -> Option<String> {
-        Some("Converts 4-bit BCD input to seven segment display outputs".to_string())
-    }
-
-    fn clone_tool(&self) -> Box<dyn Tool> {
-        Box::new(self.clone())
-    }
-}
-
-impl InstanceFactory for BcdToSevenSegmentDisplay {
-    fn create_instance(&self, id: crate::ComponentId, location: Location) -> Instance {
-        let mut instance = Instance::new(id, Self::ID.to_string(), location);
-        
-        // Set default attributes (using dummy attribute as in Java)
-        let mut attrs = AttributeSet::new();
-        attrs.set_value(StdAttr::DUMMY, "".to_string());
-        instance.set_attribute_set(attrs);
-        
-        // Create ports
-        let mut ports = Vec::with_capacity(8);
-        
-        // Segment output ports (A through G)
-        ports.push(Port::new(
-            Location::create(20, 0),
-            Port::OUTPUT,
-            BitWidth::create(1),
-        ).with_tooltip("Segment A"));
-
-        ports.push(Port::new(
-            Location::create(30, 0),
-            Port::OUTPUT,
-            BitWidth::create(1),
-        ).with_tooltip("Segment B"));
-
-        ports.push(Port::new(
-            Location::create(20, 60),
-            Port::OUTPUT,
-            BitWidth::create(1),
-        ).with_tooltip("Segment C"));
-
-        ports.push(Port::new(
-            Location::create(10, 60),
-            Port::OUTPUT,
-            BitWidth::create(1),
-        ).with_tooltip("Segment D"));
-
-        ports.push(Port::new(
-            Location::create(0, 60),
-            Port::OUTPUT,
-            BitWidth::create(1),
-        ).with_tooltip("Segment E"));
-
-        ports.push(Port::new(
-            Location::create(10, 0),
-            Port::OUTPUT,
-            BitWidth::create(1),
-        ).with_tooltip("Segment F"));
-
-        ports.push(Port::new(
-            Location::create(0, 0),
-            Port::OUTPUT,
-            BitWidth::create(1),
-        ).with_tooltip("Segment G"));
-
-        // BCD input port
-        ports.push(Port::new(
-            Location::create(10, 80),
-            Port::INPUT,
-            BitWidth::create(4),
-        ).with_tooltip("BCD Value"));
-        
-        instance.set_ports(ports);
-        instance
-    }
-
-    fn paint_instance(&self, painter: &mut InstancePainter) {
-        let bounds = painter.get_bounds();
-        
-        // Draw component body
-        painter.draw_rectangle(bounds, "");
-        
-        // Draw BCD input port
-        painter.draw_port(Self::BCD_INPUT, "BCD", Direction::South);
-        
-        // Draw segment output ports (no labels needed, just port indicators)
-        for i in 0..7 {
-            painter.draw_port(i, "", Direction::North);
+impl BcdToSevenSegmentDisplay {
+    /// Convert BCD signal to u8 value if possible
+    fn signal_to_bcd(&self, signal: &Signal) -> Option<u8> {
+        if signal.width() != BusWidth(4) {
+            return None;
         }
         
-        // Draw internal 7-segment display representation
-        let inner_x = bounds.x() + 5;
-        let inner_y = bounds.y() + 20;
-        let inner_width = bounds.width() - 10;
-        let inner_height = bounds.height() - 40;
-        
-        painter.draw_rectangle(
-            Bounds::create(inner_x, inner_y, inner_width, inner_height),
-            "",
-        );
+        let mut value = 0u8;
+        for (i, &bit) in signal.values().iter().enumerate() {
+            match bit {
+                Value::High => value |= 1 << i,
+                Value::Low => {},
+                Value::Unknown | Value::Error => return None,
+            }
+        }
+        Some(value)
     }
 
-    fn get_offset_bounds(&self, _attrs: &AttributeSet) -> Bounds {
-        // Fixed size component as defined in Java
-        Bounds::create(-10, -20, 50, 100)
+    /// Convert single bit to signal
+    fn bit_to_signal(&self, bit: bool) -> Signal {
+        Signal::new_single(if bit { Value::High } else { Value::Low })
     }
 
-    fn propagate(&self, state: &mut InstanceState) {
-        let input_value = state.get_port_value(Self::BCD_INPUT);
+    /// Perform the propagation logic - convert BCD input to 7-segment outputs
+    fn propagate(&mut self, _timestamp: Timestamp) -> UpdateResult {
+        let mut updates = Vec::new();
         
-        // Check if input is valid
-        if input_value.is_fully_defined() 
-            && !input_value.is_error_value() 
-            && !input_value.is_unknown() {
+        if let Some(input_pin) = self.pins.get("BCD_IN") {
+            let input_signal = input_pin.get_signal();
             
-            let bcd_digit = input_value.to_long_value().unwrap_or(0) as u8;
-            let segment_pattern = Self::get_segment_pattern(bcd_digit);
-            self.set_segments_known(state, segment_pattern);
-        } else {
-            // Input is invalid, set all segments to unknown
-            self.set_segments_unknown(state);
+            // Check if input is valid
+            if let Some(bcd_value) = self.signal_to_bcd(input_signal) {
+                // Get segment pattern
+                let pattern = Self::get_segment_pattern(bcd_value);
+                
+                // Set each segment output
+                let segment_names = ["SEG_A", "SEG_B", "SEG_C", "SEG_D", "SEG_E", "SEG_F", "SEG_G"];
+                for (i, &segment_name) in segment_names.iter().enumerate() {
+                    if let Some(output_pin) = self.pins.get_mut(segment_name) {
+                        let bit_value = (pattern >> i) & 1 != 0;
+                        let signal = self.bit_to_signal(bit_value);
+                        output_pin.set_signal(signal);
+                        updates.push((self.id, segment_name.to_string(), Self::PROPAGATION_DELAY));
+                    }
+                }
+            } else {
+                // Invalid input, set all outputs to unknown
+                let segment_names = ["SEG_A", "SEG_B", "SEG_C", "SEG_D", "SEG_E", "SEG_F", "SEG_G"];
+                for &segment_name in &segment_names {
+                    if let Some(output_pin) = self.pins.get_mut(segment_name) {
+                        output_pin.set_signal(Signal::unknown(BusWidth(1)));
+                        updates.push((self.id, segment_name.to_string(), Self::PROPAGATION_DELAY));
+                    }
+                }
+            }
         }
-    }
-
-    fn configure_new_instance(&self, _instance: &mut Instance) {
-        // No special configuration needed
-    }
-
-    fn instance_attribute_changed(&self, _instance: &mut Instance, _attr: &dyn std::any::Any) {
-        // No attributes to handle
-    }
-
-    fn get_hdl_name(&self, _attrs: &AttributeSet) -> String {
-        "BCD_to_7_Segment_decoder".to_string()
+        
+        UpdateResult { updates }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ComponentId;
 
     #[test]
     fn test_component_creation() {
-        let decoder = BcdToSevenSegmentDisplay::new();
-        assert_eq!(decoder.get_name(), "BCD2SevenSegment");
-        assert_eq!(decoder.get_display_name(), "BCD to 7-Segment Display");
+        let decoder = BcdToSevenSegmentDisplay::new(ComponentId(1));
+        assert_eq!(decoder.id(), ComponentId(1));
     }
 
     #[test]
@@ -319,62 +267,67 @@ mod tests {
     }
 
     #[test]
-    fn test_instance_creation() {
-        let decoder = BcdToSevenSegmentDisplay::new();
-        let instance = decoder.create_instance(
-            ComponentId(1), 
-            Location::create(100, 100)
-        );
+    fn test_pin_configuration() {
+        let decoder = BcdToSevenSegmentDisplay::new(ComponentId(1));
+        let pins = decoder.pins();
         
-        assert_eq!(instance.get_factory_id(), BcdToSevenSegmentDisplay::ID);
-        assert_eq!(instance.get_location(), Location::create(100, 100));
+        // Should have 1 input + 7 outputs
+        assert_eq!(pins.len(), 8);
         
-        // Should have 8 ports (7 segments + 1 input)
-        assert_eq!(instance.get_ports().len(), 8);
-    }
-
-    #[test]
-    fn test_port_configuration() {
-        let decoder = BcdToSevenSegmentDisplay::new();
-        let instance = decoder.create_instance(
-            ComponentId(1), 
-            Location::create(0, 0)
-        );
+        // Check BCD input pin
+        let input_pin = pins.get("BCD_IN").unwrap();
+        assert!(input_pin.is_input());
+        assert_eq!(input_pin.get_width(), BusWidth(4));
         
-        let ports = instance.get_ports();
-        
-        // Check BCD input port
-        let bcd_port = &ports[BcdToSevenSegmentDisplay::BCD_INPUT];
-        assert_eq!(bcd_port.get_type(), Port::INPUT);
-        assert_eq!(bcd_port.get_width(), BitWidth::create(4));
-        
-        // Check segment output ports
-        for i in 0..7 {
-            let segment_port = &ports[i];
-            assert_eq!(segment_port.get_type(), Port::OUTPUT);
-            assert_eq!(segment_port.get_width(), BitWidth::create(1));
+        // Check segment output pins
+        let segment_names = ["SEG_A", "SEG_B", "SEG_C", "SEG_D", "SEG_E", "SEG_F", "SEG_G"];
+        for &segment_name in &segment_names {
+            let pin = pins.get(segment_name).unwrap();
+            assert!(pin.is_output());
+            assert_eq!(pin.get_width(), BusWidth(1));
         }
     }
 
     #[test]
-    fn test_bounds() {
-        let decoder = BcdToSevenSegmentDisplay::new();
-        let attrs = AttributeSet::new();
-        let bounds = decoder.get_offset_bounds(&attrs);
+    fn test_signal_to_bcd_conversion() {
+        let decoder = BcdToSevenSegmentDisplay::new(ComponentId(1));
         
-        assert_eq!(bounds.x(), -10);
-        assert_eq!(bounds.y(), -20);
-        assert_eq!(bounds.width(), 50);
-        assert_eq!(bounds.height(), 100);
+        // Test valid 4-bit signal
+        let signal_5 = Signal::new_bus(vec![Value::High, Value::Low, Value::High, Value::Low]);
+        assert_eq!(decoder.signal_to_bcd(&signal_5), Some(5));
+        
+        // Test signal with unknown value
+        let signal_unknown = Signal::new_bus(vec![Value::High, Value::Unknown, Value::Low, Value::Low]);
+        assert_eq!(decoder.signal_to_bcd(&signal_unknown), None);
+        
+        // Test wrong width signal
+        let signal_wrong_width = Signal::new_bus(vec![Value::High, Value::Low]);
+        assert_eq!(decoder.signal_to_bcd(&signal_wrong_width), None);
     }
 
     #[test]
-    fn test_hdl_name() {
-        let decoder = BcdToSevenSegmentDisplay::new();
-        let attrs = AttributeSet::new();
-        let hdl_name = decoder.get_hdl_name(&attrs);
+    fn test_bit_to_signal_conversion() {
+        let decoder = BcdToSevenSegmentDisplay::new(ComponentId(1));
         
-        assert_eq!(hdl_name, "BCD_to_7_Segment_decoder");
+        let signal_high = decoder.bit_to_signal(true);
+        assert_eq!(signal_high.values(), &[Value::High]);
+        
+        let signal_low = decoder.bit_to_signal(false);
+        assert_eq!(signal_low.values(), &[Value::Low]);
+    }
+
+    #[test]
+    fn test_component_reset() {
+        let mut decoder = BcdToSevenSegmentDisplay::new(ComponentId(1));
+        decoder.reset();
+        
+        // All output pins should be unknown after reset
+        for (name, pin) in decoder.pins() {
+            if pin.is_output() {
+                assert!(name.starts_with("SEG_"));
+                // Signal should be unknown (we can't easily test this without more infrastructure)
+            }
+        }
     }
 
     #[test]

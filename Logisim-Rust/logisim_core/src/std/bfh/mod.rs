@@ -22,16 +22,17 @@
 //!
 //! ```rust
 //! use logisim_core::std::bfh::{BfhLibrary, BinToBcd, BcdToSevenSegmentDisplay};
+//! use logisim_core::component::ComponentId;
 //!
 //! // Create components through the library
 //! let library = BfhLibrary::new();
-//! let tools = library.get_tools();
+//! let bin_to_bcd = BfhLibrary::create_bin_to_bcd(ComponentId(1));
+//! let bcd_to_seven = BfhLibrary::create_bcd_to_seven_segment(ComponentId(2));
 //! ```
 
 pub mod library;
 pub mod bin_to_bcd;
 pub mod bcd_to_seven_segment;
-pub mod hdl;
 
 // Re-export main types
 pub use library::BfhLibrary;

@@ -13,9 +13,8 @@
 //! equivalent to Java's `BfhLibrary` class. It contains educational and practical
 //! digital components like BCD converters and display decoders.
 
-use crate::tools::{Library, Tool};
+use crate::component::ComponentId;
 use super::{BinToBcd, BcdToSevenSegmentDisplay};
-use std::collections::HashMap;
 
 /// BFH Components Library
 ///
@@ -27,20 +26,9 @@ use std::collections::HashMap;
 ///
 /// - **Binary to BCD Converter**: Converts binary values to BCD format
 /// - **BCD to 7-Segment Display**: Decodes BCD to 7-segment display outputs
-///
-/// ## Example
-///
-/// ```rust
-/// use logisim_core::std::bfh::BfhLibrary;
-///
-/// let library = BfhLibrary::new();
-/// println!("Library: {}", library.get_display_name());
-/// let tools = library.get_tools();
-/// ```
 #[derive(Debug, Clone)]
 pub struct BfhLibrary {
-    tools: Vec<Box<dyn Tool>>,
-    display_name: String,
+    id: String,
 }
 
 impl BfhLibrary {
@@ -53,57 +41,29 @@ impl BfhLibrary {
     /// Creates a new BFH library instance
     pub fn new() -> Self {
         Self {
-            tools: Vec::new(),
-            display_name: "BFH Mega Functions".to_string(),
+            id: Self::ID.to_string(),
         }
     }
 
-    /// Initialize the library with all available tools
-    fn init_tools(&mut self) {
-        if self.tools.is_empty() {
-            // Create all BFH components
-            self.tools.push(Box::new(BinToBcd::new()));
-            self.tools.push(Box::new(BcdToSevenSegmentDisplay::new()));
-        }
+    /// Get display name for the library
+    pub fn display_name() -> &'static str {
+        "BFH Mega Functions"
     }
 
-    /// Get tool by name for dynamic component creation
-    pub fn get_tool_by_name(&self, name: &str) -> Option<&dyn Tool> {
-        self.tools.iter()
-            .find(|tool| tool.get_name() == name)
-            .map(|tool| tool.as_ref())
+    /// Create a Binary to BCD converter
+    pub fn create_bin_to_bcd(id: ComponentId) -> Box<dyn crate::component::Component> {
+        Box::new(BinToBcd::new(id))
     }
 
-    /// Get all tool names available in this library
-    pub fn get_tool_names(&self) -> Vec<String> {
-        self.tools.iter()
-            .map(|tool| tool.get_name().to_string())
-            .collect()
+    /// Create a BCD to 7-Segment Display decoder
+    pub fn create_bcd_to_seven_segment(id: ComponentId) -> Box<dyn crate::component::Component> {
+        Box::new(BcdToSevenSegmentDisplay::new(id))
     }
 }
 
 impl Default for BfhLibrary {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl Library for BfhLibrary {
-    fn get_display_name(&self) -> &str {
-        &self.display_name
-    }
-
-    fn get_tools(&mut self) -> &[Box<dyn Tool>] {
-        self.init_tools();
-        &self.tools
-    }
-
-    fn get_library_id(&self) -> &str {
-        Self::ID
-    }
-
-    fn get_description(&self) -> Option<String> {
-        Some("BFH (Bern University of Applied Sciences) educational and practical digital components including BCD converters and display decoders.".to_string())
     }
 }
 
@@ -114,8 +74,7 @@ mod tests {
     #[test]
     fn test_library_creation() {
         let library = BfhLibrary::new();
-        assert_eq!(library.get_display_name(), "BFH Mega Functions");
-        assert_eq!(library.get_library_id(), "BFH-Praktika");
+        assert_eq!(library.id, "BFH-Praktika");
     }
 
     #[test]
@@ -125,49 +84,22 @@ mod tests {
     }
 
     #[test]
-    fn test_library_description() {
-        let library = BfhLibrary::new();
-        let desc = library.get_description();
-        assert!(desc.is_some());
-        assert!(desc.unwrap().contains("BFH"));
-        assert!(desc.unwrap().contains("BCD"));
+    fn test_display_name() {
+        assert_eq!(BfhLibrary::display_name(), "BFH Mega Functions");
     }
 
     #[test]
     fn test_default_implementation() {
         let library = BfhLibrary::default();
-        assert_eq!(library.get_display_name(), "BFH Mega Functions");
+        assert_eq!(library.id, "BFH-Praktika");
     }
 
     #[test]
-    fn test_tools_initialization() {
-        let mut library = BfhLibrary::new();
-        let tools = library.get_tools();
-        assert_eq!(tools.len(), 2); // BinToBcd and BcdToSevenSegmentDisplay
-    }
+    fn test_component_creation() {
+        let bin_to_bcd = BfhLibrary::create_bin_to_bcd(ComponentId(1));
+        assert!(bin_to_bcd.id() == ComponentId(1));
 
-    #[test]
-    fn test_tool_names() {
-        let mut library = BfhLibrary::new();
-        library.init_tools();
-        let names = library.get_tool_names();
-        assert_eq!(names.len(), 2);
-        assert!(names.contains(&"Bin2BCD".to_string()));
-        assert!(names.contains(&"BCD2SevenSegment".to_string()));
-    }
-
-    #[test]
-    fn test_get_tool_by_name() {
-        let mut library = BfhLibrary::new();
-        library.init_tools();
-        
-        let bin_to_bcd = library.get_tool_by_name("Bin2BCD");
-        assert!(bin_to_bcd.is_some());
-        
-        let bcd_to_seven = library.get_tool_by_name("BCD2SevenSegment");
-        assert!(bcd_to_seven.is_some());
-        
-        let nonexistent = library.get_tool_by_name("NonExistent");
-        assert!(nonexistent.is_none());
+        let bcd_to_seven = BfhLibrary::create_bcd_to_seven_segment(ComponentId(2));
+        assert!(bcd_to_seven.id() == ComponentId(2));
     }
 }
