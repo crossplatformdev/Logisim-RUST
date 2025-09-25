@@ -183,23 +183,23 @@ impl Component for Adder {
         // Update output pins
         let mut changed = false;
         if let Some(sum_pin) = self.pins.get_mut("Sum") {
-            if sum_pin.signal().value() != sum {
-                sum_pin.set_signal(Signal::new(sum, _current_time));
+            if sum_pin.signal().value() != &sum {
+                let _ = sum_pin.set_signal(Signal::new(sum, _current_time));
                 changed = true;
             }
         }
         
         if let Some(carry_pin) = self.pins.get_mut("Carry_Out") {
-            if carry_pin.signal().value() != carry_out {
-                carry_pin.set_signal(Signal::new(carry_out, _current_time));
+            if carry_pin.signal().value() != &carry_out {
+                let _ = carry_pin.set_signal(Signal::new(carry_out, _current_time));
                 changed = true;
             }
         }
         
         if changed {
-            UpdateResult::Changed
+            UpdateResult::changed()
         } else {
-            UpdateResult::NoChange
+            UpdateResult::no_change()
         }
     }
 
