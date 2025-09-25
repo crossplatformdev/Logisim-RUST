@@ -1,0 +1,33 @@
+# Rust formatting configuration for Logisim-RUST
+# Only stable options are used to ensure compatibility with stable Rust
+
+# General formatting
+edition = "2021"
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+
+# Import organization
+reorder_imports = true
+
+# Function formatting
+fn_params_layout = "Tall"
+
+# Miscellaneous formatting
+use_small_heuristics = "Default"
+remove_nested_parens = true
+match_block_trailing_comma = true
+
+# Advanced options require nightly rustfmt - uncomment when using nightly:
+# imports_layout = "Vertical"
+# group_imports = "StdExternalCrate"
+# wrap_comments = true
+# format_code_in_doc_comments = true
+# normalize_comments = true
+# normalize_doc_attributes = true
+# format_strings = true
+# control_brace_style = "AlwaysSameLine"
+# trailing_comma = "Vertical"
+# trailing_semicolon = true
+# binop_separator = "Front"
+# combine_control_expr = true

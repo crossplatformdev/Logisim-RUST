@@ -1,0 +1,44 @@
+# Clippy configuration for Logisim-RUST
+# See https://doc.rust-lang.org/clippy/configuration.html
+
+# Cognitive complexity threshold
+cognitive-complexity-threshold = 30
+
+# Type complexity threshold
+type-complexity-threshold = 250
+
+# Maximum allowed size for arrays on the stack
+array-size-threshold = 512000
+
+# Maximum number of lines a function can have
+too-many-lines-threshold = 100
+
+# Maximum number of arguments a function can have
+too-many-arguments-threshold = 7
+
+# Maximum size of types to avoid performance issues
+trivial-copy-size-limit = 128
+
+# Maximum size of a type to be passed by value instead of reference
+pass-by-value-size-limit = 256
+
+# Maximum number of single char bindings a scope may have
+single-char-binding-names-threshold = 4
+
+# Maximum number of bool fields a struct may have
+max-struct-bools = 3
+
+# Maximum number of variants in an enum
+enum-variant-name-threshold = 3
+
+# Avoid lints for educational/learning code
+avoid-breaking-exported-api = false
+
+# Allow certain patterns common in digital logic simulation
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
+
+# Suppress certain lints that may not apply to this domain
+# These can be uncommented if they cause issues:
+# disallowed-names = []
+# blacklisted-names = []
