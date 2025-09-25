@@ -1,10 +1,308 @@
 # Migration Notes: Java Logisim-Evolution to Rust
 
-This document provides detailed notes about migrating from the Java Logisim-Evolution implementation to the Rust version, including the foundational infrastructure and features like the chronogram.
+This document provides detailed notes about migrating from the Java Logisim-Evolution implementation to the Rust version, including the foundational infrastructure, simulation kernel, and features like the chronogram.
 
 ## Overview
 
 The Rust port maintains API compatibility and behavioral equivalence with the Java implementation while leveraging Rust's memory safety and performance benefits.
+
+## Java Simulation Kernel Class Enumeration
+
+### Core Simulation Packages
+
+The following packages form the heart of the Logisim-Evolution simulation engine:
+
+#### Package: com.cburch.logisim.circuit
+*Core simulation circuit management and netlist connectivity*
+
+| Java Class | Type | Responsibility Summary |
+|------------|------|------------------------|
+| `CircuitWires` | class | **Central netlist manager**: Stores and calculates values propagated along all wires and buses. Manages WireBundle and WireThread connectivity for circuit netlist. |
+| `Propagator` | class | **Event-driven simulation engine**: Manages event queue, component propagation, and timing. Contains SimulatorEvent for scheduling value changes. |
+| `Simulator` | class | **Top-level simulation coordinator**: Controls ticking, stepping, auto-propagation. Manages simulation thread and provides listener interfaces. |
+| `CircuitState` | class | **Simulation state container**: Holds values on wires/buses and component instance data. Manages dirty lists for incremental updates. |
+| `Circuit` | class | **Circuit structure definition**: Contains components, wires, and circuit metadata. Provides circuit modification operations. |
+| `WireBundle` | class | **Physical wire grouping**: Represents user-drawn wire segments as bundles of 1-32 bit threads. Handles width compatibility and pull values. |
+| `WireThread` | class | **Electrical connectivity**: Single-bit electrically contiguous trace through circuit. Traverses splitters and multiple WireBundles. |
+| `Wire` | class | **Individual wire component**: Basic wire element with endpoints. Provides visual representation and connectivity points. |
+| `Splitter` | class | **Bus fan-out component**: Splits/joins buses of different widths. Central to multi-bit signal routing. |
+| `PropagationPoints` | class | **Dirty tracking**: Manages locations and components needing recomputation during simulation steps. |
+
+#### Package: com.cburch.logisim.data
+*Fundamental data types and simulation values*
+
+| Java Class | Type | Responsibility Summary |
+|------------|------|------------------------|
+| `Value` | class | **Digital signal values**: Represents multi-bit digital values with unknown/error states. Core of all signal propagation. |
+| `BitWidth` | class | **Bus width representation**: Defines bit widths 1-32 with validation and compatibility checking. |
+| `Location` | class | **Coordinate system**: Immutable 2D grid coordinates for component and wire positioning. |
+| `Bounds` | class | **Spatial boundaries**: Immutable rectangular bounds for collision detection and graphics. |
+| `Direction` | class | **Orientation management**: Four cardinal directions for component and wire orientation. |
+| `AttributeSet` | interface | **Component configuration**: Manages component properties and configuration parameters. |
+
+#### Package: com.cburch.logisim.comp
+*Component framework and lifecycle management*
+
+| Java Class | Type | Responsibility Summary |
+|------------|------|------------------------|
+| `Component` | interface | **Component abstraction**: Primary interface for all circuit components. Defines ports, behavior, and rendering. |
+| `ComponentFactory` | interface | **Component creation**: Factory pattern for instantiating components with proper configuration. |
+| `ComponentState` | interface | **Instance data storage**: Manages component-specific state data during simulation. |
+| `EndData` | class | **Port definitions**: Describes component connection points with location, direction, and bit width. |
+
+#### Package: com.cburch.logisim.std.wiring
+*Wiring infrastructure components*
+
+| Java Class | Type | Responsibility Summary |
+|------------|------|------------------------|
+| `Pin` | class | **I/O connection points**: Input/output pins for circuit interfaces. Provides pull-up/pull-down options. |
+| `Clock` | class | **Timing source**: Generates clock signals with configurable frequency. Essential for sequential circuits. |
+| `Tunnel` | class | **Long-distance connections**: Named tunnels for clean long-distance signal routing without visual wires. |
+| `Constant` | class | **Fixed value sources**: Provides constant 0/1 values and multi-bit constants for circuit inputs. |
+| `Ground` | class | **Ground reference**: Provides logical ground (0) reference for circuits. |
+| `Power` | class | **Power reference**: Provides logical power (1) reference for circuits. |
+| `PullResistor` | class | **Pull-up/down resistors**: Provides weak pull values for floating signals. |
+
+### Wire/Net Construction and Update Flow
+
+#### During Circuit Edits
+
+```mermaid
+graph TD
+    A[User adds/removes wire] --> B[Circuit.fireMutation()]
+    B --> C[CircuitWires.voidConnectivity()]
+    C --> D[Connectivity recalculated]
+    D --> E[WireBundle unification]
+    E --> F[WireThread reassignment]
+    F --> G[PropagationPoints marked dirty]
+    G --> H[GUI refresh triggered]
+```
+
+**Key Steps:**
+1. **Wire Addition**: New Wire component added to Circuit
+2. **Connectivity Invalidation**: CircuitWires marks connectivity as void
+3. **Bundle Reconstruction**: WireBundle objects unified at intersection points
+4. **Thread Mapping**: WireThread objects traverse splitters to maintain electrical continuity
+5. **Width Resolution**: BitWidth compatibility checked across connected components
+6. **Dirty Marking**: All affected locations marked for recomputation
+
+#### During Simulation Steps
+
+```mermaid
+graph TD
+    A[Component produces new value] --> B[Propagator.scheduleEvent()]
+    B --> C[SimulatorEvent queued]
+    C --> D[Event processed by time]
+    D --> E[CircuitWires.propagate()]
+    E --> F[WireThread values updated]
+    F --> G[Connected components triggered]
+    G --> H[New events scheduled]
+```
+
+**Key Steps:**
+1. **Value Change**: Component outputs new value at specific time
+2. **Event Scheduling**: Propagator creates SimulatorEvent with timestamp
+3. **Wire Propagation**: CircuitWires updates WireThread values
+4. **Fanout**: Connected components receive new input values
+5. **Cascade**: Components may schedule additional events
+6. **Convergence**: Simulation continues until event queue empty
+
+### Timing/Chronogram Analysis
+
+#### Package: com.cburch.logisim.gui.chrono
+*Chronogram timing visualization and waveform display*
+
+| Java Class | Type | Responsibility Summary |
+|------------|------|------------------------|
+| `ChronoPanel` | class | **Main chronogram UI**: Split-pane panel containing signal list and waveform display. Coordinates timing visualization. |
+| `LeftPanel` | class | **Signal list management**: Displays signal names, values, and selection controls. Handles signal configuration. |
+| `RightPanel` | class | **Waveform rendering**: Renders timing diagrams with time axis and signal waveforms. Handles zoom/scroll. |
+
+#### Package: com.cburch.logisim.gui.log
+*Signal monitoring and data logging*
+
+| Java Class | Type | Responsibility Summary |
+|------------|------|------------------------|
+| `Model` | class | **Data logging coordinator**: Manages signal capture, storage, and chronogram data model. Implements CircuitListener. |
+| `Signal` | class | **Signal data storage**: Time-series signal value storage with efficient access patterns. |
+| `SignalInfo` | class | **Signal metadata**: Signal configuration including radix, color, and display options. |
+| `LogFrame` | class | **Logging window manager**: Top-level window for chronogram and logging functionality. |
+
+#### Timing Computation Flow
+
+```mermaid
+sequenceDiagram
+    participant S as Simulator
+    participant M as Model
+    participant C as ChronoPanel
+    participant R as RightPanel
+    
+    S->>M: propagationCompleted()
+    M->>M: captureSignalValues()
+    M->>C: notifyDataChanged()
+    C->>R: refreshWaveforms()
+    R->>R: renderTimelineAndSignals()
+```
+
+**Key Components:**
+1. **Signal Capture**: Model listens to Simulator events and captures signal values at each propagation
+2. **Time Indexing**: Efficient time-based indexing for rapid waveform rendering
+3. **Rendering Pipeline**: RightPanel renders visible time range with automatic level-of-detail
+4. **Interactive Navigation**: Zoom/scroll with coordinate mapping between time and pixels
+
+### Java-to-Rust Architecture Mapping
+
+#### Core Simulation Translation
+
+| Java Component | Rust Equivalent | Key Changes |
+|----------------|-----------------|-------------|
+| `CircuitWires` | `logisim_core::netlist` | Ownership-based connectivity, efficient updates |
+| `Propagator` | `logisim_core::simulation` | Event queue with zero-copy scheduling |
+| `CircuitState` | `logisim_core::simulation::State` | Borrowing instead of shared references |
+| `Value` | `logisim_core::signal::Signal` | Stack-allocated values, bitwise operations |
+| `WireBundle`/`WireThread` | `logisim_core::netlist::{Bundle,Thread}` | Union-find with path compression |
+
+#### Chronogram Migration Status
+
+| Java Class | Rust Module | Implementation Status |
+|------------|-------------|----------------------|
+| `ChronoPanel` | `logisim_ui::gui::chronogram::panel` | ✅ **Complete** - egui split panel |
+| `LeftPanel` | `logisim_ui::gui::chronogram::panel` | ✅ **Complete** - signal list UI |
+| `RightPanel` | `logisim_ui::gui::chronogram::{timeline,waveform}` | ✅ **Complete** - waveform rendering |
+| `Model` | `logisim_ui::gui::chronogram::model` | ✅ **Complete** - data management |
+| `Signal` | `logisim_ui::gui::chronogram::model` | ✅ **Complete** - time-series storage |
+
+### Complete Java Class Reference
+
+#### Extended Package Analysis
+
+**com.cburch.logisim.instance** - *Component instance lifecycle management*
+
+| Java Class | Type | Responsibility Summary |
+|------------|------|------------------------|
+| `Instance` | class | **Component instance wrapper**: Provides component-specific view of circuit state and configuration. |
+| `InstanceState` | interface | **Instance simulation state**: Component's view of circuit state during simulation. |
+| `InstanceData` | interface | **Component data storage**: Persistent data storage for component instances. |
+| `InstanceFactory` | class | **Instance-based component factory**: Simplified component creation using Instance pattern. |
+
+**Additional Core Classes:**
+
+| Java Class | Package | Responsibility Summary |
+|------------|---------|------------------------|
+| `CircuitMutation` | circuit | **Atomic circuit changes**: Encapsulates circuit modifications for undo/redo. |
+| `CircuitTransaction` | circuit | **Grouped mutations**: Batches multiple mutations into atomic operations. |
+| `PropagationPoints` | circuit | **Dirty tracking**: Manages incremental simulation updates efficiently. |
+| `WireRepair` | circuit | **Wire validation**: Handles wire consistency checking and automatic repair. |
+| `SplitterFactory` | circuit | **Bus splitter creation**: Creates and configures bus fan-in/fan-out components. |
+
+### Migration Implementation Patterns
+
+#### Memory Management Translation
+
+**Java Reference Semantics → Rust Ownership:**
+```java
+// Java: Shared mutable state
+public class CircuitState {
+    private Map<Component, ComponentState> data;
+    
+    public ComponentState getData(Component comp) {
+        return data.get(comp);  // Nullable reference
+    }
+}
+```
+
+```rust
+// Rust: Ownership with interior mutability
+pub struct CircuitState {
+    data: HashMap<ComponentId, Box<dyn ComponentState>>,
+}
+
+impl CircuitState {
+    pub fn get_data(&self, comp_id: ComponentId) -> Option<&dyn ComponentState> {
+        self.data.get(&comp_id).map(|boxed| boxed.as_ref())
+    }
+}
+```
+
+#### Event-Driven Simulation Translation
+
+**Java Threading → Rust Async:**
+```java
+// Java: Thread-based simulation
+public class Simulator {
+    private SimThread simThread;
+    private PriorityQueue<SimulatorEvent> eventQueue;
+    
+    public void scheduleEvent(SimulatorEvent event) {
+        synchronized(eventQueue) {
+            eventQueue.add(event);
+            eventQueue.notify();
+        }
+    }
+}
+```
+
+```rust
+// Rust: Async simulation with channels
+pub struct Simulator {
+    event_sender: mpsc::Sender<SimulationEvent>,
+    event_receiver: mpsc::Receiver<SimulationEvent>,
+}
+
+impl Simulator {
+    pub async fn schedule_event(&self, event: SimulationEvent) -> Result<(), SendError> {
+        self.event_sender.send(event).await
+    }
+}
+```
+
+### Performance Optimizations in Rust Migration
+
+#### Netlist Connectivity Optimizations
+
+1. **Union-Find with Path Compression**: WireThread connectivity uses efficient union-find
+2. **Sparse Matrices**: Connection matrices use sparse representation for large circuits
+3. **Copy-on-Write**: Netlist structures use Cow for efficient immutable updates
+4. **Bit Manipulation**: Signal values use efficient bitwise operations
+
+#### Simulation Performance Improvements
+
+1. **Stack Allocation**: Signal values allocated on stack instead of heap
+2. **Zero-Copy Events**: Event queue uses references instead of copying data
+3. **Batch Processing**: Component updates batched for cache efficiency
+4. **SIMD Operations**: Vector operations for wide bus calculations
+
+### Testing and Validation
+
+#### Compatibility Testing Matrix
+
+| Feature | Java Behavior | Rust Implementation | Test Status |
+|---------|---------------|-------------------|-------------|
+| Circuit Loading | .circ XML parsing | Equivalent XML parser | ✅ **Validated** |
+| Wire Connectivity | WireBundle/Thread | Netlist nodes/threads | ✅ **Validated** |
+| Event Simulation | Propagator events | Async event queue | ✅ **Validated** |
+| Component Behavior | Instance pattern | Trait-based components | 🔄 **In Progress** |
+| Chronogram Display | Swing UI | egui implementation | ✅ **Validated** |
+
+## Resources
+
+### Java Codebase Reference
+- Original repository: https://github.com/logisim-evolution/logisim-evolution
+- Core simulation: `src/main/java/com/cburch/logisim/circuit/`
+- Chronogram: `src/main/java/com/cburch/logisim/gui/chrono/`
+- Component framework: `src/main/java/com/cburch/logisim/comp/`
+
+### Rust Implementation
+- Current implementation: `logisim_core/src/` and `logisim_ui/src/`
+- Tests: `logisim_core/tests/` and `logisim_ui/tests/`
+- Documentation: This file and `ARCHITECTURE.md`
+
+### Migration Progress Tracking
+- [ ] Complete component trait migration from Instance pattern
+- [ ] Implement remaining std library components
+- [ ] Add comprehensive integration tests
+- [ ] Performance benchmarking against Java version
+- [ ] Documentation completion and review
 
 ## Foundation Infrastructure Migration
 
