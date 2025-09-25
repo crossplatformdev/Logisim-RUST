@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// OR Gate implementation
-/// 
+///
 /// Performs logical OR operation on its inputs. The output is high when
 /// any input is high. Supports configurable number of inputs and bit width.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,19 +36,23 @@ impl OrGate {
 
         OrGate { id, pins }
     }
-    
+
     /// Create a new OR gate with configurable number of inputs
     pub fn new_with_inputs(id: ComponentId, num_inputs: usize) -> Self {
         let mut pins = HashMap::new();
-        
+
         // Add input pins
         for i in 0..num_inputs {
-            let pin_name = if i == 0 { "A".to_string() } 
-                          else if i == 1 { "B".to_string() }
-                          else { format!("I{}", i) };
+            let pin_name = if i == 0 {
+                "A".to_string()
+            } else if i == 1 {
+                "B".to_string()
+            } else {
+                format!("I{}", i)
+            };
             pins.insert(pin_name.clone(), Pin::new_input(&pin_name, BusWidth(1)));
         }
-        
+
         // Add output pin
         pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
 
@@ -77,7 +81,8 @@ impl Component for OrGate {
         // Get all input values
         let mut inputs = Vec::new();
         for (name, pin) in &self.pins {
-            if name != "Y" { // Skip output pin
+            if name != "Y" {
+                // Skip output pin
                 let value = pin.signal.as_single().unwrap_or(Value::Unknown);
                 inputs.push(value);
             }
@@ -167,11 +172,14 @@ mod tests {
 
             let result = gate.update(Timestamp(0));
             let outputs = result.get_outputs();
-            
+
             if let Some(output_signal) = outputs.get("Y") {
                 let output_value = output_signal.as_single().unwrap();
-                assert_eq!(output_value, expected, 
-                    "OR({:?}, {:?}) should be {:?}, got {:?}", a, b, expected, output_value);
+                assert_eq!(
+                    output_value, expected,
+                    "OR({:?}, {:?}) should be {:?}, got {:?}",
+                    a, b, expected, output_value
+                );
             } else {
                 panic!("No output signal found");
             }
@@ -181,25 +189,37 @@ mod tests {
     #[test]
     fn test_or_gate_multi_input() {
         let mut gate = OrGate::new_with_inputs(ComponentId(1), 3);
-        
+
         // Test 3-input OR gate - all low
-        gate.get_pin_mut("A").unwrap().set_signal(Signal::new_single(Value::Low)).unwrap();
-        gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(Value::Low)).unwrap();
-        gate.get_pin_mut("I2").unwrap().set_signal(Signal::new_single(Value::Low)).unwrap();
-        
+        gate.get_pin_mut("A")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::Low))
+            .unwrap();
+        gate.get_pin_mut("B")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::Low))
+            .unwrap();
+        gate.get_pin_mut("I2")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::Low))
+            .unwrap();
+
         let result = gate.update(Timestamp(0));
         let outputs = result.get_outputs();
-        
+
         if let Some(output_signal) = outputs.get("Y") {
             let output_value = output_signal.as_single().unwrap();
             assert_eq!(output_value, Value::Low);
         }
-        
+
         // Test with one input high
-        gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
+        gate.get_pin_mut("B")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::High))
+            .unwrap();
         let result = gate.update(Timestamp(0));
         let outputs = result.get_outputs();
-        
+
         if let Some(output_signal) = outputs.get("Y") {
             let output_value = output_signal.as_single().unwrap();
             assert_eq!(output_value, Value::High);

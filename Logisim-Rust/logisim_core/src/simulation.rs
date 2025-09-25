@@ -3,7 +3,7 @@
 //! This module implements the core simulation loop, event processing,
 //! and component management for the digital logic simulator.
 
-use crate::component::{ClockEdge, Component, ComponentId, UpdateResult};
+use crate::comp::{Component, ComponentId};
 use crate::event::{EventQueue, EventType};
 use crate::netlist::{Netlist, NodeId};
 use crate::signal::{Signal, Timestamp, Value};

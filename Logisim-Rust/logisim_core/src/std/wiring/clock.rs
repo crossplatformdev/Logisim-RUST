@@ -28,8 +28,8 @@ pub const CLOCK_ID: &str = "Clock";
 #[derive(Debug, Clone)]
 pub struct ClockAttributes {
     pub facing: Direction,
-    pub high_duration: u64,  // Duration in time units that clock stays high
-    pub low_duration: u64,   // Duration in time units that clock stays low
+    pub high_duration: u64, // Duration in time units that clock stays high
+    pub low_duration: u64,  // Duration in time units that clock stays low
 }
 
 impl Default for ClockAttributes {
@@ -77,14 +77,14 @@ impl Clock {
     pub fn new(id: ComponentId) -> Self {
         let attributes = ClockAttributes::default();
         let mut state = ClockState::default();
-        
+
         // Set initial next transition time based on current state (low) and low duration
         state.next_transition_time = attributes.low_duration;
-        
+
         // Create the output pin - always 1-bit wide
         let mut output_pin = ComponentPin::new_output("out", BusWidth(1));
         output_pin.signal = Signal::new_single(state.current_value);
-        
+
         let mut pins = HashMap::new();
         pins.insert("out".to_string(), output_pin);
 
@@ -119,7 +119,7 @@ impl Clock {
     /// Toggle the clock output and schedule next transition
     fn toggle_output(&mut self, current_time: u64) -> bool {
         let old_value = self.state.current_value;
-        
+
         // Toggle the value
         self.state.current_value = match self.state.current_value {
             Value::High => Value::Low,
@@ -133,7 +133,7 @@ impl Clock {
             Value::Low => self.attributes.low_duration,
             _ => self.attributes.low_duration,
         };
-        
+
         self.state.next_transition_time = current_time + duration;
 
         // Update the output pin
@@ -185,7 +185,7 @@ impl Component for Clock {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         let mut result = UpdateResult::new();
-        
+
         // Check if it's time to toggle
         if self.should_transition(current_time.0) {
             if self.toggle_output(current_time.0) {
@@ -193,7 +193,7 @@ impl Component for Clock {
                 if let Some(pin) = self.pins.get("out") {
                     result.add_output("out".to_string(), pin.signal.clone());
                 }
-                
+
                 // Set the delay until next transition
                 result.set_delay(match self.state.current_value {
                     Value::High => self.attributes.high_duration,
@@ -202,7 +202,7 @@ impl Component for Clock {
                 });
             }
         }
-        
+
         result
     }
 
@@ -211,7 +211,7 @@ impl Component for Clock {
         self.state.current_value = Value::Low;
         self.state.next_transition_time = self.attributes.low_duration;
         self.state.running = true;
-        
+
         // Update pin signal
         if let Some(pin) = self.pins.get_mut("out") {
             pin.signal = Signal::new_single(self.state.current_value);
@@ -269,10 +269,10 @@ mod tests {
     #[test]
     fn test_clock_duration_setting() {
         let mut clock = Clock::new(ComponentId(1));
-        
+
         clock.set_high_duration(10);
         clock.set_low_duration(5);
-        
+
         assert_eq!(clock.get_high_duration(), 10);
         assert_eq!(clock.get_low_duration(), 5);
     }
@@ -294,19 +294,19 @@ mod tests {
         let mut clock = Clock::new(ComponentId(1));
         clock.set_high_duration(2);
         clock.set_low_duration(3);
-        
+
         // Initial state should be low
         assert_eq!(clock.get_current_value(), Value::Low);
-        
+
         // Should transition at time 1 (low_duration)
         assert!(clock.should_transition(1));
         assert!(!clock.should_transition(0));
-        
+
         // Toggle to high
         let changed = clock.toggle_output(1);
         assert!(changed);
         assert_eq!(clock.get_current_value(), Value::High);
-        
+
         // Next transition should be at time 3 (1 + high_duration of 2)
         assert!(clock.should_transition(3));
         assert!(!clock.should_transition(2));
@@ -315,15 +315,15 @@ mod tests {
     #[test]
     fn test_clock_control() {
         let mut clock = Clock::new(ComponentId(1));
-        
+
         // Initially running
         assert!(clock.is_running());
-        
+
         // Stop the clock
         clock.set_running(false);
         assert!(!clock.is_running());
         assert!(!clock.should_transition(1000)); // Should not transition when stopped
-        
+
         // Start the clock again
         clock.set_running(true);
         assert!(clock.is_running());
@@ -332,14 +332,14 @@ mod tests {
     #[test]
     fn test_clock_reset() {
         let mut clock = Clock::new(ComponentId(1));
-        
+
         // Change state
         clock.toggle_output(0);
         clock.set_running(false);
-        
+
         // Reset
         clock.reset();
-        
+
         // Should be back to initial state
         assert_eq!(clock.get_current_value(), Value::Low);
         assert!(clock.is_running());
@@ -349,11 +349,11 @@ mod tests {
     fn test_clock_update() {
         let mut clock = Clock::new(ComponentId(1));
         clock.set_low_duration(1); // Set to match default
-        
+
         // Before transition time
         let result = clock.update(Timestamp(0));
         assert_eq!(result.outputs.len(), 0); // No change
-        
+
         // At transition time
         let result = clock.update(Timestamp(1));
         assert_eq!(result.outputs.len(), 1); // Should have output

@@ -94,10 +94,16 @@ mod tests {
     fn test_instance_data_trait() {
         let data: Box<dyn InstanceData> = Box::new(InstanceDataSingleton::new("hello"));
         let cloned = data.clone_data();
-        
-        let original_ref = data.as_any().downcast_ref::<InstanceDataSingleton<&str>>().unwrap();
-        let cloned_ref = cloned.as_any().downcast_ref::<InstanceDataSingleton<&str>>().unwrap();
-        
+
+        let original_ref = data
+            .as_any()
+            .downcast_ref::<InstanceDataSingleton<&str>>()
+            .unwrap();
+        let cloned_ref = cloned
+            .as_any()
+            .downcast_ref::<InstanceDataSingleton<&str>>()
+            .unwrap();
+
         assert_eq!(original_ref.get(), cloned_ref.get());
     }
 }

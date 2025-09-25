@@ -15,7 +15,7 @@
 use crate::component::{Component, ComponentId};
 
 /// Even parity gate implementation (placeholder)
-/// 
+///
 /// Outputs high when an even number of inputs are high.
 #[derive(Debug)]
 pub struct EvenParityGate {
@@ -45,7 +45,10 @@ impl Component for EvenParityGate {
         todo!("EvenParityGate implementation needed")
     }
 
-    fn update(&mut self, _current_time: crate::signal::Timestamp) -> crate::component::UpdateResult {
+    fn update(
+        &mut self,
+        _current_time: crate::signal::Timestamp,
+    ) -> crate::component::UpdateResult {
         todo!("EvenParityGate implementation needed")
     }
 

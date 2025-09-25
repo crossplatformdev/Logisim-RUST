@@ -42,7 +42,6 @@ pub mod wiring;
 // pub mod plexers; // Temporarily disable plexers to get a working build
 // pub mod arith; // Temporarily disable arith to get a working build
 
-
 // Re-export commonly used types
 pub use base::*;
 // pub use bfh::*; // Temporarily disable bfh to get a working build

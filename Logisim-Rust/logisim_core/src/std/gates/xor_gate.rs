@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// XOR Gate implementation
-/// 
+///
 /// Performs logical XOR operation on its inputs. The output is high when
 /// an odd number of inputs are high.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,19 +36,23 @@ impl XorGate {
 
         XorGate { id, pins }
     }
-    
+
     /// Create a new XOR gate with configurable number of inputs
     pub fn new_with_inputs(id: ComponentId, num_inputs: usize) -> Self {
         let mut pins = HashMap::new();
-        
+
         // Add input pins
         for i in 0..num_inputs {
-            let pin_name = if i == 0 { "A".to_string() } 
-                          else if i == 1 { "B".to_string() }
-                          else { format!("I{}", i) };
+            let pin_name = if i == 0 {
+                "A".to_string()
+            } else if i == 1 {
+                "B".to_string()
+            } else {
+                format!("I{}", i)
+            };
             pins.insert(pin_name.clone(), Pin::new_input(&pin_name, BusWidth(1)));
         }
-        
+
         // Add output pin
         pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
 
@@ -77,7 +81,8 @@ impl Component for XorGate {
         // Get all input values
         let mut inputs = Vec::new();
         for (name, pin) in &self.pins {
-            if name != "Y" { // Skip output pin
+            if name != "Y" {
+                // Skip output pin
                 let value = pin.signal.as_single().unwrap_or(Value::Unknown);
                 inputs.push(value);
             }
@@ -86,15 +91,15 @@ impl Component for XorGate {
         // Compute XOR of all inputs (odd parity)
         let mut high_count = 0;
         let mut has_unknown = false;
-        
+
         for &input in &inputs {
             match input {
                 Value::High => high_count += 1,
                 Value::Unknown | Value::Error => has_unknown = true,
-                Value::Low => {}, // No effect on XOR
+                Value::Low => {} // No effect on XOR
             }
         }
-        
+
         let output = if has_unknown {
             Value::Unknown
         } else if high_count % 2 == 1 {
@@ -102,7 +107,7 @@ impl Component for XorGate {
         } else {
             Value::Low
         };
-        
+
         let output_signal = Signal::new_single(output);
 
         let mut result = UpdateResult::new();
@@ -178,11 +183,14 @@ mod tests {
 
             let result = gate.update(Timestamp(0));
             let outputs = result.get_outputs();
-            
+
             if let Some(output_signal) = outputs.get("Y") {
                 let output_value = output_signal.as_single().unwrap();
-                assert_eq!(output_value, expected, 
-                    "XOR({:?}, {:?}) should be {:?}, got {:?}", a, b, expected, output_value);
+                assert_eq!(
+                    output_value, expected,
+                    "XOR({:?}, {:?}) should be {:?}, got {:?}",
+                    a, b, expected, output_value
+                );
             } else {
                 panic!("No output signal found");
             }
@@ -192,25 +200,37 @@ mod tests {
     #[test]
     fn test_xor_gate_multi_input() {
         let mut gate = XorGate::new_with_inputs(ComponentId(1), 3);
-        
+
         // Test 3-input XOR gate - odd number of highs should give high
-        gate.get_pin_mut("A").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
-        gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(Value::Low)).unwrap();
-        gate.get_pin_mut("I2").unwrap().set_signal(Signal::new_single(Value::Low)).unwrap();
-        
+        gate.get_pin_mut("A")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::High))
+            .unwrap();
+        gate.get_pin_mut("B")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::Low))
+            .unwrap();
+        gate.get_pin_mut("I2")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::Low))
+            .unwrap();
+
         let result = gate.update(Timestamp(0));
         let outputs = result.get_outputs();
-        
+
         if let Some(output_signal) = outputs.get("Y") {
             let output_value = output_signal.as_single().unwrap();
             assert_eq!(output_value, Value::High); // 1 high = odd
         }
-        
+
         // Test with even number of highs
-        gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
+        gate.get_pin_mut("B")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::High))
+            .unwrap();
         let result = gate.update(Timestamp(0));
         let outputs = result.get_outputs();
-        
+
         if let Some(output_signal) = outputs.get("Y") {
             let output_value = output_signal.as_single().unwrap();
             assert_eq!(output_value, Value::Low); // 2 highs = even

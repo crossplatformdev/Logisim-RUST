@@ -15,7 +15,7 @@
 use crate::component::{Component, ComponentId};
 
 /// Programmable Logic Array implementation (placeholder)
-/// 
+///
 /// A PLA implements custom combinational logic through a user-programmable
 /// AND-OR array structure.
 #[derive(Debug)]
@@ -46,7 +46,10 @@ impl Component for Pla {
         todo!("PLA implementation needed")
     }
 
-    fn update(&mut self, _current_time: crate::signal::Timestamp) -> crate::component::UpdateResult {
+    fn update(
+        &mut self,
+        _current_time: crate::signal::Timestamp,
+    ) -> crate::component::UpdateResult {
         todo!("PLA implementation needed")
     }
 

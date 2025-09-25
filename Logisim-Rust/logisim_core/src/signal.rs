@@ -153,7 +153,7 @@ impl Value {
             _ => Value::Unknown,
         }
     }
-    
+
     /// Logical NOT operation
     pub fn not(self) -> Value {
         match self {
@@ -164,7 +164,7 @@ impl Value {
             Value::HighZ => Value::HighZ,
         }
     }
-    
+
     /// Create a Value from a long integer with specified width (simplified for single-bit)
     pub fn from_long(value: i64, _width: BusWidth) -> Value {
         if value & 1 != 0 {
@@ -173,12 +173,12 @@ impl Value {
             Value::Low
         }
     }
-    
+
     /// Create a Value from individual bits (simplified - just returns first bit)
     pub fn from_bits(bits: &[Value]) -> Value {
         bits.first().copied().unwrap_or(Value::Low)
     }
-    
+
     /// Convert to long integer value (simplified for single-bit)
     pub fn to_long_value(&self) -> i64 {
         match self {
@@ -187,22 +187,25 @@ impl Value {
             _ => 0,
         }
     }
-    
+
     /// Get a specific bit from a value (simplified)
     pub fn get_bit(&self, index: usize) -> Value {
-        if index == 0 { *self } else { Value::Low }
+        if index == 0 {
+            *self
+        } else {
+            Value::Low
+        }
     }
-    
+
     /// Check if all bits in this value are fully defined (same as is_definite for single bits)
     pub fn is_fully_defined(&self) -> bool {
         self.is_definite()
     }
-    
+
     /// Get the width of this value (always 1 for single-bit values)
     pub fn width(&self) -> BusWidth {
         BusWidth(1)
     }
-
 }
 
 impl fmt::Display for Value {
