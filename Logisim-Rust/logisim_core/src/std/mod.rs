@@ -18,8 +18,12 @@
 //! The module is organized to mirror the Java package structure:
 //! - `base`: Basic utilities and text components (BaseLibrary)
 //! - `gates`: Logic gates and related components (GatesLibrary)
+<<<<<<< HEAD
 //! - `ttl`: TTL integrated circuits (TtlLibrary)
 //! - `wiring`: Wiring and connection components (WiringLibrary)
+=======
+//! - `hdl`: HDL components and parsers (HdlLibrary)
+>>>>>>> origin/copilot/fix-1c9fc52b-264e-4c3a-9b7c-05621b80788e
 //!
 //! ## Migration Status
 //!
@@ -31,6 +35,7 @@ pub mod bfh;
 pub mod gates;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 pub mod io;
 =======
 pub mod ttl;    // TTL integrated circuits
@@ -38,6 +43,9 @@ pub mod ttl;    // TTL integrated circuits
 =======
 pub mod io;
 >>>>>>> origin/copilot/fix-f356266b-bb16-4b5b-92f6-f52c4c0f6a69
+=======
+pub mod hdl;
+>>>>>>> origin/copilot/fix-1c9fc52b-264e-4c3a-9b7c-05621b80788e
 pub mod wiring;
 pub mod arith;
 
@@ -48,6 +56,7 @@ pub use bfh::*;
 pub use gates::*;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 pub use io::*;
 =======
 pub use ttl::*;  // Export TTL components
@@ -55,5 +64,8 @@ pub use ttl::*;  // Export TTL components
 =======
 pub use io::*;
 >>>>>>> origin/copilot/fix-f356266b-bb16-4b5b-92f6-f52c4c0f6a69
+=======
+pub use hdl::*;
+>>>>>>> origin/copilot/fix-1c9fc52b-264e-4c3a-9b7c-05621b80788e
 pub use wiring::*;
 pub use arith::*;
