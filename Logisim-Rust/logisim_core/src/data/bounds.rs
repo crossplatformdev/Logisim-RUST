@@ -21,10 +21,10 @@ use std::fmt;
 /// This is analogous to java.awt's Rectangle class but immutable and cached
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Bounds {
-    x: i32,
-    y: i32,
-    width: i32,
-    height: i32,
+    pub x: i32,
+    pub y: i32,
+    pub width: i32,
+    pub height: i32,
 }
 
 impl Bounds {
@@ -38,27 +38,10 @@ impl Bounds {
 
     /// Create a new bounds rectangle
     pub fn create(x: i32, y: i32, width: i32, height: i32) -> Self {
-        let mut w = width;
-        let mut h = height;
-        let mut adj_x = x;
-        let mut adj_y = y;
-
-        // Handle negative dimensions
-        if w < 0 {
-            adj_x += w / 2;
-            w = 0;
-        }
-        if h < 0 {
-            adj_y += h / 2;
-            h = 0;
-        }
-
-        Bounds {
-            x: adj_x,
-            y: adj_y,
-            width: w,
-            height: h,
-        }
+        let w = width.max(0);
+        let h = height.max(0);
+        
+        Self { x, y, width: w, height: h }
     }
 
     /// Create bounds from a location (1x1 bounds)

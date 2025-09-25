@@ -63,6 +63,7 @@ pub mod netlist;
 pub mod prefs;
 pub mod signal;
 pub mod simulation;
+pub mod tools;
 pub mod std;
 pub mod util;
 
@@ -70,6 +71,7 @@ pub mod util;
 pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
+pub use component::{Component, ComponentId, Pin, ComponentFactory};
 pub use component::{Component, ComponentId, Pin};
 pub use contracts::{
     BaseComponentListenerContract, BaseDocumentListenerContract, BaseKeyListenerContract,
@@ -91,6 +93,7 @@ pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
+pub use tools::{Tool, Library, BasicLibrary, Canvas, Project, Circuit, Action, Selection, CursorType, ToolResult, ToolError};
 pub use std::wiring::WiringLibrary;
 pub use util::{
     Cache, CollectionUtil, FileUtil, LocaleManager, StringCache, StringGetter, StringUtil,

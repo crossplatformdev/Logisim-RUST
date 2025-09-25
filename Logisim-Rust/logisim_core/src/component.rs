@@ -9,6 +9,26 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ops::Not;
 
+/// Factory trait for creating components
+pub trait ComponentFactory: Send + Sync {
+    /// Create a new component instance
+    fn create_component(&self) -> Box<dyn Component>;
+    
+    /// Get the name of this component type
+    fn get_name(&self) -> String;
+    
+    /// Get the display name of this component type
+    fn get_display_name(&self) -> String {
+        self.get_name()
+    }
+}
+
+impl std::fmt::Debug for dyn ComponentFactory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ComponentFactory({})", self.get_name())
+    }
+}
+
 /// Unique identifier for a component
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ComponentId(pub u64);
