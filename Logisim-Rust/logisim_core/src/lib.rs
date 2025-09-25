@@ -56,6 +56,7 @@ pub mod components;
 pub mod contracts;
 pub mod data;
 pub mod event;
+pub mod event_system;
 pub mod file;
 pub mod hdl;
 pub mod instance;
