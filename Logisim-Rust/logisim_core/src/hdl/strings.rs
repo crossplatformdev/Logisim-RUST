@@ -102,7 +102,7 @@ pub fn get_string(key: &str) -> String {
 #[macro_export]
 macro_rules! hdl_string {
     ($key:expr) => {
-        crate::hdl::strings::get_string($key)
+        $crate::hdl::strings::get_string($key)
     };
 }
 

@@ -22,7 +22,7 @@
 //!
 //! ```rust
 //! use logisim_core::std::bfh::{BfhLibrary, BinToBcd, BcdToSevenSegmentDisplay};
-//! use logisim_core::component::ComponentId;
+//! use logisim_core::comp::ComponentId;
 //!
 //! // Create components through the library
 //! let library = BfhLibrary::new();

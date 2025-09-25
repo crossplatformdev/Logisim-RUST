@@ -13,8 +13,8 @@
 //! They are essential for providing known power levels.
 
 use crate::{
-    component::{Component, ComponentId, Pin as ComponentPin, UpdateResult},
-    signal::{BusWidth, Signal, Timestamp, Value},
+    comp::{Component, ComponentId, Pin, UpdateResult},
+    signal::{BusWidth, Signal, Timestamp},
     std::wiring::WiringComponentFactory,
 };
 use std::collections::HashMap;
@@ -40,7 +40,7 @@ impl Default for PowerAttributes {
 pub struct Power {
     id: ComponentId,
     attributes: PowerAttributes,
-    pins: HashMap<String, ComponentPin>,
+    pins: HashMap<String, Pin>,
 }
 
 impl Power {
@@ -49,7 +49,7 @@ impl Power {
         let attributes = PowerAttributes::default();
 
         // Create the output pin - power always outputs high
-        let mut output_pin = ComponentPin::new_output("out", attributes.width);
+        let mut output_pin = Pin::new_output("out", attributes.width);
         output_pin.signal = Signal::all_high(attributes.width);
 
         let mut pins = HashMap::new();
@@ -88,11 +88,11 @@ impl Component for Power {
         POWER_ID
     }
 
-    fn pins(&self) -> &HashMap<String, ComponentPin> {
+    fn pins(&self) -> &HashMap<String, Pin> {
         &self.pins
     }
 
-    fn pins_mut(&mut self) -> &mut HashMap<String, ComponentPin> {
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
         &mut self.pins
     }
 

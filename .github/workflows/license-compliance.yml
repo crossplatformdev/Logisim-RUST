@@ -96,7 +96,6 @@ jobs:
         
         # Check for problematic licenses
         echo "=== Checking for GPL-incompatible licenses ==="
-      working-directory: Logisim-Rust
         
         # List of licenses that are NOT compatible with GPL-3.0
         INCOMPATIBLE_LICENSES=(
@@ -144,6 +143,7 @@ jobs:
         else
           echo "✅ No obvious license compatibility issues found"
         fi
+      working-directory: Logisim-Rust
     
     - name: "Check source file license headers"
       run: |
@@ -263,13 +263,13 @@ jobs:
       working-directory: Logisim-Rust
     
     - name: "Upload compliance artifacts"
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: license-compliance-report
         path: |
-          licenses.json
-          licenses.txt
-          COMPLIANCE_REPORT.md
+          Logisim-Rust/licenses.json
+          Logisim-Rust/licenses.txt
+          Logisim-Rust/COMPLIANCE_REPORT.md
         retention-days: 30
     
     - name: "Summary"

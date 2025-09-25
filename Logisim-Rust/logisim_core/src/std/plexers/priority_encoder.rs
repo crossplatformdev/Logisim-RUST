@@ -13,7 +13,7 @@
 //! It scans the inputs from highest to lowest priority and outputs the index of the first active input found.
 
 use crate::{
-    component::{Component, ComponentId, Pin, Propagator, UpdateResult},
+    comp::{Component, ComponentId, Pin, Propagator, UpdateResult},
     data::{BitWidth, Bounds, Direction, Location},
     signal::{BusWidth, Signal, Timestamp, Value},
 };
@@ -103,7 +103,7 @@ impl PriorityEncoder {
             let pin = Pin::new(
                 format!("Input {}", i),
                 BusWidth(1), // Each input is single bit
-                crate::component::PinDirection::Input,
+                crate::comp::PinDirection::Input,
                 Location::new(0, 5 + i as i32 * 5),
             );
             self.pins.insert(pin_name, pin);
@@ -113,7 +113,7 @@ impl PriorityEncoder {
         let output_pin = Pin::new(
             "Output".to_string(),
             BusWidth(self.output_bits as u32),
-            crate::component::PinDirection::Output,
+            crate::comp::PinDirection::Output,
             Location::new(40, 15),
         );
         self.pins.insert("output".to_string(), output_pin);
@@ -123,7 +123,7 @@ impl PriorityEncoder {
             let group_pin = Pin::new(
                 "Group Signal".to_string(),
                 BusWidth(1),
-                crate::component::PinDirection::Output,
+                crate::comp::PinDirection::Output,
                 Location::new(40, 25),
             );
             self.pins.insert("group_signal".to_string(), group_pin);
@@ -134,7 +134,7 @@ impl PriorityEncoder {
             let enable_out_pin = Pin::new(
                 "Enable Out".to_string(),
                 BusWidth(1),
-                crate::component::PinDirection::Output,
+                crate::comp::PinDirection::Output,
                 Location::new(40, 35),
             );
             self.pins.insert("enable_out".to_string(), enable_out_pin);
@@ -145,7 +145,7 @@ impl PriorityEncoder {
             let enable_in_pin = Pin::new(
                 "Enable In".to_string(),
                 BusWidth(1),
-                crate::component::PinDirection::Input,
+                crate::comp::PinDirection::Input,
                 Location::new(20, 0),
             );
             self.pins.insert("enable_in".to_string(), enable_in_pin);

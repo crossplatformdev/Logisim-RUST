@@ -12,7 +12,7 @@
 //! Equivalent to Java HdlCircuitComponent.java
 //! Base class for HDL-based circuit components.
 
-use crate::component::{Component, Pin, UpdateResult};
+use crate::comp::{Component, Pin, UpdateResult};
 use crate::hdl::HdlContent;
 use crate::{ComponentId, Timestamp};
 use std::collections::HashMap;
