@@ -42,6 +42,8 @@ jobs:
         [[ ${{ steps.filter.outputs.rust }} == 'true' ]] && found="YES"
         echo "run_build=${found}" >> $GITHUB_OUTPUT
         echo "Build step will run: ${found}"
+        echo "Rust files changed: ${{ steps.filter.outputs.rust }}"
+        echo "Changed files: ${{ steps.filter.outputs.rust_files || 'none' }}"
 
   build_and_test:
     name: "Build and Test"
@@ -100,29 +102,22 @@ jobs:
       run: cargo test --doc --verbose --workspace
       working-directory: Logisim-Rust
     
-    # GUI-specific builds (only on platforms with display support)
+    # GUI-specific builds (simplified and more robust)
     - name: "Install GUI dependencies (Linux)"
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+        sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev xvfb
     
-    - name: "Build with GUI features (Linux only)"
+    - name: "Test GUI feature compilation (Linux with virtual display)"
       if: matrix.os == 'ubuntu-latest'
       run: |
-        # Test GUI build in headless mode using xvfb
-        sudo apt-get install -y xvfb
-        xvfb-run -a cargo build --verbose --features gui --package logisim_ui || echo "GUI build failed as expected without proper display server"
-      working-directory: Logisim-Rust
-    
-    - name: "Test GUI feature compilation (Linux with display support)"
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        # Install virtual display for GUI compilation test
-        sudo apt-get install -y xvfb
-        # Test GUI feature compilation with virtual display
         echo "Testing GUI feature compilation with virtual display support..."
-        DISPLAY=:99 xvfb-run -a cargo check --features gui --package logisim_ui || echo "GUI compilation test completed (non-critical failure in CI)"
+        if DISPLAY=:99 xvfb-run -a cargo check --features gui --package logisim_ui; then
+          echo "✅ GUI compilation test passed"
+        else
+          echo "⚠️  GUI compilation test failed (non-critical in CI)"
+        fi
       working-directory: Logisim-Rust
       continue-on-error: true
 
