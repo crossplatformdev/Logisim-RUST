@@ -24,12 +24,14 @@
 //! This represents the standard component library migration from Java to Rust,
 //! focusing on providing 1:1 functional equivalence with the original implementation.
 
+pub mod arith;
 pub mod base;
 pub mod gates;
 pub mod io;
 pub mod wiring;
 
 // Re-export commonly used types
+pub use arith::*;
 pub use base::*;
 pub use gates::*;
 pub use io::*;

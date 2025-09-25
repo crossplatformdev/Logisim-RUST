@@ -11,7 +11,8 @@
 //!
 //! Rust port of `com.cburch.logisim.std.arith.Multiplier`
 
-use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
+
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -157,17 +158,6 @@ impl Component for Multiplier {
     }
 }
 
-impl Propagator for Multiplier {
-    fn propagate(&mut self, current_time: Timestamp) {
-        // Calculate propagation delay - multiplication is more complex than addition
-        // Use a quadratic delay model based on bit width
-        let delay = self.bit_width.0 * self.bit_width.0 / 4 + 10; // Rough approximation
-        let propagation_time = current_time + delay as u64;
-        
-        // Perform the update at the calculated time
-        self.update(propagation_time);
-    }
-}
 
 #[cfg(test)]
 mod tests {

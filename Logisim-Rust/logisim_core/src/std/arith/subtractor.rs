@@ -11,7 +11,8 @@
 //!
 //! Rust port of `com.cburch.logisim.std.arith.Subtractor`
 
-use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
+
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -160,16 +161,6 @@ impl Component for Subtractor {
     }
 }
 
-impl Propagator for Subtractor {
-    fn propagate(&mut self, current_time: Timestamp) {
-        // Calculate propagation delay based on bit width (slightly more than adder)
-        let delay = (self.bit_width.0 + 4) * 1; // From Java: (data.getWidth() + 4) * Adder.PER_DELAY
-        let propagation_time = current_time + delay as u64;
-        
-        // Perform the update at the calculated time
-        self.update(propagation_time);
-    }
-}
 
 #[cfg(test)]
 mod tests {

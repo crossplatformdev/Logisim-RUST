@@ -9,7 +9,8 @@
 
 //! BitFinder Implementation (Placeholder)
 
-use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
+
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -47,8 +48,3 @@ impl Component for BitFinder {
     }
 }
 
-impl Propagator for BitFinder {
-    fn propagate(&mut self, current_time: Timestamp) {
-        self.update(current_time + 1);
-    }
-}

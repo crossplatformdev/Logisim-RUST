@@ -58,6 +58,24 @@ pub enum ToolType {
     JKFlipFlop,
     /// SRLatch
     SrLatch,
+    
+    // Arithmetic components
+    /// Adder
+    Adder,
+    /// Subtractor
+    Subtractor,
+    /// Multiplier
+    Multiplier,
+    /// Divider
+    Divider,
+    /// Negator
+    Negator,
+    /// Comparator
+    Comparator,
+    /// Shifter
+    Shifter,
+    /// BitAdder
+    BitAdder,
 }
 
 impl Toolbox {
@@ -131,6 +149,20 @@ impl Toolbox {
                 self.tool_button(ui, ToolType::JKFlipFlop, "JK", "JK Flip-Flop");
                 self.tool_button(ui, ToolType::SrLatch, "SR", "SR Latch");
             });
+
+        // Arithmetic components
+        CollapsingHeader::new("Arithmetic")
+            .default_open(false)
+            .show(ui, |ui| {
+                self.tool_button(ui, ToolType::Adder, "+", "Adder");
+                self.tool_button(ui, ToolType::Subtractor, "-", "Subtractor");
+                self.tool_button(ui, ToolType::Multiplier, "×", "Multiplier");
+                self.tool_button(ui, ToolType::Divider, "÷", "Divider");
+                self.tool_button(ui, ToolType::Negator, "±", "Negator");
+                self.tool_button(ui, ToolType::Comparator, "CMP", "Comparator");
+                self.tool_button(ui, ToolType::Shifter, "<<", "Shifter");
+                self.tool_button(ui, ToolType::BitAdder, "+1", "Bit Adder");
+            });
     }
 
     /// Create a tool selection button
@@ -193,6 +225,16 @@ impl ToolType {
             ToolType::DFlipFlop => "D Flip-Flop",
             ToolType::JKFlipFlop => "JK Flip-Flop",
             ToolType::SrLatch => "SR Latch",
+            
+            // Arithmetic components
+            ToolType::Adder => "Adder",
+            ToolType::Subtractor => "Subtractor",
+            ToolType::Multiplier => "Multiplier",
+            ToolType::Divider => "Divider",
+            ToolType::Negator => "Negator",
+            ToolType::Comparator => "Comparator",
+            ToolType::Shifter => "Shifter",
+            ToolType::BitAdder => "Bit Adder",
         }
     }
 }

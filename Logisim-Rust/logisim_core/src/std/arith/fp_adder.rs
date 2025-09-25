@@ -9,7 +9,8 @@
 
 //! FpAdder Implementation (Placeholder)
 
-use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
+
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -49,8 +50,3 @@ impl Component for FpAdder {
     }
 }
 
-impl Propagator for FpAdder {
-    fn propagate(&mut self, current_time: Timestamp) {
-        self.update(current_time + 10);
-    }
-}

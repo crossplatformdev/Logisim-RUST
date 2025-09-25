@@ -11,7 +11,8 @@
 //!
 //! Rust port of `com.cburch.logisim.std.arith.Negator`
 
-use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
+
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -130,16 +131,6 @@ impl Component for Negator {
     }
 }
 
-impl Propagator for Negator {
-    fn propagate(&mut self, current_time: Timestamp) {
-        // Calculate propagation delay based on bit width
-        let delay = self.bit_width.0 + 2; // Simple delay model
-        let propagation_time = current_time + delay as u64;
-        
-        // Perform the update at the calculated time
-        self.update(propagation_time);
-    }
-}
 
 #[cfg(test)]
 mod tests {

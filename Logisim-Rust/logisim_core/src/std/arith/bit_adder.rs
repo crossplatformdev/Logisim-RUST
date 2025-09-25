@@ -11,7 +11,8 @@
 //!
 //! Rust port of `com.cburch.logisim.std.arith.BitAdder`
 
-use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
+
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -144,16 +145,6 @@ impl Component for BitAdder {
     }
 }
 
-impl Propagator for BitAdder {
-    fn propagate(&mut self, current_time: Timestamp) {
-        // Single-bit operations are very fast
-        let delay = 2; // Minimal propagation delay
-        let propagation_time = current_time + delay;
-        
-        // Perform the update at the calculated time
-        self.update(propagation_time);
-    }
-}
 
 #[cfg(test)]
 mod tests {
