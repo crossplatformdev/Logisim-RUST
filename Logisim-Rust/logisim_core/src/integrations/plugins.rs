@@ -87,6 +87,7 @@ pub struct ComponentInfo {
 pub struct PluginManager {
     plugins: HashMap<String, Box<dyn PluginLibrary>>,
     search_paths: Vec<PathBuf>,
+    #[allow(dead_code)]
     loaded_plugins: Vec<String>,
 }
 

@@ -43,7 +43,7 @@ impl Loader {
         }
 
         // Load and parse the circuit file
-        let parser = CircParser;
+        let _parser = CircParser;
         // For now, return a basic project structure
         log::info!("Loading circuit file: {}", path.display());
 
