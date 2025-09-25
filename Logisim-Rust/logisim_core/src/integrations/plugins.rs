@@ -6,6 +6,7 @@
 //! while providing a foundation for future plugin support.
 
 use crate::{Component, ComponentId};
+use crate::modeling::{ExtensionPoint, ModelingContext, SimulationObserver};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -70,6 +71,22 @@ pub trait PluginLibrary: Send + Sync {
 
     /// Cleanup the plugin
     fn cleanup(&mut self) -> PluginResult<()>;
+    
+    /// Get extension points provided by this plugin (unstable API)
+    fn extension_points(&self) -> Vec<Box<dyn ExtensionPoint>> {
+        Vec::new()
+    }
+    
+    /// Get observers provided by this plugin (unstable API)
+    fn observers(&self) -> Vec<Box<dyn SimulationObserver>> {
+        Vec::new()
+    }
+    
+    /// Setup advanced modeling features (unstable API)
+    fn setup_modeling(&mut self, _context: &mut ModelingContext) -> PluginResult<()> {
+        // Default implementation - no advanced modeling
+        Ok(())
+    }
 }
 
 /// Component information from plugin

@@ -6,10 +6,12 @@
 
 pub mod fpga;
 pub mod plugins;
+pub mod stub_plugin;
 pub mod tcl;
 pub mod vhdl;
 
 pub use fpga::*;
 pub use plugins::*;
+pub use stub_plugin::*;
 pub use tcl::*;
 pub use vhdl::*;

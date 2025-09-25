@@ -267,18 +267,207 @@ pub const DEFAULT_TICK_WIDTH: f32 = 10.0;  // Default time scale
 - Verification against Java implementation behavior
 - Performance benchmarking
 
+## Extensibility and Advanced Modeling
+
+### Advanced Modeling Features
+
+The architecture includes experimental advanced modeling capabilities that provide extensibility hooks for plugins and custom components:
+
+#### Observer Pattern for Simulation Events
+```rust
+pub trait SimulationObserver: Send + Sync {
+    fn on_event(&mut self, event: &SimulationEvent);
+    fn name(&self) -> &str;
+    fn is_interested_in(&self, event: &SimulationEvent) -> bool;
+}
+```
+
+**⚠️ Unstable API**: The observer pattern is experimental and subject to change.
+
+**Key Features:**
+- Real-time simulation event monitoring
+- Signal change notifications
+- Clock edge detection
+- Component state change events
+- Weak reference support to prevent memory leaks
+
+#### Dynamic Component Registration
+```rust
+pub trait ComponentFactory: Send + Sync {
+    fn create_component(&self, id: ComponentId) -> Box<dyn Component>;
+    fn component_type(&self) -> &str;
+    fn category(&self) -> &str;
+}
+
+pub struct DynamicComponentRegistry {
+    // Runtime component type registration
+}
+```
+
+**⚠️ Unstable API**: Dynamic registration is experimental.
+
+**Capabilities:**
+- Runtime component type registration
+- Category-based organization
+- Plugin-provided component factories
+- Type-safe component creation
+
+#### Extension Points
+```rust
+pub trait ExtensionPoint: Send + Sync + 'static {
+    fn name(&self) -> &str;
+    fn initialize(&mut self) -> ModelingResult<()>;
+    fn cleanup(&mut self) -> ModelingResult<()>;
+}
+```
+
+**⚠️ Unstable API**: Extension points are experimental.
+
+**Use Cases:**
+- Custom simulation algorithms
+- Additional analysis tools
+- External tool integration
+- Debugging and profiling hooks
+
+### Plugin System Architecture
+
+#### Plugin Library Interface
+```rust
+pub trait PluginLibrary: Send + Sync {
+    fn info(&self) -> &PluginInfo;
+    fn components(&self) -> Vec<ComponentInfo>;
+    fn create_component(&self, component_type: &str, id: ComponentId) -> PluginResult<Box<dyn Component>>;
+    
+    // Advanced modeling hooks (unstable)
+    fn extension_points(&self) -> Vec<Box<dyn ExtensionPoint>>;
+    fn observers(&self) -> Vec<Box<dyn SimulationObserver>>;
+    fn setup_modeling(&mut self, context: &mut ModelingContext) -> PluginResult<()>;
+}
+```
+
+**Planned Plugin Types:**
+- Native Rust libraries (.so/.dll/.dylib)
+- WebAssembly modules (.wasm) - future
+- JAR compatibility layer - future
+
+#### Example Plugin Implementation
+
+A complete example plugin (`ExamplePlugin`) is provided in `logisim_core/src/integrations/stub_plugin.rs` demonstrating:
+
+1. **Component Creation**: Example counter and monitor components
+2. **Observer Implementation**: Signal change logging and clock edge detection
+3. **Extension Points**: Custom functionality registration
+4. **Plugin Lifecycle**: Initialization and cleanup
+
+```rust
+// Example usage
+let plugin = ExamplePlugin::new();
+let mut context = ModelingContext::new();
+plugin.setup_modeling(&mut context)?;
+
+// Plugin provides:
+// - ExampleCounter component
+// - ExampleMonitor component  
+// - ExampleObserver for event logging
+// - ClockTracker for clock edge detection
+// - ExampleExtensionPoint for custom functionality
+```
+
+### API Stability
+
+**⚠️ IMPORTANT: Experimental APIs**
+
+The following APIs are marked as **unstable** and may change in future versions:
+
+| API Area | Stability | Notes |
+|----------|-----------|-------|
+| `SimulationObserver` | Unstable | Event types may change |
+| `ExtensionPoint` | Unstable | Registration mechanism may change |
+| `DynamicComponentRegistry` | Unstable | Interface may change |
+| `ComponentFactory` (dynamic) | Unstable | Parameters may change |
+| `ModelingContext` | Unstable | Internal structure may change |
+| Plugin `setup_modeling()` | Unstable | Parameters may change |
+
+**Stable APIs:**
+- Core `Component` trait
+- Basic `PluginLibrary` interface (without modeling hooks)
+- `PluginManager` discovery and loading (stub)
+
+### Extension Point Documentation
+
+#### Simulation Event Types
+```rust
+pub enum SimulationEvent {
+    SignalChanged { node_id, old_signal, new_signal, timestamp, source },
+    ComponentStateChanged { component_id, event_type, data },
+    StepCompleted { timestamp, events_processed },
+    SimulationReset { timestamp },
+    ClockEdge { node_id, edge_type, timestamp },
+}
+```
+
+#### Observer Registration
+```rust
+// Direct registration (takes ownership)
+context.observer_manager().add_observer(observer);
+
+// Weak registration (doesn't take ownership)
+let weak_observer = Arc::downgrade(&observer_arc);
+context.observer_manager().add_weak_observer(weak_observer);
+```
+
+#### Extension Point Registration
+```rust
+// Register custom extension point
+context.extension_registry().register_extension(my_extension)?;
+
+// Retrieve extension by name
+let ext = context.extension_registry().get_extension("my_extension");
+
+// Retrieve extension by type
+let ext = context.extension_registry().get_extension_by_type::<MyExtension>();
+```
+
+### Migration Path
+
+For developers wanting to use these features:
+
+1. **Start with Stable APIs**: Use basic plugin interfaces first
+2. **Experimental Usage**: Mark code using unstable APIs clearly
+3. **Version Pinning**: Pin to specific versions when using unstable APIs
+4. **Feedback Welcome**: Report issues and suggestions for unstable APIs
+
+### Performance Considerations
+
+**Observer Pattern:**
+- Use `is_interested_in()` to filter events and reduce overhead
+- Weak references prevent observer lifetime issues
+- Events are processed synchronously in simulation thread
+
+**Dynamic Components:**
+- Runtime registration has minimal overhead
+- Component creation uses standard factory pattern
+- No reflection or dynamic dispatch beyond trait objects
+
+**Extension Points:**
+- Initialization/cleanup called once per plugin lifecycle
+- No runtime overhead for unused extension points
+- Thread-safe by design (Send + Sync bounds)
+
 ## Future Enhancements
 
 ### Planned Features
 - VHDL/Verilog export
 - Advanced component library
-- Plugin system
+- **Plugin system stabilization**
+- **WebAssembly plugin support**
 - Network simulation capabilities
 
 ### Performance Optimizations
 - Multi-threaded simulation
 - GPU acceleration for rendering
 - Memory pool allocation
+- **Observer pattern optimization**
 
 ## Migration from Java
 
