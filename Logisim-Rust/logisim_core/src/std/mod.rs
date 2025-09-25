@@ -25,6 +25,7 @@
 //! focusing on providing 1:1 functional equivalence with the original implementation.
 
 pub mod base;
+pub mod bfh;
 pub mod gates;
 pub mod io;
 pub mod wiring;
@@ -32,6 +33,7 @@ pub mod wiring;
 
 // Re-export commonly used types
 pub use base::*;
+pub use bfh::*;
 pub use gates::*;
 pub use io::*;
 pub use wiring::*;

@@ -78,14 +78,21 @@ pub use comp::{
     ComponentEvent, ComponentFactory, ComponentId, ComponentListener, ComponentUserEvent,
     DrawCommand, EndData, GraphicsContext, Pin, PinDirection,
 };
+<<<<<<< HEAD
 pub use component::{
     Component as SimComponent, ComponentId as SimComponentId, Pin as SimPin, ComponentFactory as SimComponentFactory,
 };
+=======
+>>>>>>> origin/copilot/fix-18c0ad2a-b9ca-481a-a889-a9d22d7537a2
 pub use contracts::{
     BaseComponentListenerContract, BaseDocumentListenerContract, BaseKeyListenerContract,
     BaseLayoutManagerContract, BaseListDataListenerContract, BaseMouseInputListenerContract,
     BaseMouseListenerContract, BaseMouseMotionListenerContract, BaseWindowFocusListenerContract,
+<<<<<<< HEAD
     BaseWindowListenerContract, ComponentEvent as ContractComponentEvent, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
+=======
+    BaseWindowListenerContract, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
+>>>>>>> origin/copilot/fix-18c0ad2a-b9ca-481a-a889-a9d22d7537a2
 };
 pub use components::gray::*;
 pub use std::{base::*, gates::*, io::*};
