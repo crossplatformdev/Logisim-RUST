@@ -220,7 +220,7 @@ impl Measures {
         match model {
             Some(model) => {
                 let mut log_size = 0;
-                let addr_end = model.get_last_offset();
+                let mut addr_end = model.get_last_offset();
                 while addr_end > (1u64 << log_size) {
                     log_size += 1;
                 }

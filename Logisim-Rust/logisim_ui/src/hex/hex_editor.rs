@@ -11,6 +11,10 @@
 //!
 //! Rust port of HexEditor.java using egui for rendering
 
+use super::caret::Caret;
+use super::hex_model::{HexModel, HexModelListener};
+use super::highlighter::Highlighter;
+use super::measures::Measures;
 
 #[cfg(feature = "gui")]
 use egui::{
@@ -18,6 +22,7 @@ use egui::{
     Sense, Stroke, TextStyle, Ui, Vec2, Widget,
 };
 
+use std::sync::{Arc, Mutex};
 
 /// Main hex editor widget
 #[cfg(feature = "gui")]

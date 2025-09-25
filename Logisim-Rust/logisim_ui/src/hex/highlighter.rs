@@ -12,6 +12,7 @@
 //! Rust port of Highlighter.java
 
 use super::hex_model::HexModel;
+use super::measures::Measures;
 
 #[cfg(feature = "gui")]
 use egui::{Color32, Painter, Rect, Rounding, Stroke};

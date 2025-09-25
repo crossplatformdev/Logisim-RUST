@@ -20,6 +20,11 @@ use logisim_core::prefs::AppPreferences;
 ))]
 use logisim_ui::gui::app::{run_app, run_app_with_file};
 // Fallback imports for unsupported platforms or non-GUI builds
+#[cfg(not(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+)))]
+use logisim_ui::gui::app::{run_app, run_app_with_file};
 
 /// Application entry point - equivalent to Java Main.main()
 fn main() -> UiResult<()> {
