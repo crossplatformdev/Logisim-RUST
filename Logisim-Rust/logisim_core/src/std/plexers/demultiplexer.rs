@@ -13,8 +13,8 @@
 //! based on a selection signal. The selection signal determines which output receives the input data.
 
 use crate::{
-    comp::{Component, ComponentId, Pin, Propagator, UpdateResult},
-    data::{BitWidth, Bounds, Direction, Location},
+    comp::{Component, ComponentId, Pin, UpdateResult},
+    data::{Bounds, Direction},
     signal::{BusWidth, Signal, Timestamp, Value},
 };
 use serde::{Deserialize, Serialize};
@@ -55,7 +55,7 @@ impl Demultiplexer {
             facing: Direction::East,
             tristate: false,
             enable: false,
-            bounds: Bounds::new(0, 0, 40, 30),
+            bounds: Bounds::create(0, 0, 40, 30),
         };
         demultiplexer.update_pins();
         demultiplexer
@@ -76,7 +76,7 @@ impl Demultiplexer {
             facing,
             tristate: false,
             enable: false,
-            bounds: Bounds::new(0, 0, 40, 30),
+            bounds: Bounds::create(0, 0, 40, 30),
         };
         demultiplexer.update_pins();
         demultiplexer
@@ -89,43 +89,23 @@ impl Demultiplexer {
         let num_outputs = 1 << self.select_bits; // 2^select_bits
         
         // Add input
-        let input_pin = Pin::new(
-            "Input".to_string(),
-            self.data_width,
-            crate::comp::PinDirection::Input,
-            Location::new(0, 15),
-        );
+        let input_pin = Pin::new_input("Input", self.data_width);
         self.pins.insert("input".to_string(), input_pin);
         
         // Add data outputs
         for i in 0..num_outputs {
             let pin_name = format!("output_{}", i);
-            let pin = Pin::new(
-                format!("Output {}", i),
-                self.data_width,
-                crate::comp::PinDirection::Output,
-                Location::new(40, 10 + i * 10),
-            );
+            let pin = Pin::new_output(format!("Output {}", i), self.data_width);
             self.pins.insert(pin_name, pin);
         }
         
         // Add select input
-        let select_pin = Pin::new(
-            "Select".to_string(),
-            BusWidth(self.select_bits as u32),
-            crate::comp::PinDirection::Input,
-            Location::new(20, 30),
-        );
+        let select_pin = Pin::new_input("Select", BusWidth(self.select_bits as u32));
         self.pins.insert("select".to_string(), select_pin);
         
         // Add enable input if enabled
         if self.enable {
-            let enable_pin = Pin::new(
-                "Enable".to_string(),
-                BusWidth(1),
-                crate::comp::PinDirection::Input,
-                Location::new(20, 0),
-            );
+            let enable_pin = Pin::new_input("Enable", BusWidth(1));
             self.pins.insert("enable".to_string(), enable_pin);
         }
     }
@@ -220,7 +200,7 @@ impl Component for Demultiplexer {
         let input_value = if let Some(input_pin) = self.pins.get("input") {
             match &input_pin.signal {
                 Some(signal) => signal.value().clone(),
-                None => Value::HighImpedance, // No input signal
+                None => Value::HighZ, // No input signal
             }
         } else {
             return UpdateResult::NoChange;
@@ -241,12 +221,12 @@ impl Component for Demultiplexer {
             if let Some(enable_pin) = self.pins.get("enable") {
                 match &enable_pin.signal {
                     Some(signal) => {
-                        if signal.value() == Value::Zero {
+                        if signal.value() == Value::Low {
                             // Component is disabled, set all outputs to high impedance or zero
                             let disabled_value = if self.tristate {
-                                Value::HighImpedance
+                                Value::HighZ
                             } else {
-                                Value::Zero
+                                Value::Low
                             };
                             
                             for i in 0..self.num_outputs() {
@@ -266,15 +246,9 @@ impl Component for Demultiplexer {
 
         // Convert select value to index
         let select_index = match select_value {
-            Value::Zero => 0,
-            Value::One => 1,
-            Value::Binary(bits) => {
-                // Convert binary representation to index
-                bits.iter().enumerate().fold(0usize, |acc, (i, &bit)| {
-                    acc + if bit { 1 << i } else { 0 }
-                })
-            }
-            Value::HighImpedance | Value::Error => {
+            Value::Low => 0,
+            Value::High => 1,
+            Value::HighZ | Value::Error => {
                 // Invalid select signal - set all outputs to error
                 for i in 0..self.num_outputs() {
                     let output_pin_name = format!("output_{}", i);
@@ -308,9 +282,9 @@ impl Component for Demultiplexer {
                 let output_value = if i == select_index {
                     input_value.clone()
                 } else if self.tristate {
-                    Value::HighImpedance
+                    Value::HighZ
                 } else {
-                    Value::Zero
+                    Value::Low
                 };
                 
                 let output_signal = Signal::new(self.data_width, output_value);
@@ -335,12 +309,6 @@ impl Component for Demultiplexer {
 
     fn propagation_delay(&self) -> u64 {
         super::plexers_library::PlexersLibrary::DELAY
-    }
-}
-
-impl Propagator for Demultiplexer {
-    fn propagate(&mut self, timestamp: Timestamp) -> UpdateResult {
-        self.update(timestamp)
     }
 }
 
@@ -426,7 +394,7 @@ mod tests {
         
         // Set some pin signals
         if let Some(pin) = demux.pins.get_mut("input") {
-            pin.signal = Some(Signal::new(BusWidth(1), Value::One));
+            pin.signal = Some(Signal::new(BusWidth(1), Value::High));
         }
         
         // Reset should clear all signals

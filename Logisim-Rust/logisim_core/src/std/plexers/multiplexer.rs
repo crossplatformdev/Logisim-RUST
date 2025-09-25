@@ -13,8 +13,8 @@
 //! based on a selection signal. The selection signal determines which input is connected to the output.
 
 use crate::{
-    comp::{Component, ComponentId, Pin, Propagator, UpdateResult},
-    data::{BitWidth, Bounds, Direction, Location},
+    comp::{Component, ComponentId, Pin, UpdateResult},
+    data::{Bounds, Direction},
     signal::{BusWidth, Signal, Timestamp, Value},
 };
 use serde::{Deserialize, Serialize};
@@ -76,7 +76,7 @@ impl Multiplexer {
             facing,
             tristate: false,
             enable: false,
-            bounds: Bounds::new(0, 0, 40, 30),
+            bounds: Bounds::create(0, 0, 40, 30),
         };
         multiplexer.update_pins();
         multiplexer
@@ -91,41 +91,21 @@ impl Multiplexer {
         // Add data inputs
         for i in 0..num_inputs {
             let pin_name = format!("input_{}", i);
-            let pin = Pin::new(
-                format!("Input {}", i),
-                self.data_width,
-                crate::comp::PinDirection::Input,
-                Location::new(0, 10 + i * 10),
-            );
+            let pin = Pin::new_input(format!("Input {}", i), self.data_width);
             self.pins.insert(pin_name, pin);
         }
         
         // Add output
-        let output_pin = Pin::new(
-            "Output".to_string(),
-            self.data_width,
-            crate::comp::PinDirection::Output,
-            Location::new(40, 15),
-        );
+        let output_pin = Pin::new_output("Output", self.data_width);
         self.pins.insert("output".to_string(), output_pin);
         
         // Add select input
-        let select_pin = Pin::new(
-            "Select".to_string(),
-            BusWidth(self.select_bits as u32),
-            crate::comp::PinDirection::Input,
-            Location::new(20, 30),
-        );
+        let select_pin = Pin::new_input("Select", BusWidth(self.select_bits as u32));
         self.pins.insert("select".to_string(), select_pin);
         
         // Add enable input if enabled
         if self.enable {
-            let enable_pin = Pin::new(
-                "Enable".to_string(),
-                BusWidth(1),
-                crate::comp::PinDirection::Input,
-                Location::new(20, 0),
-            );
+            let enable_pin = Pin::new_input("Enable", BusWidth(1));
             self.pins.insert("enable".to_string(), enable_pin);
         }
     }
@@ -231,13 +211,13 @@ impl Component for Multiplexer {
             if let Some(enable_pin) = self.pins.get("enable") {
                 match &enable_pin.signal {
                     Some(signal) => {
-                        if signal.value() == Value::Zero {
+                        if signal.value() == Value::Low {
                             // Component is disabled, set output to high impedance or zero
                             if let Some(output_pin) = self.pins.get_mut("output") {
                                 let output_value = if self.tristate {
-                                    Value::HighImpedance
+                                    Value::HighZ
                                 } else {
-                                    Value::Zero
+                                    Value::Low
                                 };
                                 let output_signal = Signal::new(self.data_width, output_value);
                                 output_pin.signal = Some(output_signal);
@@ -252,15 +232,9 @@ impl Component for Multiplexer {
 
         // Convert select value to index
         let select_index = match select_value {
-            Value::Zero => 0,
-            Value::One => 1,
-            Value::Binary(bits) => {
-                // Convert binary representation to index
-                bits.iter().enumerate().fold(0usize, |acc, (i, &bit)| {
-                    acc + if bit { 1 << i } else { 0 }
-                })
-            }
-            Value::HighImpedance | Value::Error => {
+            Value::Low => 0,
+            Value::High => 1,
+            Value::HighZ | Value::Error => {
                 // Invalid select signal
                 if let Some(output_pin) = self.pins.get_mut("output") {
                     let output_signal = Signal::new(self.data_width, Value::Error);
@@ -284,7 +258,7 @@ impl Component for Multiplexer {
         let input_value = if let Some(input_pin) = self.pins.get(&input_pin_name) {
             match &input_pin.signal {
                 Some(signal) => signal.value().clone(),
-                None => Value::HighImpedance, // No input signal
+                None => Value::HighZ, // No input signal
             }
         } else {
             Value::Error // Should not happen
@@ -309,12 +283,6 @@ impl Component for Multiplexer {
 
     fn propagation_delay(&self) -> u64 {
         super::plexers_library::PlexersLibrary::DELAY
-    }
-}
-
-impl Propagator for Multiplexer {
-    fn propagate(&mut self, timestamp: Timestamp) -> UpdateResult {
-        self.update(timestamp)
     }
 }
 
@@ -400,7 +368,7 @@ mod tests {
         
         // Set some pin signals
         if let Some(pin) = mux.pins.get_mut("input_0") {
-            pin.signal = Some(Signal::new(BusWidth(1), Value::One));
+            pin.signal = Some(Signal::new(BusWidth(1), Value::High));
         }
         
         // Reset should clear all signals
