@@ -13,7 +13,8 @@
 //! They are essential for providing known reference levels.
 
 use crate::{
-    component::{Component, ComponentId, Pin as ComponentPin, UpdateResult},
+    component::{Pin as ComponentPin, UpdateResult},
+    comp::component::{Component, ComponentId},
     signal::{BusWidth, Signal, Timestamp, Value},
     std::wiring::WiringComponentFactory,
 };

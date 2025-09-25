@@ -13,7 +13,8 @@
 //! communication between subcircuits and external interfaces.
 
 use crate::{
-    component::{Component, ComponentId, Pin as ComponentPin, PinDirection, UpdateResult},
+    component::{Pin as ComponentPin, PinDirection, UpdateResult},
+    comp::component::{Component, ComponentId},
     data::{BitWidth, Direction},
     signal::{BusWidth, Signal, Timestamp, Value},
     std::wiring::WiringComponentFactory,

@@ -3,9 +3,10 @@
 //! VHDL entity component implementation.
 //! This module ports functionality from Java VhdlEntityComponent.
 
-use crate::component::{Component, Pin, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin};
+use crate::component::UpdateResult;
 use crate::hdl::parsers::VhdlContentComponent;
-use crate::{ComponentId, Timestamp};
+use crate::{Timestamp};
 use std::collections::HashMap;
 
 /// VHDL Entity Component

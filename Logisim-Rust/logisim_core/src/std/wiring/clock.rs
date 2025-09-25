@@ -13,7 +13,8 @@
 //! to drive sequential logic circuits.
 
 use crate::{
-    component::{ClockEdge, Component, ComponentId, Pin as ComponentPin, UpdateResult},
+    component::{ClockEdge, Pin as ComponentPin, UpdateResult},
+    comp::component::{Component, ComponentId},
     data::Direction,
     signal::{BusWidth, Signal, Timestamp, Value},
     std::wiring::WiringComponentFactory,
@@ -216,10 +217,6 @@ impl Component for Clock {
         if let Some(pin) = self.pins.get_mut("out") {
             pin.signal = Signal::new_single(self.state.current_value);
         }
-    }
-
-    fn is_sequential(&self) -> bool {
-        true // Clock is a sequential component
     }
 
     fn propagation_delay(&self) -> u64 {

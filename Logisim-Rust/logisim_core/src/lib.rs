@@ -78,9 +78,6 @@ pub use comp::{
     ComponentEvent, ComponentFactory, ComponentId, ComponentListener, ComponentUserEvent,
     DrawCommand, EndData, GraphicsContext, Pin, PinDirection,
 };
-pub use component::{
-    Component as SimComponent, ComponentId as SimComponentId, Pin as SimPin, ComponentFactory as SimComponentFactory,
-};
 pub use contracts::{
     BaseComponentListenerContract, BaseDocumentListenerContract, BaseKeyListenerContract,
     BaseLayoutManagerContract, BaseListDataListenerContract, BaseMouseInputListenerContract,

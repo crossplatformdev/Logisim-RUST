@@ -13,7 +13,8 @@
 //! They are useful for providing known signals to circuits.
 
 use crate::{
-    component::{Component, ComponentId, Pin as ComponentPin, PinDirection, UpdateResult},
+    component::{Pin as ComponentPin, PinDirection, UpdateResult},
+    comp::component::{Component, ComponentId},
     data::Direction,
     signal::{BusWidth, Signal, Timestamp, Value},
     std::wiring::WiringComponentFactory,
