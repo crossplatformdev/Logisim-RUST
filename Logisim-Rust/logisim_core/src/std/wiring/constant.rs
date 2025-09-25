@@ -13,10 +13,9 @@
 //! They are useful for providing known signals to circuits.
 
 use crate::{
-    comp::component::{Component, ComponentId},
-    component::{Pin as ComponentPin, PinDirection, UpdateResult},
+    comp::{ComponentId, Component, Pin, UpdateResult},
     data::Direction,
-    signal::{BusWidth, Signal, Timestamp, Value},
+    signal::{BusWidth, Signal, Timestamp},
     std::wiring::WiringComponentFactory,
 };
 use std::collections::HashMap;
@@ -48,7 +47,7 @@ impl Default for ConstantAttributes {
 pub struct Constant {
     id: ComponentId,
     attributes: ConstantAttributes,
-    pins: HashMap<String, ComponentPin>,
+    pins: HashMap<String, Pin>,
 }
 
 impl Constant {
@@ -57,7 +56,7 @@ impl Constant {
         let attributes = ConstantAttributes::default();
 
         // Create the output pin
-        let output_pin = ComponentPin::new_output("out", attributes.width);
+        let output_pin = Pin::new_output("out", attributes.width);
 
         let mut pins = HashMap::new();
         pins.insert("out".to_string(), output_pin);
@@ -115,11 +114,11 @@ impl Component for Constant {
         CONSTANT_ID
     }
 
-    fn pins(&self) -> &HashMap<String, ComponentPin> {
+    fn pins(&self) -> &HashMap<String, Pin> {
         &self.pins
     }
 
-    fn pins_mut(&mut self) -> &mut HashMap<String, ComponentPin> {
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
         &mut self.pins
     }
 
