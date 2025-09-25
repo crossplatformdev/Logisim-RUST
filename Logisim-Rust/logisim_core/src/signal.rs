@@ -86,7 +86,7 @@ impl fmt::Display for Timestamp {
 }
 
 /// Possible values for a digital signal
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Value {
     /// Logic high (1)
     High,
@@ -98,10 +98,6 @@ pub enum Value {
     Error,
     /// High impedance state (tri-state)
     HighZ,
-    /// Multi-bit value with individual bit states
-    Bits { bits: Vec<Value>, width: BusWidth },
-    /// Integer value for efficiency with fully-defined multi-bit signals
-    Integer { value: i64, width: BusWidth },
 }
 
 impl Value {
@@ -166,104 +162,47 @@ impl Value {
             Value::Unknown => Value::Unknown,
             Value::Error => Value::Error,
             Value::HighZ => Value::HighZ,
-            Value::Bits { bits, width } => {
-                let inverted_bits: Vec<Value> = bits.into_iter().map(|b| b.not()).collect();
-                Value::Bits { bits: inverted_bits, width }
-            }
-            Value::Integer { value, width } => {
-                let mask = width.get_mask();
-                let inverted = (!value) & (mask as i64);
-                Value::Integer { value: inverted, width }
-            }
         }
     }
     
-    /// Create a Value from a long integer with specified width
-    pub fn from_long(value: i64, width: BusWidth) -> Value {
-        if width.0 == 1 {
-            if value & 1 != 0 {
-                Value::High
-            } else {
-                Value::Low
-            }
+    /// Create a Value from a long integer with specified width (simplified for single-bit)
+    pub fn from_long(value: i64, _width: BusWidth) -> Value {
+        if value & 1 != 0 {
+            Value::High
         } else {
-            Value::Integer { value, width }
+            Value::Low
         }
     }
     
-    /// Create a Value from individual bits
+    /// Create a Value from individual bits (simplified - just returns first bit)
     pub fn from_bits(bits: &[Value]) -> Value {
-        if bits.len() == 1 {
-            bits[0].clone()
-        } else {
-            Value::Bits { 
-                bits: bits.to_vec(), 
-                width: BusWidth(bits.len() as u32) 
-            }
-        }
+        bits.first().copied().unwrap_or(Value::Low)
     }
     
-    /// Convert to long integer value (0 for non-integer values)
+    /// Convert to long integer value (simplified for single-bit)
     pub fn to_long_value(&self) -> i64 {
         match self {
             Value::High => 1,
             Value::Low => 0,
-            Value::Unknown | Value::Error | Value::HighZ => 0,
-            Value::Integer { value, .. } => *value,
-            Value::Bits { bits, .. } => {
-                let mut result = 0i64;
-                for (i, bit) in bits.iter().enumerate() {
-                    if matches!(bit, Value::High) {
-                        result |= 1i64 << i;
-                    }
-                }
-                result
-            }
+            _ => 0,
         }
     }
     
-    /// Get a specific bit from a multi-bit value
+    /// Get a specific bit from a value (simplified)
     pub fn get_bit(&self, index: usize) -> Value {
-        match self {
-            Value::High | Value::Low | Value::Unknown | Value::Error | Value::HighZ => {
-                if index == 0 { *self } else { Value::Low }
-            }
-            Value::Integer { value, width } => {
-                if index < width.0 as usize {
-                    if (value >> index) & 1 != 0 {
-                        Value::High
-                    } else {
-                        Value::Low
-                    }
-                } else {
-                    Value::Low
-                }
-            }
-            Value::Bits { bits, .. } => {
-                bits.get(index).copied().unwrap_or(Value::Low)
-            }
-        }
+        if index == 0 { *self } else { Value::Low }
     }
     
-    /// Check if all bits in this value are fully defined (not Unknown or Error)
+    /// Check if all bits in this value are fully defined (same as is_definite for single bits)
     pub fn is_fully_defined(&self) -> bool {
-        match self {
-            Value::High | Value::Low => true,
-            Value::Unknown | Value::Error | Value::HighZ => false,
-            Value::Integer { .. } => true, // Integer values are always fully defined
-            Value::Bits { bits, .. } => {
-                bits.iter().all(|b| matches!(b, Value::High | Value::Low))
-            }
-        }
+        self.is_definite()
     }
     
-    /// Get the width of this value
+    /// Get the width of this value (always 1 for single-bit values)
     pub fn width(&self) -> BusWidth {
-        match self {
-            Value::High | Value::Low | Value::Unknown | Value::Error | Value::HighZ => BusWidth(1),
-            Value::Integer { width, .. } | Value::Bits { width, .. } => *width,
-        }
+        BusWidth(1)
     }
+
 }
 
 impl fmt::Display for Value {
@@ -274,15 +213,6 @@ impl fmt::Display for Value {
             Value::Unknown => write!(f, "X"),
             Value::Error => write!(f, "E"),
             Value::HighZ => write!(f, "Z"),
-            Value::Integer { value, width } => {
-                write!(f, "{:0width$b}", value, width = width.0 as usize)
-            }
-            Value::Bits { bits, .. } => {
-                for bit in bits.iter().rev() {
-                    write!(f, "{}", bit)?;
-                }
-                Ok(())
-            }
         }
     }
 }
@@ -340,18 +270,8 @@ impl Signal {
     }
 
     /// Create an unknown signal of given width
-    pub fn unknown(width: BusWidth) -> Self {
-        Signal::new(
-            if width.0 == 1 {
-                Value::Unknown
-            } else {
-                Value::Bits {
-                    bits: vec![Value::Unknown; width.0 as usize],
-                    width,
-                }
-            },
-            Timestamp(0),
-        )
+    pub fn unknown(_width: BusWidth) -> Self {
+        Signal::new(Value::Unknown, Timestamp(0))
     }
 
     /// Check if this signal is at a definite value

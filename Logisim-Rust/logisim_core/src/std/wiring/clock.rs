@@ -147,7 +147,7 @@ impl Clock {
 
     /// Get the current clock value
     pub fn get_current_value(&self) -> Value {
-        self.state.current_value
+        self.state.current_value.clone()
     }
 
     /// Check if it's time for the next transition
