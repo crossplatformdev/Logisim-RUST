@@ -31,6 +31,7 @@
 //! the original as closely as possible to maintain user familiarity and ensure
 //! compatibility with existing .circ files.
 
+pub mod draw;
 pub mod gui;
 pub mod main {
     pub use crate::main_lib::*;
@@ -49,6 +50,12 @@ pub use gui::toolbox::Toolbox;
 // Always export these (not GUI dependent)
 pub use gui::edit_handler::EditHandler;
 pub use gui::selection::Selection;
+
+// Drawing framework exports
+pub use draw::{DrawError, DrawResult, Color32, Stroke, DrawingContext, AttributeAccess};
+pub use draw::model::{CanvasObject, Drawing, Handle, HandleGesture};
+pub use draw::canvas::{Canvas as DrawCanvas, Selection as DrawSelection};
+pub use draw::shapes::DrawAttr;
 
 /// UI-specific error types
 #[derive(Debug, thiserror::Error)]
