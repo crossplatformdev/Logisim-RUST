@@ -38,7 +38,7 @@ fn demo_event_system() {
     println!("✓ Created event system");
     
     // Create some example events
-    let component_id = ComponentId::new(42);
+    let component_id = ComponentId::with_value(42);
     let location = Location::new(100, 200);
     
     let _event1 = event_utils::component_added(component_id, location);
