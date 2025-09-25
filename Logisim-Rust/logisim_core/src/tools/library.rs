@@ -63,7 +63,7 @@ pub trait Library: Send + Sync {
     }
 
     /// Remove a sub-library by name
-    fn remove_library(&mut self, name: &str) -> bool {
+    fn remove_library(&mut self, _name: &str) -> bool {
         false // Default: cannot remove libraries
     }
 
