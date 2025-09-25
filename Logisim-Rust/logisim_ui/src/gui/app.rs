@@ -98,10 +98,6 @@ impl eframe::App for LogisimApp {
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {
         // TODO: Save application state/preferences
     }
-
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        // TODO: Handle cleanup on exit
-    }
 }
 
 /// Launch the Logisim application
@@ -171,8 +167,43 @@ pub fn run_app() -> UiResult<()> {
     Ok(())
 }
 
+/// Run with a template file (GUI version)
+#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+pub fn run_app_with_template(template_path: PathBuf) -> UiResult<()> {
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([1200.0, 800.0])
+            .with_min_inner_size([800.0, 600.0]),
+        ..Default::default()
+    };
+
+    let mut app = LogisimApp::new();
+    app.load_circuit_file(template_path)?;
+
+    eframe::run_native(
+        &app.title(),
+        options,
+        Box::new(move |_cc| Ok(Box::new(app))),
+    )
+    .map_err(|e| UiError::GuiInitError(e.to_string()))?;
+
+    Ok(())
+}
+
+/// Run with multiple files (GUI version)
+#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+pub fn run_app_with_files(file_paths: Vec<PathBuf>) -> UiResult<()> {
+    // For GUI mode, just open the first file for now
+    // TODO: Implement proper multi-file support with tabs
+    if let Some(first_file) = file_paths.first() {
+        run_app_with_file(first_file.clone())
+    } else {
+        run_app()
+    }
+}
+
 /// Run with a template file in headless mode
-#[cfg(not(feature = "gui"))]
+#[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
 pub fn run_app_with_template(template_path: PathBuf) -> UiResult<()> {
     let mut app = LogisimApp::new();
     app.load_circuit_file(template_path)?;
@@ -189,7 +220,7 @@ pub fn run_app_with_template(template_path: PathBuf) -> UiResult<()> {
 }
 
 /// Run with multiple files in headless mode
-#[cfg(not(feature = "gui"))]
+#[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
 pub fn run_app_with_files(file_paths: Vec<PathBuf>) -> UiResult<()> {
     for file_path in file_paths {
         let mut app = LogisimApp::new();

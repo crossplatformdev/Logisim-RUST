@@ -383,8 +383,6 @@ impl HexEditor {
 
 #[cfg(feature = "gui")]
 impl Widget for &mut HexEditor {
-    type Response = Response;
-
     fn ui(self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(self.preferred_size, Sense::click_and_drag());
 
@@ -436,8 +434,6 @@ impl<'a> ScrollableHexEditor<'a> {
 
 #[cfg(feature = "gui")]
 impl<'a> Widget for ScrollableHexEditor<'a> {
-    type Response = Response;
-
     fn ui(self, ui: &mut Ui) -> Response {
         let mut scroll_area = ScrollArea::both().auto_shrink([false, false]);
 

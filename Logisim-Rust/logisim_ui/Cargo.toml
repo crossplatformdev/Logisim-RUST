@@ -34,6 +34,8 @@ egui = { version = "0.30", optional = true }
 eframe = { version = "0.30", default-features = false, features = [
     "default_fonts", # Embed the default egui fonts
     "persistence",   # Enable restoring app state when restarting the app
+    "glow",         # Enable glow renderer (required for run_native)
+    "wgpu",         # Enable wgpu renderer as fallback
 ], optional = true }
 
 [dev-dependencies]
