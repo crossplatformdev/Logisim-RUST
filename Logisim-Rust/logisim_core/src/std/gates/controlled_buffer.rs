@@ -15,7 +15,7 @@
 use crate::component::{Component, ComponentId};
 
 /// Controlled buffer implementation (placeholder)
-/// 
+///
 /// A controlled buffer (tri-state buffer) passes its input to output when enabled,
 /// otherwise presents high impedance.
 #[derive(Debug)]
@@ -46,7 +46,10 @@ impl Component for ControlledBuffer {
         todo!("ControlledBuffer implementation needed")
     }
 
-    fn update(&mut self, _current_time: crate::signal::Timestamp) -> crate::component::UpdateResult {
+    fn update(
+        &mut self,
+        _current_time: crate::signal::Timestamp,
+    ) -> crate::component::UpdateResult {
         todo!("ControlledBuffer implementation needed")
     }
 

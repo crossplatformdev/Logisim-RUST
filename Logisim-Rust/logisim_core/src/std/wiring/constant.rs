@@ -54,10 +54,10 @@ impl Constant {
     /// Create a new constant component
     pub fn new(id: ComponentId) -> Self {
         let attributes = ConstantAttributes::default();
-        
+
         // Create the output pin
         let output_pin = ComponentPin::new_output("out", attributes.width);
-        
+
         let mut pins = HashMap::new();
         pins.insert("out".to_string(), output_pin);
 
@@ -82,12 +82,12 @@ impl Constant {
     /// Set the bit width
     pub fn set_width(&mut self, width: BusWidth) {
         self.attributes.width = width;
-        
+
         // Update the pin width
         if let Some(pin) = self.pins.get_mut("out") {
             pin.width = width;
         }
-        
+
         self.update_output();
     }
 
@@ -127,12 +127,12 @@ impl Component for Constant {
         // This method is called if there were any external changes,
         // but constants don't respond to inputs
         let mut result = UpdateResult::new();
-        
+
         // Always output the constant value
         if let Some(pin) = self.pins.get("out") {
             result.add_output("out".to_string(), pin.signal.clone());
         }
-        
+
         result
     }
 
@@ -187,11 +187,11 @@ mod tests {
     #[test]
     fn test_constant_value_setting() {
         let mut constant = Constant::new(ComponentId(1));
-        
+
         // Test setting different values
         constant.set_value(0);
         assert_eq!(constant.get_value(), 0);
-        
+
         constant.set_value(255);
         assert_eq!(constant.get_value(), 255);
     }
@@ -199,11 +199,11 @@ mod tests {
     #[test]
     fn test_constant_width_setting() {
         let mut constant = Constant::new(ComponentId(1));
-        
+
         // Test setting different widths
         constant.set_width(BusWidth(8));
         assert_eq!(constant.get_width(), BusWidth(8));
-        
+
         // Check that the pin width was updated
         if let Some(pin) = constant.pins.get("out") {
             assert_eq!(pin.width, BusWidth(8));
@@ -227,7 +227,7 @@ mod tests {
         let mut constant = Constant::new(ComponentId(1));
         constant.set_value(0xAB);
         constant.set_width(BusWidth(8));
-        
+
         // Check that the output pin has the correct signal
         if let Some(pin) = constant.pins.get("out") {
             // The signal should represent the value 0xAB with width 8
@@ -240,9 +240,9 @@ mod tests {
     fn test_constant_update() {
         let mut constant = Constant::new(ComponentId(1));
         constant.set_value(42);
-        
+
         let result = constant.update(Timestamp(0));
-        
+
         // Should have one output
         assert_eq!(result.outputs.len(), 1);
         assert!(result.outputs.contains_key("out"));

@@ -13,10 +13,10 @@
 //! during simulation. This is equivalent to Java's `InstanceState` interface.
 
 use crate::data::{Attribute, AttributeSet};
-use crate::{Value};
 use crate::instance::{Instance, InstanceData, InstanceFactory, Port};
 use crate::netlist::NetId;
 use crate::signal::Timestamp;
+use crate::Value;
 use std::fmt::Debug;
 
 /// Runtime state management interface for component instances during simulation.
@@ -84,7 +84,10 @@ pub trait InstanceState: Debug {
     ///
     /// This method uses type erasure to be compatible with trait objects.
     /// Use the `InstanceStateExt::get_typed_attribute` method for type-safe access.
-    fn get_attribute_value_erased(&self, attr: &dyn std::any::Any) -> Option<Box<dyn std::any::Any>>;
+    fn get_attribute_value_erased(
+        &self,
+        attr: &dyn std::any::Any,
+    ) -> Option<Box<dyn std::any::Any>>;
 
     /// Returns the component-specific runtime data.
     ///
@@ -303,9 +306,7 @@ impl<S: InstanceState + ?Sized> InstanceStateExt for S {
     where
         T: 'static,
     {
-        self.get_data_mut()?
-            .as_any_mut()
-            .downcast_mut::<T>()
+        self.get_data_mut()?.as_any_mut().downcast_mut::<T>()
     }
 }
 
@@ -345,7 +346,10 @@ mod tests {
             &self.attributes
         }
 
-        fn get_attribute_value_erased(&self, attr: &dyn std::any::Any) -> Option<Box<dyn std::any::Any>> {
+        fn get_attribute_value_erased(
+            &self,
+            attr: &dyn std::any::Any,
+        ) -> Option<Box<dyn std::any::Any>> {
             // Mock implementation
             let _ = attr;
             None
@@ -372,7 +376,10 @@ mod tests {
         }
 
         fn get_port_value(&self, port_index: usize) -> Value {
-            self.port_values.get(&port_index).copied().unwrap_or(Value::Unknown)
+            self.port_values
+                .get(&port_index)
+                .copied()
+                .unwrap_or(Value::Unknown)
         }
 
         fn get_port_net(&self, _port_index: usize) -> Option<NetId> {
@@ -456,7 +463,12 @@ mod tests {
 
         // Retrieve data
         assert!(state.get_data().is_some());
-        let data = state.get_data().unwrap().as_any().downcast_ref::<TestData>().unwrap();
+        let data = state
+            .get_data()
+            .unwrap()
+            .as_any()
+            .downcast_ref::<TestData>()
+            .unwrap();
         assert_eq!(data.value, 42);
     }
 
@@ -464,7 +476,7 @@ mod tests {
     fn test_instance_state_port_operations() {
         let mut state = MockInstanceState::new();
 
-        // Initially unknown values  
+        // Initially unknown values
         assert_eq!(state.get_port_value(0), Value::Unknown);
         assert_eq!(state.get_port_value(1), Value::Unknown);
 

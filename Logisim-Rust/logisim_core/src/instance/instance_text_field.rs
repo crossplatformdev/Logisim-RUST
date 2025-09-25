@@ -17,7 +17,7 @@ use crate::data::{Attribute, Bounds, Location};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextAlign {
     Left,
-    Center, 
+    Center,
     Right,
 }
 
@@ -51,8 +51,9 @@ impl Default for FontInfo {
 
 impl crate::data::AttributeValue for FontInfo {
     fn to_display_string(&self) -> String {
-        format!("{} {}pt{}{}", 
-            self.family, 
+        format!(
+            "{} {}pt{}{}",
+            self.family,
             self.size,
             if self.bold { " Bold" } else { "" },
             if self.italic { " Italic" } else { "" }
@@ -65,14 +66,19 @@ impl crate::data::AttributeValue for FontInfo {
         if parts.len() < 2 {
             return Err("Invalid font format".to_string());
         }
-        
+
         let family = parts[0].to_string();
         let size_str = parts[1].trim_end_matches("pt");
         let size = size_str.parse::<u32>().map_err(|_| "Invalid font size")?;
         let bold = s.contains("Bold");
         let italic = s.contains("Italic");
-        
-        Ok(FontInfo { family, size, bold, italic })
+
+        Ok(FontInfo {
+            family,
+            size,
+            bold,
+            italic,
+        })
     }
 }
 
@@ -209,7 +215,7 @@ impl InstanceTextField {
     pub fn get_bounds(&self) -> Bounds {
         let char_width = self.font.size as i32 * 6 / 10; // Rough estimate
         let char_height = self.font.size as i32;
-        
+
         let text_width = self.text.len() as i32 * char_width;
         let text_height = char_height;
 
@@ -237,7 +243,7 @@ impl InstanceTextField {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_text_field_creation() {
         let field = InstanceTextField::new(
@@ -283,7 +289,7 @@ mod tests {
         );
 
         let bounds = field.get_bounds();
-        
+
         // With default font size 12, expect roughly 3 * 7 = 21 width, 12 height
         assert_eq!(bounds.get_x(), 50);
         assert_eq!(bounds.get_y(), 100);
@@ -296,15 +302,16 @@ mod tests {
         let text = "Test".to_string();
         let location = Location::new(50, 100);
 
-        let left_field = InstanceTextField::new(
-            text.clone(), location, TextAlign::Left, VerticalAlign::Top
-        );
+        let left_field =
+            InstanceTextField::new(text.clone(), location, TextAlign::Left, VerticalAlign::Top);
         let center_field = InstanceTextField::new(
-            text.clone(), location, TextAlign::Center, VerticalAlign::Top
+            text.clone(),
+            location,
+            TextAlign::Center,
+            VerticalAlign::Top,
         );
-        let right_field = InstanceTextField::new(
-            text, location, TextAlign::Right, VerticalAlign::Top
-        );
+        let right_field =
+            InstanceTextField::new(text, location, TextAlign::Right, VerticalAlign::Top);
 
         let left_bounds = left_field.get_bounds();
         let center_bounds = center_field.get_bounds();
@@ -312,10 +319,10 @@ mod tests {
 
         // Left alignment: text starts at location
         assert_eq!(left_bounds.get_x(), 50);
-        
+
         // Center alignment: text centered on location
         assert!(center_bounds.get_x() < 50);
-        
+
         // Right alignment: text ends at location
         assert!(right_bounds.get_x() < center_bounds.get_x());
     }

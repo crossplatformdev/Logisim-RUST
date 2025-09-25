@@ -78,20 +78,16 @@ impl Default for TtlLibrary {
 }
 
 impl Library for TtlLibrary {
-    fn get_id(&self) -> &'static str {
-        Self::ID
+    fn get_name(&self) -> String {
+        "TTL".to_string()
     }
     
-    fn get_display_name(&self) -> &str {
-        "TTL"
+    fn get_display_name(&self) -> String {
+        "TTL".to_string()
     }
     
-    fn get_tools(&self) -> &[Box<dyn Tool>] {
-        &self.tools
-    }
-    
-    fn get_description(&self) -> &str {
-        "TTL (Transistor-Transistor Logic) integrated circuits for digital logic design"
+    fn get_tools(&self) -> Vec<Box<dyn Tool>> {
+        self.tools.clone()
     }
 }
 

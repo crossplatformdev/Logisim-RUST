@@ -14,7 +14,8 @@
 
 use crate::{
     component::{Component, ComponentId, Pin},
-    data::{AttributeSet, Bounds, Direction, Location, Value},
+    data::{AttributeSet, Bounds, Direction, Location},
+    signal::Value,
     instance::{Instance, InstanceFactory, InstancePainter, InstanceState},
     signal::Signal,
 };
@@ -41,6 +42,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct Ttl7400 {
     impl_data: TtlGateImpl,
+    pins: std::collections::HashMap<String, Pin>,
 }
 
 impl Ttl7400 {
@@ -65,6 +67,25 @@ impl Ttl7400 {
     
     /// Create a new TTL 7400 component
     pub fn new() -> Self {
+        let mut pins = std::collections::HashMap::new();
+        
+        // Initialize pins based on TTL 7400 configuration
+        // Add input pins
+        pins.insert("1A".to_string(), Pin::new_input("1A"));
+        pins.insert("1B".to_string(), Pin::new_input("1B"));
+        pins.insert("2A".to_string(), Pin::new_input("2A"));
+        pins.insert("2B".to_string(), Pin::new_input("2B"));
+        pins.insert("3A".to_string(), Pin::new_input("3A"));
+        pins.insert("3B".to_string(), Pin::new_input("3B"));
+        pins.insert("4A".to_string(), Pin::new_input("4A"));
+        pins.insert("4B".to_string(), Pin::new_input("4B"));
+        
+        // Add output pins
+        pins.insert("1Y".to_string(), Pin::new_output("1Y"));
+        pins.insert("2Y".to_string(), Pin::new_output("2Y"));
+        pins.insert("3Y".to_string(), Pin::new_output("3Y"));
+        pins.insert("4Y".to_string(), Pin::new_output("4Y"));
+        
         Self {
             impl_data: TtlGateImpl::new(
                 Self::ID,
@@ -72,6 +93,7 @@ impl Ttl7400 {
                 Self::OUTPUT_PINS.to_vec(),
                 Self::PORT_NAMES.to_vec(),
             ),
+            pins,
         }
     }
     
@@ -151,42 +173,31 @@ impl AbstractTtlGate for Ttl7400 {
 }
 
 impl Component for Ttl7400 {
-    fn get_id(&self) -> ComponentId {
+    fn id(&self) -> ComponentId {
         ComponentId::new(Self::ID)
     }
     
-    fn get_display_name(&self) -> &str {
+    fn name(&self) -> &str {
         "7400"
     }
     
-    fn get_description(&self) -> &str {
-        "TTL 74x00: Quad 2-input NAND gate"
+    fn pins(&self) -> &std::collections::HashMap<String, Pin> {
+        &self.pins
     }
     
-    fn create_instance(&self) -> Box<dyn Instance> {
-        // Implementation would create an actual instance
-        // This is a placeholder for the full implementation
-        todo!("Create TTL 7400 instance")
+    fn pins_mut(&mut self) -> &mut std::collections::HashMap<String, Pin> {
+        &mut self.pins
     }
     
-    fn get_bounds(&self, instance: &dyn Instance) -> Bounds {
-        // Standard TTL package bounds
-        Bounds::new(0, 0, 120, self.impl_data.height)
+    fn update(&mut self, current_time: crate::signal::Timestamp) -> crate::component::UpdateResult {
+        // Implementation for updating TTL 7400
+        crate::component::UpdateResult::Continue
     }
     
-    fn propagate(&self, state: &mut InstanceState) {
-        // Check power supply if VCC/GND ports are enabled
-        let vcc_gnd_enabled = state.get_attribute_value("VccGndPorts")
-            .unwrap_or(false);
-            
-        if self.impl_data.check_power_supply(state, vcc_gnd_enabled) {
-            self.propagate_ttl(state);
-        } else {
-            // Set all outputs to unknown if power is not properly connected
-            for &output_pin in &self.impl_data.output_pins {
-                let port_index = self.pin_to_port_index(output_pin);
-                state.set_port(port_index, Value::UNKNOWN, 1);
-            }
+    fn reset(&mut self) {
+        // Reset TTL 7400 to initial state
+        for pin in self.pins.values_mut() {
+            pin.set_signal(crate::signal::Signal::new_single(crate::signal::Value::Unknown));
         }
     }
 }

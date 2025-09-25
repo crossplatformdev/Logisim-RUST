@@ -38,12 +38,42 @@ impl Color {
     }
 
     /// Common colors
-    pub const BLACK: Color = Color { r: 0, g: 0, b: 0, a: 255 };
-    pub const WHITE: Color = Color { r: 255, g: 255, b: 255, a: 255 };
-    pub const RED: Color = Color { r: 255, g: 0, b: 0, a: 255 };
-    pub const GREEN: Color = Color { r: 0, g: 255, b: 0, a: 255 };
-    pub const BLUE: Color = Color { r: 0, g: 0, b: 255, a: 255 };
-    pub const GRAY: Color = Color { r: 128, g: 128, b: 128, a: 255 };
+    pub const BLACK: Color = Color {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+    pub const WHITE: Color = Color {
+        r: 255,
+        g: 255,
+        b: 255,
+        a: 255,
+    };
+    pub const RED: Color = Color {
+        r: 255,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+    pub const GREEN: Color = Color {
+        r: 0,
+        g: 255,
+        b: 0,
+        a: 255,
+    };
+    pub const BLUE: Color = Color {
+        r: 0,
+        g: 0,
+        b: 255,
+        a: 255,
+    };
+    pub const GRAY: Color = Color {
+        r: 128,
+        g: 128,
+        b: 128,
+        a: 255,
+    };
 }
 
 /// Drawing command for component rendering
@@ -52,13 +82,33 @@ pub enum DrawCommand {
     /// Draw a line from one point to another
     DrawLine { x1: i32, y1: i32, x2: i32, y2: i32 },
     /// Draw a rectangle
-    DrawRect { x: i32, y: i32, width: i32, height: i32 },
+    DrawRect {
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    },
     /// Fill a rectangle
-    FillRect { x: i32, y: i32, width: i32, height: i32 },
+    FillRect {
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    },
     /// Draw an oval
-    DrawOval { x: i32, y: i32, width: i32, height: i32 },
+    DrawOval {
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    },
     /// Fill an oval
-    FillOval { x: i32, y: i32, width: i32, height: i32 },
+    FillOval {
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    },
     /// Draw text at a location
     DrawText { text: String, x: i32, y: i32 },
     /// Set the drawing color
@@ -68,7 +118,7 @@ pub enum DrawCommand {
 }
 
 /// Graphics context for component drawing
-/// 
+///
 /// This provides a simplified graphics interface equivalent to Java's
 /// Graphics2D for component rendering. Commands are recorded and can
 /// be played back by the UI layer.
@@ -122,22 +172,42 @@ impl GraphicsContext {
 
     /// Draw a rectangle
     pub fn draw_rect(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.commands.push(DrawCommand::DrawRect { x, y, width, height });
+        self.commands.push(DrawCommand::DrawRect {
+            x,
+            y,
+            width,
+            height,
+        });
     }
 
     /// Fill a rectangle
     pub fn fill_rect(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.commands.push(DrawCommand::FillRect { x, y, width, height });
+        self.commands.push(DrawCommand::FillRect {
+            x,
+            y,
+            width,
+            height,
+        });
     }
 
     /// Draw an oval
     pub fn draw_oval(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.commands.push(DrawCommand::DrawOval { x, y, width, height });
+        self.commands.push(DrawCommand::DrawOval {
+            x,
+            y,
+            width,
+            height,
+        });
     }
 
     /// Fill an oval
     pub fn fill_oval(&mut self, x: i32, y: i32, width: i32, height: i32) {
-        self.commands.push(DrawCommand::FillOval { x, y, width, height });
+        self.commands.push(DrawCommand::FillOval {
+            x,
+            y,
+            width,
+            height,
+        });
     }
 
     /// Draw text
@@ -153,7 +223,7 @@ impl Default for GraphicsContext {
 }
 
 /// Drawing context for component rendering
-/// 
+///
 /// This is equivalent to Java's `ComponentDrawContext` and provides
 /// the context and helper methods for drawing components.
 #[derive(Debug)]
@@ -242,7 +312,12 @@ impl ComponentDrawContext {
     pub fn draw_bounds(&mut self, component: &dyn Component) {
         if let Some(bounds) = component.bounds() {
             self.graphics.set_line_width(2);
-            self.graphics.draw_rect(bounds.get_x(), bounds.get_y(), bounds.get_width(), bounds.get_height());
+            self.graphics.draw_rect(
+                bounds.get_x(),
+                bounds.get_y(),
+                bounds.get_width(),
+                bounds.get_height(),
+            );
             self.graphics.set_line_width(1);
         }
     }
@@ -250,12 +325,12 @@ impl ComponentDrawContext {
     /// Draw a clock symbol at a pin location
     pub fn draw_clock(&mut self, location: Location, direction: Direction) {
         self.graphics.set_line_width(2);
-        
+
         let x = location.x;
         let y = location.y;
         let clk_sz = 4;
         let clk_szd = clk_sz - 1;
-        
+
         match direction {
             Direction::North => {
                 self.graphics.draw_line(x - clk_szd, y - 1, x, y - clk_sz);
@@ -274,7 +349,7 @@ impl ComponentDrawContext {
                 self.graphics.draw_line(x - 1, y + clk_szd, x - clk_sz, y);
             }
         }
-        
+
         self.graphics.set_line_width(1);
     }
 
@@ -283,7 +358,7 @@ impl ComponentDrawContext {
         let pin_rad = 4;
         let x = location.x - pin_rad / 2;
         let y = location.y - pin_rad / 2;
-        
+
         if is_input {
             self.graphics.set_color(Color::GREEN);
             self.graphics.fill_oval(x, y, pin_rad, pin_rad);
@@ -291,7 +366,7 @@ impl ComponentDrawContext {
             self.graphics.set_color(Color::RED);
             self.graphics.fill_oval(x, y, pin_rad, pin_rad);
         }
-        
+
         // Draw outline
         self.graphics.set_color(Color::BLACK);
         self.graphics.draw_oval(x, y, pin_rad, pin_rad);
@@ -302,7 +377,7 @@ impl ComponentDrawContext {
         let dot_rad = 3;
         let x = location.x - dot_rad / 2;
         let y = location.y - dot_rad / 2;
-        
+
         self.graphics.set_color(Color::BLACK);
         self.graphics.fill_oval(x, y, dot_rad, dot_rad);
     }
@@ -340,12 +415,12 @@ mod tests {
         ctx.draw_rect(5, 5, 20, 20);
 
         assert_eq!(ctx.commands().len(), 3);
-        
+
         match &ctx.commands()[0] {
             DrawCommand::SetColor { color } => assert_eq!(*color, Color::RED),
             _ => panic!("Expected SetColor command"),
         }
-        
+
         match &ctx.commands()[1] {
             DrawCommand::DrawLine { x1, y1, x2, y2 } => {
                 assert_eq!(*x1, 0);
@@ -377,11 +452,11 @@ mod tests {
     fn test_drawing_operations() {
         let mut ctx = ComponentDrawContext::new();
         let location = Location::new(10, 20);
-        
+
         ctx.draw_clock(location, Direction::North);
         ctx.draw_pin(location, true);
         ctx.draw_wire_dot(location);
-        
+
         // Should have multiple drawing commands
         assert!(ctx.commands().len() > 0);
     }

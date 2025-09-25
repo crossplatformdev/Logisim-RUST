@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::ops::Not;
 
 /// NOT Gate (Inverter) implementation
-/// 
+///
 /// Performs logical NOT operation on its input. The output is the inverse
 /// of the input value. Supports configurable bit width.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,7 +36,7 @@ impl NotGate {
 
         NotGate { id, pins }
     }
-    
+
     /// Create a new NOT gate with configurable bit width
     pub fn new_with_width(id: ComponentId, width: BusWidth) -> Self {
         let mut pins = HashMap::new();
@@ -143,11 +143,14 @@ mod tests {
 
             let result = gate.update(Timestamp(0));
             let outputs = result.get_outputs();
-            
+
             if let Some(output_signal) = outputs.get("Y") {
                 let output_value = output_signal.as_single().unwrap();
-                assert_eq!(output_value, expected, 
-                    "NOT({:?}) should be {:?}, got {:?}", input, expected, output_value);
+                assert_eq!(
+                    output_value, expected,
+                    "NOT({:?}) should be {:?}, got {:?}",
+                    input, expected, output_value
+                );
             } else {
                 panic!("No output signal found");
             }
