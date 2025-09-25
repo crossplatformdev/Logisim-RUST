@@ -58,6 +58,7 @@ pub mod components;
 pub mod data;
 pub mod event;
 pub mod file;
+pub mod hdl;
 pub mod instance;
 pub mod integrations;
 pub mod netlist;
@@ -94,6 +95,10 @@ pub use data::{
 };
 pub use event::{EventQueue, SimulatorEvent};
 pub use file::{LoadFailedException, Loader, LogisimFile};
+pub use hdl::{
+    HdlModel, HdlModelListener, PortDescription, HdlContent, HdlContentEditor,
+    VhdlParser, VhdlContentComponent, BlifParser, BlifContentComponent,
+    HdlFile, HdlFileType, HdlStrings, VhdlEntityComponent, BlifCircuitComponent, HdlLibrary,
 pub use instance::{
     Instance, InstanceComponent, InstanceData, InstanceFactory, InstanceState, Port, PortType, PortWidth,
 };
