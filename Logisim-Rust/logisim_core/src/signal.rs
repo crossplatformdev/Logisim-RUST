@@ -96,6 +96,8 @@ pub enum Value {
     Unknown,
     /// Error state (e.g., contention)
     Error,
+    /// High impedance state (tri-state)
+    HighZ,
 }
 
 impl Value {
@@ -151,6 +153,56 @@ impl Value {
             _ => Value::Unknown,
         }
     }
+    
+    /// Logical NOT operation
+    pub fn not(self) -> Value {
+        match self {
+            Value::High => Value::Low,
+            Value::Low => Value::High,
+            Value::Unknown => Value::Unknown,
+            Value::Error => Value::Error,
+            Value::HighZ => Value::HighZ,
+        }
+    }
+    
+    /// Create a Value from a long integer with specified width (simplified for single-bit)
+    pub fn from_long(value: i64, _width: BusWidth) -> Value {
+        if value & 1 != 0 {
+            Value::High
+        } else {
+            Value::Low
+        }
+    }
+    
+    /// Create a Value from individual bits (simplified - just returns first bit)
+    pub fn from_bits(bits: &[Value]) -> Value {
+        bits.first().copied().unwrap_or(Value::Low)
+    }
+    
+    /// Convert to long integer value (simplified for single-bit)
+    pub fn to_long_value(&self) -> i64 {
+        match self {
+            Value::High => 1,
+            Value::Low => 0,
+            _ => 0,
+        }
+    }
+    
+    /// Get a specific bit from a value (simplified)
+    pub fn get_bit(&self, index: usize) -> Value {
+        if index == 0 { *self } else { Value::Low }
+    }
+    
+    /// Check if all bits in this value are fully defined (same as is_definite for single bits)
+    pub fn is_fully_defined(&self) -> bool {
+        self.is_definite()
+    }
+    
+    /// Get the width of this value (always 1 for single-bit values)
+    pub fn width(&self) -> BusWidth {
+        BusWidth(1)
+    }
+
 }
 
 impl fmt::Display for Value {
@@ -160,6 +212,7 @@ impl fmt::Display for Value {
             Value::Low => write!(f, "0"),
             Value::Unknown => write!(f, "X"),
             Value::Error => write!(f, "E"),
+            Value::HighZ => write!(f, "Z"),
         }
     }
 }
@@ -168,141 +221,68 @@ impl std::ops::Not for Value {
     type Output = Value;
 
     fn not(self) -> Value {
-        match self {
-            Value::High => Value::Low,
-            Value::Low => Value::High,
-            Value::Unknown => Value::Unknown,
-            Value::Error => Value::Error,
-        }
+        self.not()
     }
 }
 
-/// Represents a single signal or a bus of signals
+/// Represents a signal with a value and timestamp
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signal {
-    /// The value(s) carried by this signal
-    values: Vec<Value>,
-    /// The width of this signal
-    width: BusWidth,
+    /// The value carried by this signal
+    value: Value,
+    /// When this signal was last updated
+    timestamp: Timestamp,
 }
 
 impl Signal {
-    /// Create a new single-bit signal
-    pub fn new_single(value: Value) -> Self {
+    /// Create a new signal with a value and timestamp
+    pub fn new(value: Value, timestamp: Timestamp) -> Self {
+        Signal { value, timestamp }
+    }
+
+    /// Create a signal with the current timestamp (0)
+    pub fn new_now(value: Value) -> Self {
         Signal {
-            values: vec![value],
-            width: BusWidth(1),
+            value,
+            timestamp: Timestamp(0),
         }
     }
 
-    /// Create a new multi-bit signal (bus)
-    pub fn new_bus(values: Vec<Value>) -> Self {
-        let width = BusWidth(values.len() as u32);
-        Signal { values, width }
+    /// Get the value of this signal
+    pub fn value(&self) -> &Value {
+        &self.value
     }
 
-    /// Create a signal with a specific width, all bits set to the same value
-    pub fn new_uniform(width: BusWidth, value: Value) -> Self {
-        Signal {
-            values: vec![value; width.as_u32() as usize],
-            width,
-        }
+    /// Get the timestamp of this signal
+    pub fn timestamp(&self) -> Timestamp {
+        self.timestamp
     }
 
-    /// Create an unknown signal of given width
-    pub fn unknown(width: BusWidth) -> Self {
-        Self::new_uniform(width, Value::Unknown)
+    /// Set a new value and timestamp
+    pub fn set(&mut self, value: Value, timestamp: Timestamp) {
+        self.value = value;
+        self.timestamp = timestamp;
     }
 
     /// Get the width of this signal
     pub fn width(&self) -> BusWidth {
-        self.width
+        self.value.width()
     }
 
-    /// Get a specific bit value
-    pub fn get_bit(&self, index: usize) -> Option<Value> {
-        self.values.get(index).copied()
+    /// Create an unknown signal of given width
+    pub fn unknown(_width: BusWidth) -> Self {
+        Signal::new(Value::Unknown, Timestamp(0))
     }
 
-    /// Set a specific bit value
-    pub fn set_bit(&mut self, index: usize, value: Value) -> Result<(), &'static str> {
-        if index >= self.values.len() {
-            return Err("Bit index out of range");
-        }
-        self.values[index] = value;
-        Ok(())
-    }
-
-    /// Get all values as a slice
-    pub fn values(&self) -> &[Value] {
-        &self.values
-    }
-
-    /// Check if this is a single-bit signal
-    pub fn is_single_bit(&self) -> bool {
-        self.width.is_single_bit()
-    }
-
-    /// Convert to a single Value if this is a single-bit signal
-    pub fn as_single(&self) -> Option<Value> {
-        if self.is_single_bit() {
-            self.values.first().copied()
-        } else {
-            None
-        }
-    }
-
-    /// Convert bus to integer value if all bits are definite
-    pub fn to_u64(&self) -> Option<u64> {
-        let mut result = 0u64;
-        for (i, &value) in self.values.iter().enumerate() {
-            match value {
-                Value::High => result |= 1u64 << i,
-                Value::Low => {}  // bit remains 0
-                _ => return None, // unknown or error
-            }
-        }
-        Some(result)
-    }
-
-    /// Create signal from integer value
-    pub fn from_u64(value: u64, width: BusWidth) -> Self {
-        let mut values = Vec::with_capacity(width.as_u32() as usize);
-        for i in 0..width.as_u32() {
-            let bit = (value >> i) & 1;
-            values.push(if bit == 1 { Value::High } else { Value::Low });
-        }
-        Signal { values, width }
-    }
-
-    /// Create multi-bit signal from u64 value (alias for from_u64)
-    pub fn new_multi(width: BusWidth, value: u64) -> Self {
-        Self::from_u64(value, width)
-    }
-
-    /// Create signal with all bits set to high
-    pub fn all_high(width: BusWidth) -> Self {
-        let values = vec![Value::High; width.as_u32() as usize];
-        Signal { values, width }
-    }
-
-    /// Create signal with all bits set to low
-    pub fn all_low(width: BusWidth) -> Self {
-        let values = vec![Value::Low; width.as_u32() as usize];
-        Signal { values, width }
+    /// Check if this signal is at a definite value
+    pub fn is_definite(&self) -> bool {
+        self.value.is_fully_defined()
     }
 }
 
 impl fmt::Display for Signal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_single_bit() {
-            write!(f, "{}", self.values[0])
-        } else {
-            for value in self.values.iter().rev() {
-                write!(f, "{}", value)?;
-            }
-            Ok(())
-        }
+        write!(f, "{}", self.value)
     }
 }
 
