@@ -26,10 +26,12 @@
 
 pub mod base;
 pub mod gates;
+pub mod plexers;
 pub mod wiring;
 
 
 // Re-export commonly used types
 pub use base::*;
 pub use gates::*;
+pub use plexers::*;
 pub use wiring::*;
