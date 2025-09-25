@@ -307,11 +307,7 @@ impl Signal {
 
     /// Create a signal from a u64 value
     pub fn from_u64(value: u64, _width: BusWidth) -> Self {
-        let signal_value = if value == 0 {
-            Value::Low
-        } else {
-            Value::High
-        };
+        let signal_value = if value == 0 { Value::Low } else { Value::High };
         Signal::new_single(signal_value)
     }
 

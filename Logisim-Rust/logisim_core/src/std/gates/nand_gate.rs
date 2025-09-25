@@ -123,7 +123,6 @@ impl Component for NandGate {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -13,7 +13,7 @@
 //! They are essential for providing known power levels.
 
 use crate::{
-    comp::{ComponentId, Component, Pin, UpdateResult},
+    comp::{Component, ComponentId, Pin, UpdateResult},
     signal::{BusWidth, Signal, Timestamp},
     std::wiring::WiringComponentFactory,
 };

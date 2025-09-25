@@ -245,7 +245,11 @@ pub trait Tool: Send + Sync {
     }
 
     /// Get the default value for an attribute
-    fn get_default_attribute_value(&self, _attr: &str, _version: &LogisimVersion) -> Option<String> {
+    fn get_default_attribute_value(
+        &self,
+        _attr: &str,
+        _version: &LogisimVersion,
+    ) -> Option<String> {
         None
     }
 

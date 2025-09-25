@@ -295,7 +295,7 @@ impl ComponentFactoryRegistry {
 }
 
 /// Simple component factory trait for compatibility
-/// 
+///
 /// This provides a simplified interface for basic component creation,
 /// used by tools and legacy code that doesn't need the full factory interface.
 pub trait SimpleComponentFactory: Send + Sync {
@@ -346,10 +346,7 @@ mod tests {
             &mut self.pins
         }
 
-        fn update(
-            &mut self,
-            _current_time: crate::signal::Timestamp,
-        ) -> crate::comp::UpdateResult {
+        fn update(&mut self, _current_time: crate::signal::Timestamp) -> crate::comp::UpdateResult {
             crate::comp::UpdateResult::new()
         }
 

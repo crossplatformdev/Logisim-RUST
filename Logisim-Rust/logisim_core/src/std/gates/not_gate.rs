@@ -97,7 +97,6 @@ impl Component for NotGate {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -15,7 +15,7 @@
 //! Users can click the switch to toggle between on/off states.
 
 use crate::{
-    comp::{Component, ComponentId, UpdateResult, Pin},
+    comp::{Component, ComponentId, Pin, UpdateResult},
     data::{AttributeSet, Bounds, Location},
     signal::{BusWidth, Signal, Timestamp, Value},
 };

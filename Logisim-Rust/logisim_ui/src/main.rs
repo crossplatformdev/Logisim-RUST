@@ -4,20 +4,26 @@
 //! It handles application startup, theme setup, and command line parsing.
 
 use logisim_core::build_info::BuildInfo;
-use logisim_ui::{
-    gui::startup::Startup,
-    UiResult,
-};
+use logisim_ui::{gui::startup::Startup, UiResult};
 use std::env;
 
 // GUI-specific imports
-#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+#[cfg(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+))]
 use logisim_core::prefs::AppPreferences;
 // Import GUI app functions only if available on the platform
-#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+#[cfg(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+))]
 use logisim_ui::gui::app::{run_app, run_app_with_file};
 // Fallback imports for unsupported platforms or non-GUI builds
-#[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
+#[cfg(not(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+)))]
 use logisim_ui::gui::app::{run_app, run_app_with_file};
 
 /// Application entry point - equivalent to Java Main.main()
@@ -68,7 +74,10 @@ fn main() -> UiResult<()> {
 }
 
 /// Set up look and feel themes - equivalent to Java's UIManager setup
-#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+#[cfg(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+))]
 fn setup_look_and_feel() -> Result<(), Box<dyn std::error::Error>> {
     // Check if we're in headless mode
     let prefs = logisim_core::prefs::get_preferences();
@@ -103,7 +112,10 @@ fn setup_look_and_feel() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Headless version of look and feel setup
-#[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
+#[cfg(not(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+)))]
 fn setup_look_and_feel() -> Result<(), Box<dyn std::error::Error>> {
     log::debug!("Running in headless mode, skipping look and feel setup");
     Ok(())
@@ -111,7 +123,10 @@ fn setup_look_and_feel() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Check if the application has GUI capability
 /// Equivalent to Java's Main.hasGui()
-#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+#[cfg(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+))]
 pub fn has_gui() -> bool {
     let prefs = logisim_core::prefs::get_preferences();
     let prefs = prefs.lock().unwrap();
@@ -119,7 +134,10 @@ pub fn has_gui() -> bool {
 }
 
 /// Headless version always returns false
-#[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
+#[cfg(not(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+)))]
 pub fn has_gui() -> bool {
     false
 }
@@ -128,7 +146,10 @@ pub fn has_gui() -> bool {
 pub static mut HEADLESS_MODE: bool = false;
 
 /// Set headless mode
-#[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+#[cfg(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+))]
 pub fn set_headless(headless: bool) {
     unsafe {
         HEADLESS_MODE = headless;
@@ -141,7 +162,10 @@ pub fn set_headless(headless: bool) {
 }
 
 /// Headless version - always in headless mode
-#[cfg(not(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos"))))]
+#[cfg(not(all(
+    feature = "gui",
+    any(target_os = "linux", target_os = "windows", target_os = "macos")
+)))]
 pub fn set_headless(_headless: bool) {
     unsafe {
         HEADLESS_MODE = true;

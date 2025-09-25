@@ -33,7 +33,7 @@ pub mod factory;
 pub mod pin;
 
 // Re-export core types for convenience
-pub use component::{AbstractComponent, Component, ComponentId, UpdateResult, ClockEdge};
+pub use component::{AbstractComponent, ClockEdge, Component, ComponentId, UpdateResult};
 pub use draw_context::{Color, ComponentDrawContext, DrawCommand, GraphicsContext};
 pub use event::{ComponentEvent, ComponentListener, ComponentUserEvent};
 pub use factory::{AbstractComponentFactory, ComponentFactory, SimpleComponentFactory};

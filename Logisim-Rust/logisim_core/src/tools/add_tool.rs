@@ -17,7 +17,7 @@
 //! and creation of the appropriate actions for undo/redo functionality.
 
 use crate::{
-    comp::{Component, ComponentFactory, SimpleComponentFactory, ComponentId},
+    comp::{Component, ComponentFactory, ComponentId, SimpleComponentFactory},
     data::{AttributeSet, Bounds, Location},
     tools::{
         tool::{Canvas, ComponentDrawContext, CursorType, MouseEvent, Tool},

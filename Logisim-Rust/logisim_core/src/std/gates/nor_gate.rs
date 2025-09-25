@@ -123,7 +123,6 @@ impl Component for NorGate {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

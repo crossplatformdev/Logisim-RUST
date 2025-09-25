@@ -133,7 +133,6 @@ impl Component for XorGate {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

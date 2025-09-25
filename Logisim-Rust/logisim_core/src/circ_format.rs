@@ -36,8 +36,8 @@ use thiserror::Error;
 use crate::comp::{Component, ComponentId};
 use crate::netlist::NodeId;
 use crate::simulation::Simulation;
-use crate::std::gates::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate};
-use crate::std::wiring::{Pin, Constant};
+use crate::std::gates::{AndGate, NandGate, NorGate, NotGate, OrGate, XnorGate, XorGate};
+use crate::std::wiring::{Constant, Pin};
 
 /// Errors that can occur during .circ file processing
 #[derive(Error, Debug)]

@@ -133,7 +133,6 @@ impl Component for XnorGate {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -159,7 +159,8 @@ impl HexEditor {
     pub fn select_all(&mut self) {
         if let Some(model) = &self.model {
             let model_guard = model.lock().unwrap();
-            self.caret.select_all(&mut self.highlighter, Some(&*model_guard));
+            self.caret
+                .select_all(&mut self.highlighter, Some(&*model_guard));
         } else {
             self.caret.select_all(&mut self.highlighter, None);
         }
@@ -186,12 +187,8 @@ impl HexEditor {
                 Some(&*model_guard),
             );
         } else {
-            self.caret.set_dot(
-                address as i64,
-                false,
-                &mut self.highlighter,
-                None,
-            );
+            self.caret
+                .set_dot(address as i64, false, &mut self.highlighter, None);
         }
     }
 
@@ -387,7 +384,7 @@ impl HexEditor {
                     } else {
                         None
                     };
-                    
+
                     if self.caret.handle_key_input(
                         key,
                         modifiers,
@@ -414,7 +411,7 @@ impl HexEditor {
                 } else {
                     None
                 };
-                
+
                 self.caret.handle_mouse_click(
                     pos,
                     extend_selection,
@@ -435,13 +432,9 @@ impl HexEditor {
                 } else {
                     None
                 };
-                
-                self.caret.handle_mouse_drag(
-                    pos,
-                    &self.measures,
-                    &mut self.highlighter,
-                    model_ptr,
-                );
+
+                self.caret
+                    .handle_mouse_drag(pos, &self.measures, &mut self.highlighter, model_ptr);
                 ui.ctx().request_repaint();
             }
         }
