@@ -13,8 +13,8 @@
 //! logging/monitoring capabilities. This is equivalent to Java's `InstanceLogger` class.
 
 use crate::data::BitWidth;
-use crate::{Value};
 use crate::instance::InstanceState;
+use crate::Value;
 
 /// Trait for components that provide logging/monitoring capabilities.
 ///
@@ -31,7 +31,8 @@ pub trait InstanceLogger {
     /// # Returns
     ///
     /// Human-readable name for the option, or None if invalid.
-    fn get_log_name(&self, state: &dyn InstanceState, option: &dyn std::any::Any) -> Option<String>;
+    fn get_log_name(&self, state: &dyn InstanceState, option: &dyn std::any::Any)
+        -> Option<String>;
 
     /// Returns the bit width for a loggable option.
     ///
@@ -43,7 +44,11 @@ pub trait InstanceLogger {
     /// # Returns
     ///
     /// Bit width of the logged signal, or None if invalid.
-    fn get_bit_width(&self, state: &dyn InstanceState, option: &dyn std::any::Any) -> Option<BitWidth>;
+    fn get_bit_width(
+        &self,
+        state: &dyn InstanceState,
+        option: &dyn std::any::Any,
+    ) -> Option<BitWidth>;
 
     /// Returns all available logging options for this component.
     ///
@@ -69,7 +74,8 @@ pub trait InstanceLogger {
     /// # Returns
     ///
     /// Current signal value, or None if invalid.
-    fn get_log_value(&self, state: &dyn InstanceState, option: &dyn std::any::Any) -> Option<Value>;
+    fn get_log_value(&self, state: &dyn InstanceState, option: &dyn std::any::Any)
+        -> Option<Value>;
 
     /// Checks if a logging option represents an input signal.
     ///
@@ -91,19 +97,31 @@ pub trait InstanceLogger {
 mod tests {
     use super::*;
     use crate::data::BitWidth;
-    
+
     struct MockLogger;
-    
+
     impl InstanceLogger for MockLogger {
-        fn get_log_name(&self, _state: &dyn InstanceState, _option: &dyn std::any::Any) -> Option<String> {
+        fn get_log_name(
+            &self,
+            _state: &dyn InstanceState,
+            _option: &dyn std::any::Any,
+        ) -> Option<String> {
             Some("Mock Signal".to_string())
         }
 
-        fn get_bit_width(&self, _state: &dyn InstanceState, _option: &dyn std::any::Any) -> Option<BitWidth> {
+        fn get_bit_width(
+            &self,
+            _state: &dyn InstanceState,
+            _option: &dyn std::any::Any,
+        ) -> Option<BitWidth> {
             Some(BitWidth::new(1))
         }
 
-        fn get_log_value(&self, _state: &dyn InstanceState, _option: &dyn std::any::Any) -> Option<Value> {
+        fn get_log_value(
+            &self,
+            _state: &dyn InstanceState,
+            _option: &dyn std::any::Any,
+        ) -> Option<Value> {
             Some(Value::High)
         }
     }

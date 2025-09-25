@@ -13,8 +13,8 @@
 //! They are essential for providing known reference levels.
 
 use crate::{
-    component::{Pin as ComponentPin, UpdateResult},
     comp::component::{Component, ComponentId},
+    component::{Pin as ComponentPin, UpdateResult},
     signal::{BusWidth, Signal, Timestamp, Value},
     std::wiring::WiringComponentFactory,
 };
@@ -32,9 +32,7 @@ pub struct GroundAttributes {
 
 impl Default for GroundAttributes {
     fn default() -> Self {
-        Self {
-            width: BusWidth(1),
-        }
+        Self { width: BusWidth(1) }
     }
 }
 
@@ -50,11 +48,11 @@ impl Ground {
     /// Create a new ground component
     pub fn new(id: ComponentId) -> Self {
         let attributes = GroundAttributes::default();
-        
+
         // Create the output pin - ground always outputs low
         let mut output_pin = ComponentPin::new_output("out", attributes.width);
         output_pin.signal = Signal::all_low(attributes.width);
-        
+
         let mut pins = HashMap::new();
         pins.insert("out".to_string(), output_pin);
 
@@ -68,7 +66,7 @@ impl Ground {
     /// Set the bit width (ground maintains all low values)
     pub fn set_width(&mut self, width: BusWidth) {
         self.attributes.width = width;
-        
+
         // Update the pin width and signal
         if let Some(pin) = self.pins.get_mut("out") {
             pin.width = width;
@@ -102,12 +100,12 @@ impl Component for Ground {
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         // Ground components always output low (0)
         let mut result = UpdateResult::new();
-        
+
         // Always output the ground value (all zeros)
         if let Some(pin) = self.pins.get("out") {
             result.add_output("out".to_string(), pin.signal.clone());
         }
-        
+
         result
     }
 
@@ -163,11 +161,11 @@ mod tests {
     #[test]
     fn test_ground_width_setting() {
         let mut ground = Ground::new(ComponentId(1));
-        
+
         // Test setting different widths
         ground.set_width(BusWidth(8));
         assert_eq!(ground.get_width(), BusWidth(8));
-        
+
         // Check that the pin width was updated
         if let Some(pin) = ground.pins.get("out") {
             assert_eq!(pin.width, BusWidth(8));
@@ -190,7 +188,7 @@ mod tests {
     fn test_ground_output_signal() {
         let mut ground = Ground::new(ComponentId(1));
         ground.set_width(BusWidth(4));
-        
+
         // Check that the output pin has the correct signal (all low)
         if let Some(pin) = ground.pins.get("out") {
             assert_eq!(pin.width, BusWidth(4));
@@ -201,9 +199,9 @@ mod tests {
     #[test]
     fn test_ground_update() {
         let mut ground = Ground::new(ComponentId(1));
-        
+
         let result = ground.update(Timestamp(0));
-        
+
         // Should have one output
         assert_eq!(result.outputs.len(), 1);
         assert!(result.outputs.contains_key("out"));
@@ -213,11 +211,11 @@ mod tests {
     #[test]
     fn test_ground_always_low() {
         let mut ground = Ground::new(ComponentId(1));
-        
+
         // Even after reset, ground should still output low
         ground.reset();
         let result = ground.update(Timestamp(0));
-        
+
         assert!(result.outputs.contains_key("out"));
         // The output should be all low values
     }

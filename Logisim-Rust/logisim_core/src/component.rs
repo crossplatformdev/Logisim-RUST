@@ -13,10 +13,10 @@ use std::ops::Not;
 pub trait ComponentFactory: Send + Sync {
     /// Create a new component instance
     fn create_component(&self) -> Box<dyn Component>;
-    
+
     /// Get the name of this component type
     fn get_name(&self) -> String;
-    
+
     /// Get the display name of this component type
     fn get_display_name(&self) -> String {
         self.get_name()
@@ -177,17 +177,17 @@ impl UpdateResult {
     pub fn set_delay(&mut self, delay: u64) {
         self.delay = delay;
     }
-    
+
     /// Get the outputs map
     pub fn get_outputs(&self) -> &HashMap<String, Signal> {
         &self.outputs
     }
-    
+
     /// Get the propagation delay
     pub fn get_delay(&self) -> u64 {
         self.delay
     }
-    
+
     /// Check if the component state changed
     pub fn has_state_changed(&self) -> bool {
         self.state_changed

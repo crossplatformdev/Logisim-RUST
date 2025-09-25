@@ -29,7 +29,6 @@ pub mod gates;
 pub mod io;
 pub mod wiring;
 
-
 // Re-export commonly used types
 pub use base::*;
 pub use gates::*;

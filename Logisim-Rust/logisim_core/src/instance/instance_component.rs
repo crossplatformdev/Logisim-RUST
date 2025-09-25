@@ -121,10 +121,7 @@ impl InstanceComponent {
 
     /// Returns the ports for this component.
     pub fn ports(&self) -> &[Port] {
-        self.factory
-            .as_ref()
-            .map(|f| f.get_ports())
-            .unwrap_or(&[])
+        self.factory.as_ref().map(|f| f.get_ports()).unwrap_or(&[])
     }
 
     /// Gets a port by its index.
@@ -163,7 +160,7 @@ impl InstanceComponent {
     pub fn set_location(&mut self, new_location: Location) {
         let old_location = self.location;
         self.location = new_location;
-        
+
         // Translate bounds by the difference
         let dx = new_location.x - old_location.x;
         let dy = new_location.y - old_location.y;
@@ -252,7 +249,11 @@ mod tests {
             Bounds::new(-15, -10, 30, 20)
         }
 
-        fn create_component(&self, location: Location, attrs: AttributeSet) -> Box<dyn std::any::Any> {
+        fn create_component(
+            &self,
+            location: Location,
+            attrs: AttributeSet,
+        ) -> Box<dyn std::any::Any> {
             let mut component = InstanceComponent::new(location, attrs);
             component.set_factory(std::sync::Arc::new(MockFactory::new()));
             Box::new(component)
@@ -282,7 +283,7 @@ mod tests {
         let location = Location::new(50, 75);
         let attrs = AttributeSet::new();
         let mut component = InstanceComponent::new(location, attrs);
-        
+
         let factory = Arc::new(MockFactory::new());
         component.set_factory(factory);
 
@@ -300,15 +301,15 @@ mod tests {
         let location = Location::new(0, 0);
         let attrs = AttributeSet::new();
         let mut component = InstanceComponent::new(location, attrs);
-        
+
         let factory = Arc::new(MockFactory::new());
         component.set_factory(factory);
 
         let initial_bounds = component.bounds();
-        
+
         // Move the component
         component.set_location(Location::new(20, 30));
-        
+
         // Bounds should have moved by the same amount
         let expected_bounds = initial_bounds.translate(20, 30);
         assert_eq!(component.bounds(), expected_bounds);
@@ -319,7 +320,7 @@ mod tests {
         let location = Location::new(0, 0);
         let attrs = AttributeSet::new();
         let mut component = InstanceComponent::new(location, attrs);
-        
+
         let factory = Arc::new(MockFactory::new());
         component.set_factory(factory);
 
@@ -333,7 +334,7 @@ mod tests {
         let location = Location::new(10, 20);
         let attrs = AttributeSet::new();
         let mut component = InstanceComponent::new(location, attrs);
-        
+
         let factory = Arc::new(MockFactory::new());
         component.set_factory(factory);
 
@@ -349,18 +350,18 @@ mod tests {
         let location = Location::new(0, 0);
         let attrs = AttributeSet::new();
         let mut component = InstanceComponent::new(location, attrs);
-        
+
         let factory = Arc::new(MockFactory::new());
         component.set_factory(factory);
 
         assert_eq!(component.port_count(), 2);
-        
+
         let port0 = component.get_port(0).unwrap();
         let port1 = component.get_port(1).unwrap();
-        
+
         assert_eq!(port0.port_type(), PortType::Input);
         assert_eq!(port1.port_type(), PortType::Output);
-        
+
         assert!(component.get_port(2).is_none()); // Out of bounds
     }
 }

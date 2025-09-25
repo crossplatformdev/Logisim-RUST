@@ -29,8 +29,8 @@
 //! - State management for interactive components
 //! - Integration with the simulation kernel
 
-mod switch;
 mod extra_io_library;
+mod switch;
 
 // TODO: Enable when components are fixed
 // mod buzzer;
@@ -39,8 +39,8 @@ mod extra_io_library;
 // mod slider;
 
 // Re-export working implementations
-pub use switch::*;
 pub use extra_io_library::*;
+pub use switch::*;
 
 // TODO: Re-export when fixed
 // pub use buzzer::*;

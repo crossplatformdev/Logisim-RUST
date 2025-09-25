@@ -380,15 +380,21 @@ where
         self.inner.create_attribute_set()
     }
     fn get_display_name(&self) -> String {
-        self.display_name.clone().unwrap_or_else(|| self.inner.get_display_name())
+        self.display_name
+            .clone()
+            .unwrap_or_else(|| self.inner.get_display_name())
     }
 
     fn get_default_tooltip(&self) -> Option<String> {
-        self.tooltip.clone().or_else(|| self.inner.get_default_tooltip())
+        self.tooltip
+            .clone()
+            .or_else(|| self.inner.get_default_tooltip())
     }
 
     fn get_icon_name(&self) -> Option<&str> {
-        self.icon_name.as_deref().or_else(|| self.inner.get_icon_name())
+        self.icon_name
+            .as_deref()
+            .or_else(|| self.inner.get_icon_name())
     }
 
     fn get_ports(&self) -> &[Port] {
@@ -400,7 +406,9 @@ where
     }
 
     fn get_facing_attribute(&self) -> Option<&Attribute<Direction>> {
-        self.facing_attribute.as_ref().or_else(|| self.inner.get_facing_attribute())
+        self.facing_attribute
+            .as_ref()
+            .or_else(|| self.inner.get_facing_attribute())
     }
 
     fn should_snap(&self) -> bool {
@@ -535,7 +543,10 @@ mod tests {
             .build();
 
         assert_eq!(built.get_display_name().as_str(), "Custom Name");
-        assert_eq!(built.get_default_tooltip().unwrap().as_str(), "Custom tooltip");
+        assert_eq!(
+            built.get_default_tooltip().unwrap().as_str(),
+            "Custom tooltip"
+        );
         assert_eq!(built.get_icon_name(), Some("custom_icon"));
         assert!(!built.should_snap());
     }

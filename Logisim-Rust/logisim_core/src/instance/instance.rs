@@ -266,7 +266,11 @@ mod tests {
             Bounds::new(-10, -20, 20, 40)
         }
 
-        fn create_component(&self, location: Location, attrs: AttributeSet) -> Box<dyn std::any::Any> {
+        fn create_component(
+            &self,
+            location: Location,
+            attrs: AttributeSet,
+        ) -> Box<dyn std::any::Any> {
             Box::new(InstanceComponent::mock_new(location, attrs))
         }
 
@@ -286,7 +290,7 @@ mod tests {
             Location::new(100, 200),
             AttributeSet::new(),
         ));
-        
+
         let instance = Instance::new(42, component, factory);
 
         assert_eq!(instance.id(), 42);
@@ -301,7 +305,7 @@ mod tests {
             Location::new(0, 0),
             AttributeSet::new(),
         ));
-        
+
         let instance = Instance::new(1, component, factory);
 
         assert_eq!(instance.ports().len(), 2);
@@ -321,13 +325,13 @@ mod tests {
             Location::new(50, 100),
             AttributeSet::new(),
         ));
-        
+
         let instance = Instance::new(1, component, factory);
 
         let port0_loc = instance.get_port_location(0).unwrap();
         let port1_loc = instance.get_port_location(1).unwrap();
 
-        assert_eq!(port0_loc, Location::new(50, 90));  // 50 + 0, 100 + (-10)
+        assert_eq!(port0_loc, Location::new(50, 90)); // 50 + 0, 100 + (-10)
         assert_eq!(port1_loc, Location::new(50, 110)); // 50 + 0, 100 + 10
     }
 
@@ -338,7 +342,7 @@ mod tests {
             Location::new(0, 0),
             AttributeSet::new(),
         ));
-        
+
         let instance = Arc::new(Instance::new(1, component, factory));
         let weak_ref = Instance::downgrade(&instance);
 
@@ -362,7 +366,7 @@ mod tests {
             Location::new(10, 10),
             AttributeSet::new(),
         ));
-        
+
         let instance1 = Instance::new(1, component1.clone(), factory.clone());
         let instance2 = Instance::new(1, component2, factory.clone());
         let instance3 = Instance::new(2, component1, factory);

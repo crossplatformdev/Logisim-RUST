@@ -12,11 +12,11 @@
 //! This module provides a concrete implementation of the InstanceState trait
 //! for use during simulation. This is equivalent to Java's `InstanceStateImpl` class.
 
-use crate::data::{AttributeSet};
-use crate::{Value};
+use crate::data::AttributeSet;
 use crate::instance::{Instance, InstanceData, InstanceFactory, InstanceState, Port};
 use crate::netlist::NetId;
 use crate::signal::Timestamp;
+use crate::Value;
 use std::collections::HashMap;
 
 /// Concrete implementation of InstanceState for simulation contexts.
@@ -49,7 +49,7 @@ impl InstanceStateImpl {
             timestamp: Timestamp::new(0),
             tick_count: 0,
             is_root: true,
-        }   
+        }
     }
 
     /// Updates the port value cache from simulation.
@@ -73,7 +73,10 @@ impl InstanceState for InstanceStateImpl {
         self.instance.attribute_set()
     }
 
-    fn get_attribute_value_erased(&self, attr: &dyn std::any::Any) -> Option<Box<dyn std::any::Any>> {
+    fn get_attribute_value_erased(
+        &self,
+        attr: &dyn std::any::Any,
+    ) -> Option<Box<dyn std::any::Any>> {
         // In a full implementation, this would handle the type erasure properly
         // For now, return None as a placeholder
         let _ = attr;
@@ -97,11 +100,17 @@ impl InstanceState for InstanceStateImpl {
     }
 
     fn get_port_index(&self, port: &Port) -> Option<usize> {
-        self.instance.ports().iter().position(|p| std::ptr::eq(p, port))
+        self.instance
+            .ports()
+            .iter()
+            .position(|p| std::ptr::eq(p, port))
     }
 
     fn get_port_value(&self, port_index: usize) -> Value {
-        self.port_values.get(&port_index).copied().unwrap_or(Value::Unknown)
+        self.port_values
+            .get(&port_index)
+            .copied()
+            .unwrap_or(Value::Unknown)
     }
 
     fn get_port_net(&self, _port_index: usize) -> Option<NetId> {
@@ -150,13 +159,23 @@ impl InstanceState for InstanceStateImpl {
 
     fn is_input_port(&self, port_index: usize) -> bool {
         self.get_port(port_index)
-            .map(|p| matches!(p.port_type(), crate::instance::PortType::Input | crate::instance::PortType::InOut))
+            .map(|p| {
+                matches!(
+                    p.port_type(),
+                    crate::instance::PortType::Input | crate::instance::PortType::InOut
+                )
+            })
             .unwrap_or(false)
     }
 
     fn is_output_port(&self, port_index: usize) -> bool {
         self.get_port(port_index)
-            .map(|p| matches!(p.port_type(), crate::instance::PortType::Output | crate::instance::PortType::InOut))
+            .map(|p| {
+                matches!(
+                    p.port_type(),
+                    crate::instance::PortType::Output | crate::instance::PortType::InOut
+                )
+            })
             .unwrap_or(false)
     }
 }

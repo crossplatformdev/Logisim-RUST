@@ -8,7 +8,7 @@ use crate::hdl::content::HdlContent;
 use crate::hdl::model::HdlModel;
 
 /// HDL content attribute value
-/// 
+///
 /// Wrapper for HDL content that implements AttributeValue.
 #[derive(Debug, Clone)]
 pub struct HdlContentValue {
@@ -19,7 +19,7 @@ pub struct HdlContentValue {
 impl HdlContentValue {
     /// Create new HDL content value
     pub fn new(content: Box<dyn HdlModel>) -> Self {
-        Self { 
+        Self {
             content_name: content.get_name().to_string(),
             content_text: content.get_content().to_string(),
         }
@@ -60,30 +60,24 @@ impl AttributeValue for HdlContentValue {
 }
 
 /// HDL content attribute factory
-/// 
+///
 /// Factory for creating HDL-specific attributes.
 pub struct HdlContentAttribute;
 
 impl HdlContentAttribute {
     /// Create VHDL content attribute
     pub fn create_vhdl_content_attribute() -> Attribute<HdlContentValue> {
-        Attribute::new_with_display(
-            "vhdl_content".to_string(),
-            "VHDL Content".to_string(),
-        )
+        Attribute::new_with_display("vhdl_content".to_string(), "VHDL Content".to_string())
     }
 
     /// Create BLIF content attribute
     pub fn create_blif_content_attribute() -> Attribute<HdlContentValue> {
-        Attribute::new_with_display(
-            "blif_content".to_string(),
-            "BLIF Content".to_string(),
-        )
+        Attribute::new_with_display("blif_content".to_string(), "BLIF Content".to_string())
     }
 }
 
 /// VHDL entity attributes wrapper
-/// 
+///
 /// Wrapper around AttributeSet with VHDL-specific convenience methods.
 /// Equivalent to Java VhdlEntityAttributes.
 #[derive(Debug)]
@@ -102,7 +96,9 @@ impl VhdlEntityAttributes {
 
         // Set default content
         let default_content = HdlContentValue::new(Box::new(HdlContent::new("entity".to_string())));
-        let _ = attributes.attribute_set.set_value(&attributes.content_attr, default_content);
+        let _ = attributes
+            .attribute_set
+            .set_value(&attributes.content_attr, default_content);
 
         attributes
     }
@@ -135,7 +131,7 @@ impl Default for VhdlEntityAttributes {
 }
 
 /// BLIF circuit attributes wrapper
-/// 
+///
 /// Wrapper around AttributeSet with BLIF-specific convenience methods.
 /// Equivalent to Java BlifCircuitAttributes.
 #[derive(Debug)]
@@ -153,8 +149,11 @@ impl BlifCircuitAttributes {
         };
 
         // Set default content
-        let default_content = HdlContentValue::new(Box::new(HdlContent::new("circuit".to_string())));
-        let _ = attributes.attribute_set.set_value(&attributes.content_attr, default_content);
+        let default_content =
+            HdlContentValue::new(Box::new(HdlContent::new("circuit".to_string())));
+        let _ = attributes
+            .attribute_set
+            .set_value(&attributes.content_attr, default_content);
 
         attributes
     }
@@ -187,7 +186,7 @@ impl Default for BlifCircuitAttributes {
 }
 
 /// Generic interface component attributes wrapper
-/// 
+///
 /// Base attributes for generic HDL interface components.
 /// Equivalent to Java GenericInterfaceComponent attributes.
 #[derive(Debug)]
@@ -207,7 +206,9 @@ impl GenericInterfaceAttributes {
             ),
         };
 
-        let _ = attributes.attribute_set.set_value(&attributes.interface_type_attr, interface_type);
+        let _ = attributes
+            .attribute_set
+            .set_value(&attributes.interface_type_attr, interface_type);
         attributes
     }
 
@@ -218,7 +219,8 @@ impl GenericInterfaceAttributes {
 
     /// Set the interface type
     pub fn set_interface_type(&mut self, interface_type: String) -> Result<(), String> {
-        self.attribute_set.set_value(&self.interface_type_attr, interface_type)
+        self.attribute_set
+            .set_value(&self.interface_type_attr, interface_type)
     }
 
     /// Get the underlying attribute set
@@ -233,46 +235,34 @@ impl GenericInterfaceAttributes {
 }
 
 /// HDL attribute factory
-/// 
+///
 /// Factory for creating HDL-specific attributes.
 pub struct HdlAttributeFactory;
 
 impl HdlAttributeFactory {
     /// Create entity name attribute
     pub fn create_entity_name_attribute() -> Attribute<String> {
-        Attribute::new_with_display(
-            "entity_name".to_string(),
-            "Entity Name".to_string(),
-        )
+        Attribute::new_with_display("entity_name".to_string(), "Entity Name".to_string())
     }
 
     /// Create model name attribute
     pub fn create_model_name_attribute() -> Attribute<String> {
-        Attribute::new_with_display(
-            "model_name".to_string(),
-            "Model Name".to_string(),
-        )
+        Attribute::new_with_display("model_name".to_string(), "Model Name".to_string())
     }
 
     /// Create architecture name attribute
     pub fn create_architecture_attribute() -> Attribute<String> {
-        Attribute::new_with_display(
-            "architecture".to_string(),
-            "Architecture".to_string(),
-        )
+        Attribute::new_with_display("architecture".to_string(), "Architecture".to_string())
     }
 
     /// Create libraries attribute
     pub fn create_libraries_attribute() -> Attribute<String> {
-        Attribute::new_with_display(
-            "libraries".to_string(),
-            "Libraries".to_string(),
-        )
+        Attribute::new_with_display("libraries".to_string(), "Libraries".to_string())
     }
 }
 
 /// HDL attribute constants
-/// 
+///
 /// Common HDL attribute names and values.
 pub struct HdlAttributeConstants;
 
@@ -285,12 +275,12 @@ impl HdlAttributeConstants {
     pub const LIBRARIES_ATTR: &'static str = "libraries";
     pub const INPUTS_ATTR: &'static str = "inputs";
     pub const OUTPUTS_ATTR: &'static str = "outputs";
-    
+
     // Default values
     pub const DEFAULT_ENTITY_NAME: &'static str = "entity_name";
     pub const DEFAULT_MODEL_NAME: &'static str = "circuit";
     pub const DEFAULT_ARCHITECTURE: &'static str = "Behavioral";
-    
+
     // HDL types
     pub const VHDL_TYPE: &'static str = "VHDL";
     pub const BLIF_TYPE: &'static str = "BLIF";
@@ -305,9 +295,9 @@ mod tests {
     fn test_hdl_content_value() {
         let content = HdlContent::new("test".to_string());
         let mut value = HdlContentValue::new(Box::new(content));
-        
+
         assert_eq!(value.get_content_name(), "test");
-        
+
         let new_content = HdlContent::new("new_test".to_string());
         value.set_content(Box::new(new_content));
         assert_eq!(value.get_content_name(), "new_test");
@@ -318,10 +308,10 @@ mod tests {
         let mut content = HdlContent::new("test".to_string());
         content.set_content("entity test is end;".to_string());
         let value = HdlContentValue::new(Box::new(content));
-        
+
         let serialized = value.to_standard_string();
         assert_eq!(serialized, "entity test is end;");
-        
+
         let parsed = HdlContentValue::parse_from_string(&serialized).unwrap();
         assert_eq!(parsed.get_content_text(), "entity test is end;");
     }
@@ -329,35 +319,42 @@ mod tests {
     #[test]
     fn test_vhdl_entity_attributes() {
         let mut attrs = VhdlEntityAttributes::new();
-        
+
         // Test content access
         assert!(attrs.get_content().is_some());
         assert_eq!(attrs.get_content().unwrap().get_content_name(), "entity");
-        
+
         // Test content setting
         let new_content = HdlContentValue::new(Box::new(HdlContent::new("new_entity".to_string())));
         assert!(attrs.set_content(new_content).is_ok());
-        assert_eq!(attrs.get_content().unwrap().get_content_name(), "new_entity");
+        assert_eq!(
+            attrs.get_content().unwrap().get_content_name(),
+            "new_entity"
+        );
     }
 
     #[test]
     fn test_blif_circuit_attributes() {
         let mut attrs = BlifCircuitAttributes::new();
-        
+
         assert!(attrs.get_content().is_some());
         assert_eq!(attrs.get_content().unwrap().get_content_name(), "circuit");
-        
-        let new_content = HdlContentValue::new(Box::new(HdlContent::new("new_circuit".to_string())));
+
+        let new_content =
+            HdlContentValue::new(Box::new(HdlContent::new("new_circuit".to_string())));
         assert!(attrs.set_content(new_content).is_ok());
-        assert_eq!(attrs.get_content().unwrap().get_content_name(), "new_circuit");
+        assert_eq!(
+            attrs.get_content().unwrap().get_content_name(),
+            "new_circuit"
+        );
     }
 
     #[test]
     fn test_generic_interface_attributes() {
         let mut attrs = GenericInterfaceAttributes::new("VHDL".to_string());
-        
+
         assert_eq!(attrs.get_interface_type(), Some(&"VHDL".to_string()));
-        
+
         assert!(attrs.set_interface_type("BLIF".to_string()).is_ok());
         assert_eq!(attrs.get_interface_type(), Some(&"BLIF".to_string()));
     }
@@ -367,7 +364,7 @@ mod tests {
         let entity_attr = HdlAttributeFactory::create_entity_name_attribute();
         assert_eq!(entity_attr.get_name(), "entity_name");
         assert_eq!(entity_attr.get_display_name(), "Entity Name");
-        
+
         let model_attr = HdlAttributeFactory::create_model_name_attribute();
         assert_eq!(model_attr.get_name(), "model_name");
         assert_eq!(model_attr.get_display_name(), "Model Name");

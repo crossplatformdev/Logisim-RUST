@@ -21,7 +21,7 @@ pub struct MouseCoords {
 }
 
 /// Counter poker for handling user interaction with Gray counters.
-/// 
+///
 /// This handles mouse clicks and keyboard events to allow the user to
 /// directly modify the counter value using the Poke Tool.
 /// This is equivalent to Java's CounterPoker class.
@@ -95,7 +95,7 @@ mod tests {
     fn test_set_initial_value() {
         let mut poker = CounterPoker::new();
         poker.set_initial_value(42);
-        
+
         assert!(poker.is_editing());
         assert_eq!(poker.get_current_value(), Some(42));
     }
@@ -105,7 +105,7 @@ mod tests {
         let mut poker = CounterPoker::new();
         poker.set_initial_value(42);
         assert!(poker.is_editing());
-        
+
         poker.cancel_edit();
         assert!(!poker.is_editing());
         assert_eq!(poker.get_current_value(), None);
@@ -115,7 +115,7 @@ mod tests {
     fn test_mouse_events() {
         let mut poker = CounterPoker::new();
         let coords = MouseCoords { x: 10, y: 20 };
-        
+
         // Should not panic
         poker.mouse_pressed(coords);
         poker.mouse_released(coords);
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn test_key_events() {
         let mut poker = CounterPoker::new();
-        
+
         // Should not panic
         poker.key_pressed(65); // 'A' key
     }

@@ -5,7 +5,7 @@
  * https://github.com/logisim-evolution/
  *
  * This is free software released under GNU GPLv3 license
- * 
+ *
  * Ported to Rust by the Logisim-RUST project
  * https://github.com/crossplatformdev/Logisim-RUST
  */
@@ -17,10 +17,10 @@
 //! provides visual feedback during wire placement.
 
 use crate::{
-    component::{ComponentId},
-    data::{Location},
+    component::ComponentId,
+    data::Location,
     tools::{
-        tool::{Tool, Canvas, ComponentDrawContext, MouseEvent, KeyEvent, CursorType, MouseButton},
+        tool::{Canvas, ComponentDrawContext, CursorType, KeyEvent, MouseButton, MouseEvent, Tool},
         ToolResult,
     },
 };
@@ -70,16 +70,16 @@ impl WireSegment {
             width: 1, // Default to single bit
         }
     }
-    
+
     /// Update the end location, respecting direction constraints
     fn update_end(&mut self, new_end: Location) -> bool {
         // Check if location actually changed
         if self.end == new_end {
             return false;
         }
-        
+
         let old_end = self.end;
-        
+
         // Determine or maintain direction constraint
         match self.direction {
             WireDirection::None => {
@@ -93,11 +93,11 @@ impl WireSegment {
                 } else {
                     self.end = new_end;
                 }
-            },
+            }
             WireDirection::Horizontal => {
                 // Keep y coordinate from start
                 self.end = Location::new(new_end.x, self.start.y);
-                
+
                 // Check if we should switch to vertical
                 if new_end.x == self.start.x {
                     if new_end.y == self.start.y {
@@ -107,11 +107,11 @@ impl WireSegment {
                         self.end = Location::new(self.start.x, new_end.y);
                     }
                 }
-            },
+            }
             WireDirection::Vertical => {
                 // Keep x coordinate from start
                 self.end = Location::new(self.start.x, new_end.y);
-                
+
                 // Check if we should switch to horizontal
                 if new_end.y == self.start.y {
                     if new_end.x == self.start.x {
@@ -123,27 +123,27 @@ impl WireSegment {
                 }
             }
         }
-        
+
         old_end != self.end
     }
-    
+
     /// Get the length of this wire segment
     fn length(&self) -> i32 {
         let dx = (self.end.x - self.start.x).abs();
         let dy = (self.end.y - self.start.y).abs();
         dx + dy
     }
-    
+
     /// Check if this is a valid wire (has non-zero length)
     fn is_valid(&self) -> bool {
         self.start != self.end
     }
-    
+
     /// Check if this wire is horizontal
     fn is_horizontal(&self) -> bool {
         self.start.y == self.end.y
     }
-    
+
     /// Check if this wire is vertical
     fn is_vertical(&self) -> bool {
         self.start.x == self.end.x
@@ -151,7 +151,7 @@ impl WireSegment {
 }
 
 /// Tool for creating wire connections between components
-/// 
+///
 /// This tool allows users to create electrical connections by:
 /// - Clicking to start a wire
 /// - Moving the mouse to position the wire
@@ -160,16 +160,16 @@ impl WireSegment {
 pub struct WiringTool {
     /// Current state of the tool
     state: WiringState,
-    
+
     /// Wire segment currently being placed
     current_wire: Option<WireSegment>,
-    
+
     /// Whether the mouse is currently in the canvas
     in_canvas: bool,
-    
+
     /// Whether the user has dragged since starting the wire
     has_dragged: bool,
-    
+
     /// Current mouse location for feedback
     current_location: Location,
 }
@@ -177,10 +177,10 @@ pub struct WiringTool {
 impl WiringTool {
     /// Unique identifier for the WiringTool
     pub const ID: &'static str = "Wiring Tool";
-    
+
     /// Minimum wire length for repair operations
     const MIN_REPAIR_LENGTH: i32 = 10;
-    
+
     /// Create a new WiringTool
     pub fn new() -> Self {
         Self {
@@ -191,26 +191,26 @@ impl WiringTool {
             current_location: Location::new(0, 0),
         }
     }
-    
+
     /// Find connection points at the given location
     fn find_connection_points(&self, canvas: &dyn Canvas, location: Location) -> Vec<Location> {
         let mut points = Vec::new();
-        
+
         if let Some(project) = canvas.get_project() {
             if let Some(circuit) = project.get_current_circuit() {
                 // Find component pins at this location
                 for component in circuit.get_all_components() {
                     // TODO: Check component pins and add connection points
                 }
-                
+
                 // Find existing wire endpoints
                 // TODO: Check existing wires for connection points
             }
         }
-        
+
         points
     }
-    
+
     /// Check if a location is valid for starting or ending a wire
     fn is_valid_connection_point(&self, canvas: &dyn Canvas, location: Location) -> bool {
         // TODO: Implement proper connection point validation
@@ -219,21 +219,21 @@ impl WiringTool {
         // - Check for grid alignment if required
         true
     }
-    
+
     /// Start placing a new wire
     fn start_wire_placement(&mut self, canvas: &dyn Canvas, location: Location) -> ToolResult<()> {
         if !self.is_valid_connection_point(canvas, location) {
             return Ok(()); // Cannot start wire here
         }
-        
+
         self.state = WiringState::Placing;
         self.current_wire = Some(WireSegment::new(location));
         self.has_dragged = false;
-        
+
         canvas.repaint();
         Ok(())
     }
-    
+
     /// Update wire placement during mouse movement
     fn update_wire_placement(&mut self, canvas: &dyn Canvas, location: Location) -> ToolResult<()> {
         if let Some(ref mut wire) = self.current_wire {
@@ -244,7 +244,7 @@ impl WiringTool {
         }
         Ok(())
     }
-    
+
     /// Complete wire placement
     fn complete_wire_placement(&mut self, canvas: &dyn Canvas) -> ToolResult<()> {
         if let Some(wire) = self.current_wire.take() {
@@ -254,21 +254,21 @@ impl WiringTool {
                 // 1. Creating a Wire component
                 // 2. Adding it to the circuit
                 // 3. Creating an action for undo/redo
-                
+
                 if let Some(project) = canvas.get_project() {
                     // TODO: project.do_action(Box::new(AddWireAction::new(wire)));
                 }
             }
         }
-        
+
         self.state = WiringState::Idle;
         self.current_wire = None;
         self.has_dragged = false;
-        
+
         canvas.repaint();
         Ok(())
     }
-    
+
     /// Cancel current wire placement
     fn cancel_wire_placement(&mut self, canvas: &dyn Canvas) {
         self.state = WiringState::Idle;
@@ -276,7 +276,7 @@ impl WiringTool {
         self.has_dragged = false;
         canvas.repaint();
     }
-    
+
     /// Check for wire repair opportunities
     fn check_wire_repair(&self, canvas: &dyn Canvas, location: Location) -> Option<WireRepairInfo> {
         // TODO: Implement wire repair detection
@@ -284,7 +284,7 @@ impl WiringTool {
         // to better connect to components
         None
     }
-    
+
     /// Snap location to grid if enabled
     fn snap_to_grid(&self, location: Location) -> Location {
         // TODO: Implement grid snapping based on preferences
@@ -297,23 +297,23 @@ impl Tool for WiringTool {
     fn clone_tool(&self) -> Box<dyn Tool> {
         Box::new(WiringTool::new())
     }
-    
+
     fn get_cursor(&self) -> CursorType {
         CursorType::Crosshair
     }
-    
+
     fn get_description(&self) -> String {
         "Create wire connections between components".to_string()
     }
-    
+
     fn get_display_name(&self) -> String {
         "Wiring Tool".to_string()
     }
-    
+
     fn get_name(&self) -> String {
         Self::ID.to_string()
     }
-    
+
     fn draw(&self, canvas: &dyn Canvas, context: &ComponentDrawContext) {
         if let Some(ref wire) = self.current_wire {
             if wire.is_valid() {
@@ -322,73 +322,73 @@ impl Tool for WiringTool {
                 // with appropriate styling (color, thickness, etc.)
             }
         }
-        
+
         // TODO: Draw connection point indicators
         // Show where valid connection points are available
     }
-    
+
     fn mouse_pressed(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
         match event.button {
             MouseButton::Left => {
                 let location = self.snap_to_grid(event.location);
-                
+
                 match self.state {
                     WiringState::Idle => {
                         // Start new wire
                         if let Err(e) = self.start_wire_placement(canvas, location) {
                             eprintln!("Error starting wire placement: {}", e);
                         }
-                    },
+                    }
                     WiringState::Placing => {
                         // Complete current wire
                         if let Err(e) = self.complete_wire_placement(canvas) {
                             eprintln!("Error completing wire placement: {}", e);
                         }
-                    },
+                    }
                     WiringState::Repairing => {
                         // TODO: Handle wire repair completion
                     }
                 }
-            },
+            }
             MouseButton::Right => {
                 // Cancel current operation
                 if self.state != WiringState::Idle {
                     self.cancel_wire_placement(canvas);
                 }
-            },
+            }
             _ => {
                 // Ignore other buttons
             }
         }
     }
-    
+
     fn mouse_moved(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
         let location = self.snap_to_grid(event.location);
         self.current_location = location;
-        
+
         match self.state {
             WiringState::Placing => {
                 if let Err(e) = self.update_wire_placement(canvas, location) {
                     eprintln!("Error updating wire placement: {}", e);
                 }
-            },
+            }
             _ => {
                 // Just update cursor feedback
                 canvas.repaint();
             }
         }
     }
-    
+
     fn mouse_dragged(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
         self.has_dragged = true;
         self.mouse_moved(canvas, event);
     }
-    
+
     fn mouse_entered(&mut self, canvas: &dyn Canvas, event: &MouseEvent) {
         self.in_canvas = true;
         self.current_location = event.location;
     }
-    
+
     fn mouse_exited(&mut self, canvas: &dyn Canvas, _event: &MouseEvent) {
         self.in_canvas = false;
         // Cancel wire placement when leaving canvas
@@ -396,21 +396,21 @@ impl Tool for WiringTool {
             self.cancel_wire_placement(canvas);
         }
     }
-    
+
     fn key_pressed(&mut self, canvas: &dyn Canvas, event: &KeyEvent) {
         // TODO: Handle keyboard shortcuts
         // - Escape to cancel current wire
         // - Shift to constrain direction
         // - Tab to cycle through connection points
     }
-    
+
     fn deselect(&mut self, canvas: &dyn Canvas) {
         // Cancel any in-progress wire placement
         if self.state != WiringState::Idle {
             self.cancel_wire_placement(canvas);
         }
     }
-    
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -460,7 +460,7 @@ mod tests {
     fn test_wire_segment_creation() {
         let start = Location::new(10, 20);
         let segment = WireSegment::new(start);
-        
+
         assert_eq!(segment.start, start);
         assert_eq!(segment.end, start);
         assert_eq!(segment.direction, WireDirection::None);
@@ -472,7 +472,7 @@ mod tests {
     fn test_wire_segment_direction_detection() {
         let start = Location::new(10, 20);
         let mut segment = WireSegment::new(start);
-        
+
         // First horizontal movement
         segment.update_end(Location::new(30, 20));
         assert_eq!(segment.direction, WireDirection::Horizontal);
@@ -480,7 +480,7 @@ mod tests {
         assert!(!segment.is_vertical());
         assert!(segment.is_valid());
         assert_eq!(segment.length(), 20);
-        
+
         // Switch to vertical
         segment.update_end(Location::new(10, 40));
         assert_eq!(segment.direction, WireDirection::Vertical);
@@ -492,7 +492,7 @@ mod tests {
     #[test]
     fn test_wiring_tool_creation() {
         let tool = WiringTool::new();
-        
+
         assert_eq!(tool.get_name(), WiringTool::ID);
         assert_eq!(tool.get_display_name(), "Wiring Tool");
         assert_eq!(tool.state, WiringState::Idle);
@@ -504,7 +504,7 @@ mod tests {
     fn test_snap_to_grid() {
         let tool = WiringTool::new();
         let location = Location::new(15, 27);
-        
+
         // Currently just returns the same location
         let snapped = tool.snap_to_grid(location);
         assert_eq!(snapped, location);
