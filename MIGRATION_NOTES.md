@@ -271,4 +271,288 @@ All integration stubs follow this pattern:
 3. **WebAssembly Support**: Future capability not in Java version
 4. **Type Safety**: Stricter component interfaces than Java
 
-This migration represents a complete rewrite prioritizing correctness, performance, and maintainability over short-term compatibility.
+## Extensibility and Pluggability
+
+### 🟡 PARTIALLY IMPLEMENTED - UNSTABLE APIs
+
+The Rust implementation introduces a comprehensive extensibility framework that goes beyond the Java implementation's plugin capabilities. This system is designed to be more type-safe and performant than Java's reflection-based approach.
+
+**⚠️ API Stability Warning**: All extensibility APIs are currently **UNSTABLE** and subject to breaking changes. Plugin developers should expect API changes and plan for migration.
+
+#### Observer Pattern Implementation
+
+**Status**: ✅ **IMPLEMENTED** but **UNSTABLE**
+**Effort**: Medium (4-6 weeks of development)
+
+The Rust implementation provides a comprehensive observer pattern that allows external code to monitor:
+- Simulation events (start, stop, step, clock ticks)
+- Component state changes (creation, removal, signal changes)
+- System events (plugin loading, initialization)
+
+**Java Approach**: Limited to specific listener interfaces
+```java
+simulator.addSimulatorListener(new StatusListener() {
+    public void simulatorReset(Event e) { /* handle reset */ }
+    public void propagationCompleted(Event e) { /* handle completion */ }
+});
+```
+
+**Rust Approach**: Comprehensive observer traits with type safety
+```rust
+impl SimulationObserver for MyObserver {
+    fn on_simulation_event(&mut self, event: &SimulationEvent) -> ObserverResult<()> {
+        match event {
+            SimulationEvent::Started { timestamp } => { /* handle start */ }
+            SimulationEvent::StepCompleted { timestamp } => { /* handle step */ }
+            // Type-safe event handling
+        }
+        Ok(())
+    }
+}
+```
+
+**Benefits of Rust Approach**:
+- Type-safe event handling
+- Performance optimization through interest filtering
+- Comprehensive event coverage
+- Thread-safe by design
+
+#### Dynamic Component Registration
+
+**Status**: ✅ **IMPLEMENTED** but **UNSTABLE**  
+**Effort**: High (6-8 weeks of development)
+
+**Java Approach**: Reflection-based component loading
+```java
+Class<?> compClass = Class.forName(className);
+ComponentFactory factory = (ComponentFactory) compClass.newInstance();
+Component comp = factory.createComponent();
+```
+
+**Rust Approach**: Type-safe factory pattern with runtime registration
+```rust
+impl DynamicComponentFactory for MyFactory {
+    fn create_component(&self, id: ComponentId) -> PluginResult<Box<dyn Component>> {
+        Ok(Box::new(MyCustomComponent::new(id)))
+    }
+}
+
+// Register with component registry
+plugin_manager.register_component_factory(Box::new(MyFactory), "my_plugin")?;
+```
+
+**Benefits of Rust Approach**:
+- Compile-time type checking
+- No runtime reflection overhead
+- Memory-safe component creation
+- Integrated parameter validation
+
+#### Plugin System Architecture
+
+**Status**: 🟡 **BASIC FRAMEWORK** - Core interfaces implemented, loading mechanisms stubbed
+**Effort**: Very High (12-16 weeks for full implementation)
+
+**Java Implementation**: JAR-based with dynamic class loading
+- Plugin JARs added to classpath
+- Reflection-based component discovery
+- Runtime class instantiation
+- Limited sandboxing capabilities
+
+**Rust Implementation**: Multi-target plugin support
+- Native dynamic libraries (.dll/.so/.dylib)
+- WebAssembly modules (planned)
+- Rust crate-based plugins (current)
+- Type-safe plugin interfaces
+
+```rust
+pub trait PluginLibrary: Send + Sync {
+    fn info(&self) -> &PluginInfo;
+    fn components(&self) -> Vec<ComponentInfo>;
+    fn create_component(&self, component_type: &str, id: ComponentId) -> PluginResult<Box<dyn Component>>;
+    fn initialize(&mut self) -> PluginResult<()>;
+    fn cleanup(&mut self) -> PluginResult<()>;
+    
+    // Enhanced capabilities
+    fn api_version(&self) -> u32;
+    fn capabilities(&self) -> PluginCapabilities;
+    fn validate_config(&self, config: &PluginConfig) -> PluginResult<()>;
+}
+```
+
+#### API Compatibility and Migration
+
+**Version Management**:
+```rust
+pub const API_VERSION: u32 = 1;
+
+// Plugins must specify compatible API version
+impl PluginLibrary for MyPlugin {
+    fn api_version(&self) -> u32 { API_VERSION }
+}
+```
+
+**Feature Detection**:
+```rust
+// Check if features are available at runtime
+if logisim_core::is_feature_enabled("observers") {
+    // Use observer functionality
+}
+
+let capabilities = plugin_manager.get_system_capabilities();
+if capabilities.observer_support {
+    // Register observers
+}
+```
+
+#### Migration Path from Java Plugins
+
+**Step 1: Component Interface Migration**
+```java
+// Java component (old)
+public class MyGate extends InstanceFactory {
+    @Override
+    public void paintInstance(InstancePainter painter) { /* paint */ }
+    @Override  
+    public void propagate(InstanceState state) { /* logic */ }
+}
+```
+
+```rust
+// Rust component (new)
+pub struct MyGate {
+    id: ComponentId,
+    pins: HashMap<String, Pin>,
+}
+
+impl Component for MyGate {
+    fn update(&mut self, current_time: Timestamp) -> UpdateResult { /* logic */ }
+    fn pins(&self) -> &HashMap<String, Pin> { &self.pins }
+    // Type-safe, memory-safe implementation
+}
+```
+
+**Step 2: Plugin Structure Migration**
+```java
+// Java plugin manifest (plugin.xml)
+<plugin name="MyPlugin" version="1.0">
+    <component class="com.example.MyGate" name="My Gate"/>
+</plugin>
+```
+
+```rust
+// Rust plugin (Cargo.toml + code)
+[package.metadata.plugin]
+name = "My Plugin"
+api_version = 1
+
+impl PluginLibrary for MyPlugin {
+    fn components(&self) -> Vec<ComponentInfo> {
+        vec![ComponentInfo {
+            name: "My Gate".to_string(),
+            category: "Custom Logic".to_string(),
+            // ...
+        }]
+    }
+}
+```
+
+#### Extensibility Advantages in Rust
+
+**Memory Safety**:
+- No null pointer exceptions from plugin code
+- Guaranteed memory safety through ownership system
+- Thread-safe plugin interfaces by design
+
+**Performance**:
+- Zero-cost abstractions for plugin interfaces
+- No reflection overhead
+- Optimized observer pattern with interest filtering
+
+**Type Safety**:
+- Compile-time verification of plugin interfaces
+- Type-safe event handling and component interactions
+- Parameter validation at compile and runtime
+
+**Resource Management**:
+- Automatic cleanup through RAII
+- Configurable resource limits for plugins  
+- Deterministic memory management
+
+#### Current Limitations
+
+**Plugin Loading**: Dynamic library loading not fully implemented
+- Workaround: Compile plugins as part of main binary
+- Timeline: Q2 2024 for dynamic loading
+
+**Hot Reloading**: Not supported in current version
+- Java version: Limited hot-reload via reflection
+- Rust challenges: Ownership and type system constraints
+- Timeline: Q4 2024 for experimental support
+
+**Sandboxing**: No current isolation mechanisms
+- Java: Limited via SecurityManager
+- Rust: Process-level isolation planned
+- Timeline: v2.0 for sandbox implementation
+
+**WebAssembly Support**: Planned but not implemented
+- Would provide better sandboxing than native plugins
+- Cross-platform plugin compatibility
+- Timeline: v1.5 for WASM plugin support
+
+#### Example Plugin Implementation
+
+See `examples/stub_plugin/` for a complete working example that demonstrates:
+- Custom component implementation (`CustomXOR`, `CustomCounter`)
+- Observer pattern usage (`PluginEventLogger`, `ComponentStateTracker`)
+- Dynamic component factories with parameter validation
+- Plugin lifecycle management (initialization, cleanup)
+- Configuration and resource management
+
+#### Testing and Development Tools
+
+**Plugin Development**:
+```rust
+// Cargo.toml for plugin
+[package]
+name = "my_plugin"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+logisim_core = { path = "../logisim_core" }
+```
+
+**Testing Framework**:
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_plugin_component_creation() {
+        let plugin = MyPlugin::new();
+        let component = plugin.create_component("MyGate", ComponentId::new(1));
+        assert!(component.is_ok());
+    }
+}
+```
+
+#### Migration Timeline
+
+**Phase 1 (Current)**: Basic extensibility framework
+- ✅ Observer pattern implemented
+- ✅ Component registry implemented  
+- ✅ Plugin interface definitions
+- ✅ Example plugin provided
+
+**Phase 2 (Q2 2024)**: Dynamic loading
+- Dynamic library loading
+- Plugin discovery and validation
+- Hot-reload experimental support
+
+**Phase 3 (Q3 2024)**: Advanced features
+- WebAssembly plugin support
+- Enhanced sandboxing
+- Plugin marketplace integration
+
+**Phase 4 (Q4 2024)**: Java compatibility tools
+- Java plugin conversion utilities
+- Migration guides and tools
+- Compatibility layer for common patterns

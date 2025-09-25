@@ -61,6 +61,7 @@ pub mod hdl;
 pub mod instance;
 pub mod integrations;
 pub mod netlist;
+pub mod observers;  // Observer pattern for extensibility
 pub mod prefs;
 pub mod signal;
 pub mod simulation;
@@ -100,6 +101,20 @@ pub use instance::{
     PortWidth,
 };
 pub use integrations::{FpgaError, PluginError, TclError, VhdlError};
+pub use integrations::plugins::{
+    PluginManager, PluginLibrary, ComponentInfo, PluginInfo, PluginResult,
+    // Mark these as unstable API
+    DynamicComponentFactory, ComponentRegistry, ComponentMetadata, 
+    PluginCapabilities, PluginConfig, ResourceLimits,
+};
+pub use observers::{
+    SimulationObserver, ComponentObserver, SystemObserver,
+    SimulationEvent, ComponentEvent,
+    SimulationObserverManager, ComponentObserverManager, SystemObserverManager,
+    ObserverId, ObserverError, ObserverResult,
+    // Mark this as unstable API
+    LoggingObserver,
+};
 pub use netlist::{NetId, Netlist, NodeId};
 pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};

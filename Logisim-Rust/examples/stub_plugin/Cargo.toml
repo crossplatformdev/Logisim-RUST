@@ -1,0 +1,64 @@
+[package]
+name = "stub_plugin"
+version = "0.1.0"
+edition = "2021"
+description = "Example plugin demonstrating Logisim-RUST extensibility features"
+authors = ["Logisim-RUST Contributors"]
+license = "MIT"
+
+# This is an example plugin - NOT intended for production use
+# APIs used here are UNSTABLE and may change without notice
+
+[lib]
+name = "stub_plugin" 
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+logisim_core = { path = "../../logisim_core" }
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0"
+
+[dev-dependencies]
+env_logger = "0.10"
+
+[package.metadata.plugin]
+# Plugin metadata for Logisim-RUST plugin system
+api_version = 1
+name = "Stub Plugin"
+description = "Example plugin demonstrating extensibility features"  
+author = "Logisim-RUST Contributors"
+version = "0.1.0"
+homepage = "https://github.com/crossplatformdev/Logisim-RUST"
+
+# Plugin capabilities
+[package.metadata.plugin.capabilities]
+observer_support = true
+custom_events = true
+custom_rendering = false
+ui_extensions = false
+custom_formats = false
+
+# Component types provided by this plugin
+[[package.metadata.plugin.components]]
+type_name = "CustomXOR"
+display_name = "Custom XOR Gate"
+category = "Custom Logic"
+description = "A custom XOR gate implementation with enhanced features"
+min_inputs = 2
+max_inputs = 2
+min_outputs = 1
+max_outputs = 1
+
+[[package.metadata.plugin.components]]
+type_name = "CustomCounter"
+display_name = "Custom Counter"
+category = "Custom Memory"
+description = "A configurable counter component"
+is_sequential = true
+has_state = true
+supports_clock = true
+min_inputs = 2
+max_inputs = 3
+min_outputs = 1
+max_outputs = 2
