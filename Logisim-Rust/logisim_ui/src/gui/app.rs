@@ -103,10 +103,15 @@ impl eframe::App for LogisimApp {
 /// Launch the Logisim application
 #[cfg(all(feature = "gui", any(target_os = "linux", target_os = "windows", target_os = "macos")))]
 pub fn run_app() -> UiResult<()> {
+    // Initialize logging to help with graphics debugging
+    log::info!("Starting Logisim-RUST with OpenGL renderer for better compatibility");
+    
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1200.0, 800.0])
             .with_min_inner_size([800.0, 600.0]),
+        // Prefer OpenGL (Glow) renderer for better compatibility
+        renderer: eframe::Renderer::Glow,
         // TODO: Add proper icon when IconData is available
         // .with_icon(
         //     eframe::IconData::default(),
@@ -141,6 +146,8 @@ pub fn run_app_with_file(file_path: PathBuf) -> UiResult<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1200.0, 800.0])
             .with_min_inner_size([800.0, 600.0]),
+        // Prefer OpenGL (Glow) renderer for better compatibility
+        renderer: eframe::Renderer::Glow,
         ..Default::default()
     };
 
@@ -176,6 +183,8 @@ pub fn run_app_with_template(template_path: PathBuf) -> UiResult<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1200.0, 800.0])
             .with_min_inner_size([800.0, 600.0]),
+        // Prefer OpenGL (Glow) renderer for better compatibility
+        renderer: eframe::Renderer::Glow,
         ..Default::default()
     };
 
