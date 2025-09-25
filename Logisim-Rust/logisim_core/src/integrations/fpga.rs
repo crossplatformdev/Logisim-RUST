@@ -5,7 +5,7 @@
 //! synthesis tool integration, and bitstream generation. This stub maintains API
 //! compatibility while providing graceful error handling for unsupported operations.
 
-use crate::{Component, ComponentId, Simulation};
+use crate::Simulation;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -307,7 +307,7 @@ pub fn get_tool_version(tool: SynthesisTool) -> Option<String> {
 
 /// Integration point for circuit-to-FPGA conversion
 pub fn synthesize_circuit(
-    simulation: &Simulation,
+    _simulation: &Simulation,
     board_name: String,
     tool: SynthesisTool,
 ) -> FpgaResult<SynthesisResults> {

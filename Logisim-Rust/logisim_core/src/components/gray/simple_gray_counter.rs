@@ -204,7 +204,7 @@ mod tests {
         assert_eq!(sequence[0], 0b0000);
         
         // Should contain all 4-bit values exactly once
-        let mut found = vec![false; 16];
+        let mut found = [false; 16];
         for &value in &sequence {
             assert!((value as usize) < 16, "Value {} out of range", value);
             assert!(!found[value as usize], "Value {} appears multiple times", value);

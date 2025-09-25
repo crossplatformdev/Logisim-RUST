@@ -59,7 +59,8 @@ impl fmt::Display for AttributeId {
 }
 
 /// An attribute definition with metadata
-#[derive(Debug, Clone)]
+#[derive(Clone)]
+#[derive(Debug)]
 pub struct Attribute<T: AttributeValue> {
     id: AttributeId,
     display_name: Option<String>,
@@ -222,6 +223,7 @@ pub struct AttributeEvent {
 }
 
 impl AttributeEvent {
+    #[allow(dead_code)]
     fn new(attribute_id: AttributeId) -> Self {
         Self { attribute_id }
     }

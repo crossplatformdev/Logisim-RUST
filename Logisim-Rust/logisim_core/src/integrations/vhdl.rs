@@ -30,6 +30,7 @@ pub type VhdlResult<T> = Result<T, VhdlError>;
 /// Provides compatibility with Java VHDL generation system.
 /// Currently returns "not implemented" errors but maintains API compatibility.
 pub struct VhdlGenerator {
+    #[allow(dead_code)]
     entity_name: String,
     architecture_name: String,
     components: HashMap<ComponentId, Box<dyn Component>>,
@@ -94,6 +95,7 @@ pub struct TestVector {
 
 /// VHDL simulation interface stub
 pub struct VhdlSimulator {
+    #[allow(dead_code)]
     work_directory: String,
 }
 
@@ -133,11 +135,11 @@ pub struct SimulationResults {
 }
 
 /// Integration point for circuit-to-VHDL conversion
-pub fn generate_circuit_vhdl(simulation: &Simulation, entity_name: String) -> VhdlResult<String> {
+pub fn generate_circuit_vhdl(_simulation: &Simulation, entity_name: String) -> VhdlResult<String> {
     log::info!("Attempting VHDL generation for circuit: {}", entity_name);
 
     // Create generator
-    let mut generator = VhdlGenerator::new(entity_name);
+    let generator = VhdlGenerator::new(entity_name);
 
     // This would iterate through simulation components in full implementation
     // For now, return not implemented error
