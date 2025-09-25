@@ -164,13 +164,13 @@ impl Shifter {
         let shift_width = BusWidth(((width.0 as f64).log2().ceil() as u32).max(1));
         
         if let Some(pin) = self.pins.get_mut("Input") {
-            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("Shift") {
             pin.set_width(shift_width);
         }
         if let Some(pin) = self.pins.get_mut("Output") {
-            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
     }
     
@@ -215,16 +215,16 @@ impl Component for Shifter {
         }
         
         if changed {
-            UpdateResult::changed()
+            UpdateResult::with_outputs(outputs, 1)
         } else {
-            UpdateResult::no_change()
+            UpdateResult::new()
         }
     }
 
     fn reset(&mut self) {
         // Reset all pins to their default states
         for pin in self.pins.values_mut() {
-            pin.reset();
+            pin.signal = Signal::unknown(pin.width);
         }
     }
 }

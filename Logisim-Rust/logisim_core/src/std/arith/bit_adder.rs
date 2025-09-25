@@ -131,16 +131,16 @@ impl Component for BitAdder {
         }
         
         if changed {
-            UpdateResult::changed()
+            UpdateResult::with_outputs(outputs, 1)
         } else {
-            UpdateResult::no_change()
+            UpdateResult::new()
         }
     }
 
     fn reset(&mut self) {
         // Reset all pins to their default states
         for pin in self.pins.values_mut() {
-            pin.reset();
+            pin.signal = Signal::unknown(pin.width);
         }
     }
 }

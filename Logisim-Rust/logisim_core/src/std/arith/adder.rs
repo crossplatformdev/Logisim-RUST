@@ -146,15 +146,15 @@ impl Adder {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("A") {
             pin.width = width;
-            pin.signal = Signal::unknown(BusWidth::new(width));
+            pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("B") {
             pin.width = width;
-            pin.signal = Signal::unknown(BusWidth::new(width));
+            pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("Sum") {
             pin.width = width;
-            pin.signal = Signal::unknown(BusWidth::new(width));
+            pin.signal = Signal::unknown(width);
         }
     }
 }
@@ -185,33 +185,39 @@ impl Component for Adder {
         // Compute sum and carry out
         let (sum, carry_out) = Self::compute_sum(self.bit_width, &value_a, &value_b, &carry_in);
         
-        // Update output pins
+        // Update output pins and collect outputs
+        let mut outputs = HashMap::new();
         let mut changed = false;
+        
         if let Some(sum_pin) = self.pins.get_mut("Sum") {
             if sum_pin.get_signal().value() != &sum {
-                let _ = sum_pin.set_signal(Signal::new(sum, _current_time));
+                let new_signal = Signal::new(sum, _current_time);
+                let _ = sum_pin.set_signal(new_signal.clone());
+                outputs.insert("Sum".to_string(), new_signal);
                 changed = true;
             }
         }
         
         if let Some(carry_pin) = self.pins.get_mut("Carry_Out") {
             if carry_pin.get_signal().value() != &carry_out {
-                let _ = carry_pin.set_signal(Signal::new(carry_out, _current_time));
+                let new_signal = Signal::new(carry_out, _current_time);
+                let _ = carry_pin.set_signal(new_signal.clone());
+                outputs.insert("Carry_Out".to_string(), new_signal);
                 changed = true;
             }
         }
         
         if changed {
-            UpdateResult::changed()
+            UpdateResult::with_outputs(outputs, 1)
         } else {
-            UpdateResult::no_change()
+            UpdateResult::new()
         }
     }
 
     fn reset(&mut self) {
         // Reset all pins to their default states
         for pin in self.pins.values_mut() {
-            pin.reset();
+            pin.signal = Signal::unknown(pin.width);
         }
     }
 }

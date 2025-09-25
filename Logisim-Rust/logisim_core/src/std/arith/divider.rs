@@ -61,7 +61,7 @@ impl Divider {
         
         for pin_name in &["Dividend", "Divisor", "Quotient", "Remainder"] {
             if let Some(pin) = self.pins.get_mut(*pin_name) {
-                pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
+                pin.width = width; pin.signal = Signal::unknown(width);
             }
         }
     }
@@ -132,16 +132,16 @@ impl Component for Divider {
         }
         
         if changed {
-            UpdateResult::changed()
+            UpdateResult::with_outputs(outputs, 1)
         } else {
-            UpdateResult::no_change()
+            UpdateResult::new()
         }
     }
 
     fn reset(&mut self) {
         // Reset all pins to their default states
         for pin in self.pins.values_mut() {
-            pin.reset();
+            pin.signal = Signal::unknown(pin.width);
         }
     }
 }

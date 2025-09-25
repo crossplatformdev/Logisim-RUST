@@ -143,10 +143,10 @@ impl Comparator {
     pub fn set_bit_width(&mut self, width: BusWidth) {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("A") {
-            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("B") {
-            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
     }
     
@@ -206,16 +206,16 @@ impl Component for Comparator {
         }
         
         if changed {
-            UpdateResult::changed()
+            UpdateResult::with_outputs(outputs, 1)
         } else {
-            UpdateResult::no_change()
+            UpdateResult::new()
         }
     }
 
     fn reset(&mut self) {
         // Reset all pins to their default states
         for pin in self.pins.values_mut() {
-            pin.reset();
+            pin.signal = Signal::unknown(pin.width);
         }
     }
 }
