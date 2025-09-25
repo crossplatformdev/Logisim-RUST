@@ -5,7 +5,7 @@
 //! and command interface. This stub maintains API compatibility while providing
 //! graceful error handling for unsupported operations.
 
-use crate::{Component, ComponentId, Simulation};
+use crate::{ComponentId, Simulation};
 use std::collections::HashMap;
 use thiserror::Error;
 
@@ -151,6 +151,7 @@ impl TclValue {
 /// TCL integration for Logisim circuits
 pub struct LogisimTcl {
     interpreter: TclInterpreter,
+    #[allow(dead_code)]
     simulation: Option<*mut Simulation>, // Raw pointer for C-style integration
 }
 
@@ -229,7 +230,9 @@ pub fn get_tcl_version() -> Option<String> {
 /// TCL component wrapper for Java compatibility
 pub struct TclComponent {
     id: ComponentId,
+    #[allow(dead_code)]
     tcl_script: String,
+    #[allow(dead_code)]
     interpreter: TclInterpreter,
 }
 

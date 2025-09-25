@@ -245,6 +245,6 @@ mod tests {
         assert_eq!(val2, 42);
         assert_eq!(val3, 100);
 
-        assert!(cache.len() >= 1);
+        assert!(!cache.is_empty());
     }
 }

@@ -218,7 +218,7 @@ mod tests {
         assert_eq!(result, 1); // Value unchanged
         
         // Rising edge should trigger again
-        let result = counter.step(&mut data, Value::High);
+        let _result = counter.step(&mut data, Value::High);
         // Next value depends on Gray code sequence
     }
 
@@ -229,7 +229,7 @@ mod tests {
         
         // Set a specific value
         counter.set_value(&mut data, 5);
-        let retrieved = counter.get_value(&data);
+        let _retrieved = counter.get_value(&data);
         // Note: This is simplified since we're using single-bit values
         // In a full implementation, this would work with multi-bit values
         

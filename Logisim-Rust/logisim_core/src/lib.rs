@@ -51,6 +51,7 @@ pub mod build_info;
 pub mod circ_format;
 pub mod circ_parser;
 pub mod circ_serializer;
+pub mod comp;
 pub mod component;
 pub mod contracts;
 pub mod components;
@@ -71,6 +72,14 @@ pub mod util;
 pub use build_info::BuildInfo;
 pub use circ_parser::{CircParseError, CircParser, CircuitProject};
 pub use circ_serializer::{CircSerializeError, CircSerializer};
+pub use comp::{
+    AbstractComponent, AbstractComponentFactory, Color, Component, ComponentDrawContext,
+    ComponentEvent, ComponentFactory, ComponentId, ComponentListener, ComponentUserEvent,
+    DrawCommand, EndData, GraphicsContext, Pin, PinDirection,
+};
+pub use component::{
+    Component as SimComponent, ComponentId as SimComponentId, Pin as SimPin,
+};
 pub use component::{Component, ComponentId, Pin, ComponentFactory};
 pub use component::{Component, ComponentId, Pin};
 pub use contracts::{

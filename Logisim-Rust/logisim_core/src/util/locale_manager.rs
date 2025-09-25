@@ -44,6 +44,7 @@ impl StringGetter for FixedStringGetter {}
 #[derive(Debug, Clone)]
 pub struct LocaleGetter {
     key: String,
+    #[allow(dead_code)]
     manager_id: String, // Reference to the manager
 }
 
@@ -198,6 +199,7 @@ static mut GLOBAL_LOCALE_MANAGER: Option<LocaleManager> = None;
 static mut GLOBAL_MANAGER_INIT: std::sync::Once = std::sync::Once::new();
 
 /// Get the global locale manager
+#[allow(static_mut_refs)]
 pub fn get_global_locale_manager() -> &'static mut LocaleManager {
     unsafe {
         GLOBAL_MANAGER_INIT.call_once(|| {
