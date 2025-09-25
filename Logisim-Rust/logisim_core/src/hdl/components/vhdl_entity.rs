@@ -9,7 +9,7 @@ use crate::{ComponentId, Timestamp};
 use std::collections::HashMap;
 
 /// VHDL Entity Component
-/// 
+///
 /// Represents a VHDL entity as a component that can be instantiated in circuits.
 /// Equivalent to Java VhdlEntityComponent.
 #[derive(Debug, Clone)]
@@ -46,14 +46,22 @@ impl VhdlEntityComponent {
 
         // Create input pins
         for input in self.content.get_inputs() {
-            let width = crate::BusWidth(if input.get_width_int() > 0 { input.get_width_int() as u32 } else { 1 });
+            let width = crate::BusWidth(if input.get_width_int() > 0 {
+                input.get_width_int() as u32
+            } else {
+                1
+            });
             let pin = Pin::new_input(input.get_name(), width);
             self.pins.insert(input.get_name().to_string(), pin);
         }
 
         // Create output pins
         for output in self.content.get_outputs() {
-            let width = crate::BusWidth(if output.get_width_int() > 0 { output.get_width_int() as u32 } else { 1 });
+            let width = crate::BusWidth(if output.get_width_int() > 0 {
+                output.get_width_int() as u32
+            } else {
+                1
+            });
             let pin = Pin::new_output(output.get_name(), width);
             self.pins.insert(output.get_name().to_string(), pin);
         }

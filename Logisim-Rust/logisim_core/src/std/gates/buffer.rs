@@ -15,7 +15,7 @@
 use crate::component::{Component, ComponentId};
 
 /// Buffer gate implementation (placeholder)
-/// 
+///
 /// A buffer simply passes its input to its output, potentially with some delay.
 /// This is commonly used for signal buffering and driving capability.
 #[derive(Debug)]
@@ -46,7 +46,10 @@ impl Component for Buffer {
         todo!("Buffer implementation needed")
     }
 
-    fn update(&mut self, _current_time: crate::signal::Timestamp) -> crate::component::UpdateResult {
+    fn update(
+        &mut self,
+        _current_time: crate::signal::Timestamp,
+    ) -> crate::component::UpdateResult {
         todo!("Buffer implementation needed")
     }
 

@@ -19,7 +19,7 @@ use crate::data::{AttributeSet, Bounds, Location};
 use std::collections::HashMap;
 
 /// Trait for component factories
-/// 
+///
 /// This is equivalent to Java's `ComponentFactory` interface and defines
 /// how component types are created and managed.
 pub trait ComponentFactory: Send + Sync {
@@ -30,7 +30,12 @@ pub trait ComponentFactory: Send + Sync {
     fn display_name(&self) -> &str;
 
     /// Create a new component instance at the specified location
-    fn create_component(&self, id: ComponentId, location: Location, attrs: &AttributeSet) -> Box<dyn Component>;
+    fn create_component(
+        &self,
+        id: ComponentId,
+        location: Location,
+        attrs: &AttributeSet,
+    ) -> Box<dyn Component>;
 
     /// Create the default attribute set for this component type
     fn create_attribute_set(&self) -> AttributeSet;
@@ -85,7 +90,7 @@ pub trait ComponentFactory: Send + Sync {
 }
 
 /// Abstract base implementation for component factories
-/// 
+///
 /// This provides common functionality for component factories,
 /// equivalent to Java's `AbstractComponentFactory` class.
 pub struct AbstractComponentFactory {
@@ -167,7 +172,12 @@ impl ComponentFactory for AbstractComponentFactory {
         &self.display_name
     }
 
-    fn create_component(&self, _id: ComponentId, _location: Location, _attrs: &AttributeSet) -> Box<dyn Component> {
+    fn create_component(
+        &self,
+        _id: ComponentId,
+        _location: Location,
+        _attrs: &AttributeSet,
+    ) -> Box<dyn Component> {
         panic!("create_component must be implemented by concrete factory")
     }
 
@@ -233,13 +243,13 @@ impl ComponentFactoryRegistry {
     pub fn register(&mut self, factory: Box<dyn ComponentFactory>) {
         let name = factory.name().to_string();
         let category = factory.category().to_string();
-        
+
         // Add to category index
         self.categories
             .entry(category)
             .or_default()
             .push(name.clone());
-        
+
         // Register the factory
         self.factories.insert(name, factory);
     }
@@ -313,7 +323,10 @@ mod tests {
             &mut self.pins
         }
 
-        fn update(&mut self, _current_time: crate::signal::Timestamp) -> crate::comp::component::UpdateResult {
+        fn update(
+            &mut self,
+            _current_time: crate::signal::Timestamp,
+        ) -> crate::comp::component::UpdateResult {
             crate::comp::component::UpdateResult::new()
         }
 
@@ -328,8 +341,11 @@ mod tests {
     impl MockFactory {
         fn new() -> Self {
             MockFactory {
-                base: AbstractComponentFactory::new("mock".to_string(), "Mock Component".to_string())
-                    .with_category("Test".to_string()),
+                base: AbstractComponentFactory::new(
+                    "mock".to_string(),
+                    "Mock Component".to_string(),
+                )
+                .with_category("Test".to_string()),
             }
         }
     }
@@ -343,10 +359,15 @@ mod tests {
             self.base.display_name()
         }
 
-        fn create_component(&self, id: ComponentId, _location: Location, _attrs: &AttributeSet) -> Box<dyn Component> {
-            Box::new(MockComponent { 
+        fn create_component(
+            &self,
+            id: ComponentId,
+            _location: Location,
+            _attrs: &AttributeSet,
+        ) -> Box<dyn Component> {
+            Box::new(MockComponent {
                 id,
-                pins: HashMap::new(), 
+                pins: HashMap::new(),
             })
         }
 
@@ -369,11 +390,12 @@ mod tests {
 
     #[test]
     fn test_abstract_factory() {
-        let factory = AbstractComponentFactory::new("test".to_string(), "Test Component".to_string())
-            .with_category("Testing".to_string())
-            .with_description("A test component".to_string())
-            .with_label_requirement(true)
-            .with_attribute("size".to_string(), Some("10".to_string()));
+        let factory =
+            AbstractComponentFactory::new("test".to_string(), "Test Component".to_string())
+                .with_category("Testing".to_string())
+                .with_description("A test component".to_string())
+                .with_label_requirement(true)
+                .with_attribute("size".to_string(), Some("10".to_string()));
 
         assert_eq!(factory.name(), "test");
         assert_eq!(factory.display_name(), "Test Component");
@@ -382,7 +404,10 @@ mod tests {
         assert!(factory.requires_label());
         assert!(!factory.requires_global_clock());
         assert!(factory.supports_attribute("size"));
-        assert_eq!(factory.get_default_attribute_value("size"), Some("10".to_string()));
+        assert_eq!(
+            factory.get_default_attribute_value("size"),
+            Some("10".to_string())
+        );
     }
 
     #[test]
@@ -402,12 +427,8 @@ mod tests {
 
         // Test component creation
         let attrs = AttributeSet::new();
-        let component = registry.create_component(
-            "mock",
-            ComponentId::new(42),
-            Location::new(10, 20),
-            &attrs,
-        );
+        let component =
+            registry.create_component("mock", ComponentId::new(42), Location::new(10, 20), &attrs);
         assert!(component.is_some());
         assert_eq!(component.unwrap().name(), "Mock");
     }

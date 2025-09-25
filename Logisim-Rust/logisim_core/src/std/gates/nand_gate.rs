@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::ops::Not;
 
 /// NAND Gate implementation
-/// 
+///
 /// Performs logical NAND operation on its inputs. The output is low only when
 /// all inputs are high. Equivalent to NOT(AND(inputs)).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,19 +37,23 @@ impl NandGate {
 
         NandGate { id, pins }
     }
-    
+
     /// Create a new NAND gate with configurable number of inputs
     pub fn new_with_inputs(id: ComponentId, num_inputs: usize) -> Self {
         let mut pins = HashMap::new();
-        
+
         // Add input pins
         for i in 0..num_inputs {
-            let pin_name = if i == 0 { "A".to_string() } 
-                          else if i == 1 { "B".to_string() }
-                          else { format!("I{}", i) };
+            let pin_name = if i == 0 {
+                "A".to_string()
+            } else if i == 1 {
+                "B".to_string()
+            } else {
+                format!("I{}", i)
+            };
             pins.insert(pin_name.clone(), Pin::new_input(&pin_name, BusWidth(1)));
         }
-        
+
         // Add output pin
         pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
 
@@ -78,7 +82,8 @@ impl Component for NandGate {
         // Get all input values
         let mut inputs = Vec::new();
         for (name, pin) in &self.pins {
-            if name != "Y" { // Skip output pin
+            if name != "Y" {
+                // Skip output pin
                 let value = pin.signal.as_single().unwrap_or(Value::Unknown);
                 inputs.push(value);
             }
@@ -92,7 +97,7 @@ impl Component for NandGate {
                 break; // Short circuit - if any input is low, AND is low
             }
         }
-        
+
         let output = and_result.not(); // Invert the AND result
         let output_signal = Signal::new_single(output);
 
@@ -169,11 +174,14 @@ mod tests {
 
             let result = gate.update(Timestamp(0));
             let outputs = result.get_outputs();
-            
+
             if let Some(output_signal) = outputs.get("Y") {
                 let output_value = output_signal.as_single().unwrap();
-                assert_eq!(output_value, expected, 
-                    "NAND({:?}, {:?}) should be {:?}, got {:?}", a, b, expected, output_value);
+                assert_eq!(
+                    output_value, expected,
+                    "NAND({:?}, {:?}) should be {:?}, got {:?}",
+                    a, b, expected, output_value
+                );
             } else {
                 panic!("No output signal found");
             }
@@ -183,25 +191,37 @@ mod tests {
     #[test]
     fn test_nand_gate_multi_input() {
         let mut gate = NandGate::new_with_inputs(ComponentId(1), 3);
-        
+
         // Test 3-input NAND gate - all high should give low
-        gate.get_pin_mut("A").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
-        gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
-        gate.get_pin_mut("I2").unwrap().set_signal(Signal::new_single(Value::High)).unwrap();
-        
+        gate.get_pin_mut("A")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::High))
+            .unwrap();
+        gate.get_pin_mut("B")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::High))
+            .unwrap();
+        gate.get_pin_mut("I2")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::High))
+            .unwrap();
+
         let result = gate.update(Timestamp(0));
         let outputs = result.get_outputs();
-        
+
         if let Some(output_signal) = outputs.get("Y") {
             let output_value = output_signal.as_single().unwrap();
             assert_eq!(output_value, Value::Low);
         }
-        
+
         // Test with one input low - should give high
-        gate.get_pin_mut("B").unwrap().set_signal(Signal::new_single(Value::Low)).unwrap();
+        gate.get_pin_mut("B")
+            .unwrap()
+            .set_signal(Signal::new_single(Value::Low))
+            .unwrap();
         let result = gate.update(Timestamp(0));
         let outputs = result.get_outputs();
-        
+
         if let Some(output_signal) = outputs.get("Y") {
             let output_value = output_signal.as_single().unwrap();
             assert_eq!(output_value, Value::High);

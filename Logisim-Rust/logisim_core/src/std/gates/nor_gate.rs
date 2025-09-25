@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::ops::Not;
 
 /// NOR Gate implementation
-/// 
+///
 /// Performs logical NOR operation on its inputs. The output is high only when
 /// all inputs are low. Equivalent to NOT(OR(inputs)).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,19 +37,23 @@ impl NorGate {
 
         NorGate { id, pins }
     }
-    
+
     /// Create a new NOR gate with configurable number of inputs
     pub fn new_with_inputs(id: ComponentId, num_inputs: usize) -> Self {
         let mut pins = HashMap::new();
-        
+
         // Add input pins
         for i in 0..num_inputs {
-            let pin_name = if i == 0 { "A".to_string() } 
-                          else if i == 1 { "B".to_string() }
-                          else { format!("I{}", i) };
+            let pin_name = if i == 0 {
+                "A".to_string()
+            } else if i == 1 {
+                "B".to_string()
+            } else {
+                format!("I{}", i)
+            };
             pins.insert(pin_name.clone(), Pin::new_input(&pin_name, BusWidth(1)));
         }
-        
+
         // Add output pin
         pins.insert("Y".to_string(), Pin::new_output("Y", BusWidth(1)));
 
@@ -78,7 +82,8 @@ impl Component for NorGate {
         // Get all input values
         let mut inputs = Vec::new();
         for (name, pin) in &self.pins {
-            if name != "Y" { // Skip output pin
+            if name != "Y" {
+                // Skip output pin
                 let value = pin.signal.as_single().unwrap_or(Value::Unknown);
                 inputs.push(value);
             }
@@ -92,7 +97,7 @@ impl Component for NorGate {
                 break; // Short circuit - if any input is high, OR is high
             }
         }
-        
+
         let output = or_result.not(); // Invert the OR result
         let output_signal = Signal::new_single(output);
 
@@ -169,11 +174,14 @@ mod tests {
 
             let result = gate.update(Timestamp(0));
             let outputs = result.get_outputs();
-            
+
             if let Some(output_signal) = outputs.get("Y") {
                 let output_value = output_signal.as_single().unwrap();
-                assert_eq!(output_value, expected, 
-                    "NOR({:?}, {:?}) should be {:?}, got {:?}", a, b, expected, output_value);
+                assert_eq!(
+                    output_value, expected,
+                    "NOR({:?}, {:?}) should be {:?}, got {:?}",
+                    a, b, expected, output_value
+                );
             } else {
                 panic!("No output signal found");
             }

@@ -223,8 +223,12 @@ mod tests {
             fn clone_data(&self) -> Box<dyn InstanceData> {
                 Box::new(self.clone())
             }
-            fn as_any(&self) -> &dyn Any { self }
-            fn as_any_mut(&mut self) -> &mut dyn Any { self }
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+            fn as_any_mut(&mut self) -> &mut dyn Any {
+                self
+            }
         }
 
         let other_data = downcast_instance_data::<OtherData>(&*data);
