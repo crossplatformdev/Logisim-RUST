@@ -26,11 +26,11 @@
 
 pub mod base;
 pub mod gates;
-pub mod io;
+pub mod ttl;    // TTL integrated circuits
 pub mod wiring;
 
 // Re-export commonly used types
 pub use base::*;
 pub use gates::*;
-pub use io::*;
+pub use ttl::*;  // Export TTL components
 pub use wiring::*;

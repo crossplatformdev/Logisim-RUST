@@ -71,7 +71,7 @@ impl AbstractTtlGate for Ttl7410 {
         // TODO: Implement 3-input NAND gate drawing
     }
     
-    fn propagate_ttl(&self, state: &mut InstanceState) {
+    fn propagate_ttl(&self, state: &mut dyn InstanceState) {
         // TODO: Implement 3-input NAND gate logic
         // Gate 1: pins 1,2,13 -> 12 (3-input NAND)
         // Gate 2: pins 3,4,5 -> 6 (3-input NAND)
@@ -100,7 +100,7 @@ impl Component for Ttl7410 {
         crate::data::Bounds::new(0, 0, 120, 60)
     }
     
-    fn propagate(&self, state: &mut InstanceState) {
+    fn propagate(&self, state: &mut dyn InstanceState) {
         self.propagate_ttl(state);
     }
 }

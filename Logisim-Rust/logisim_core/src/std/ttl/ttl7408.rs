@@ -71,7 +71,7 @@ impl AbstractTtlGate for Ttl7408 {
         // TODO: Implement AND gate drawing
     }
     
-    fn propagate_ttl(&self, state: &mut InstanceState) {
+    fn propagate_ttl(&self, state: &mut dyn InstanceState) {
         // TODO: Implement AND gate logic
         // Gate 1: pins 1,2 -> 3 (AND)
         // Gate 2: pins 4,5 -> 6 (AND)
@@ -101,7 +101,7 @@ impl Component for Ttl7408 {
         crate::data::Bounds::new(0, 0, 120, 60)
     }
     
-    fn propagate(&self, state: &mut InstanceState) {
+    fn propagate(&self, state: &mut dyn InstanceState) {
         self.propagate_ttl(state);
     }
 }

@@ -69,7 +69,7 @@ impl AbstractTtlGate for Ttl7404 {
         // TODO: Implement inverter gate drawing
     }
     
-    fn propagate_ttl(&self, state: &mut InstanceState) {
+    fn propagate_ttl(&self, state: &mut dyn InstanceState) {
         // TODO: Implement inverter logic
         // Six inverters: pins 1->2, 3->4, 5->6, 9->8, 11->10, 13->12
     }
@@ -96,7 +96,7 @@ impl Component for Ttl7404 {
         crate::data::Bounds::new(0, 0, 120, 60)
     }
     
-    fn propagate(&self, state: &mut InstanceState) {
+    fn propagate(&self, state: &mut dyn InstanceState) {
         self.propagate_ttl(state);
     }
 }

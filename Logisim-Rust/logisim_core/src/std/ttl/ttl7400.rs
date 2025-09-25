@@ -13,11 +13,10 @@
 //! TTL integrated circuit.
 
 use crate::{
-    comp::{Component, ComponentId, Pin},
-    data::{AttributeSet, Bounds, Direction, Location},
+    comp::{Component, ComponentId, Pin, UpdateResult},
+    data::{Bounds, Direction, Location},
+    instance::{Instance, InstancePainter, InstanceState},
     signal::Value,
-    instance::{Instance, InstanceFactory, InstancePainter, InstanceState},
-    signal::Signal,
 };
 use super::{
     abstract_ttl_gate::{AbstractTtlGate, TtlGateImpl},
@@ -153,7 +152,7 @@ impl AbstractTtlGate for Ttl7400 {
         );
     }
     
-    fn propagate_ttl(&self, state: &mut InstanceState) {
+    fn propagate_ttl(&self, state: &mut dyn InstanceState) {
         // Gate 1: pins 1,2 -> 3 (ports 0,1 -> 2)
         let gate1_output = !(state.get_port_value(0) & state.get_port_value(1));
         state.set_port(2, gate1_output, 1);
@@ -189,9 +188,9 @@ impl Component for Ttl7400 {
         &mut self.pins
     }
     
-    fn update(&mut self, current_time: crate::signal::Timestamp) -> crate::comp::UpdateResult {
-        // Implementation for updating TTL 7400
-        crate::comp::UpdateResult::Continue
+    fn update(&mut self, current_time: crate::signal::Timestamp) -> UpdateResult {
+        // TTL components typically don't need time-based updates
+        UpdateResult::Continue
     }
     
     fn reset(&mut self) {

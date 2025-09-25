@@ -71,7 +71,7 @@ impl AbstractTtlGate for Ttl7402 {
         // TODO: Implement NOR gate drawing
     }
     
-    fn propagate_ttl(&self, state: &mut InstanceState) {
+    fn propagate_ttl(&self, state: &mut dyn InstanceState) {
         // TODO: Implement NOR gate logic
         // Gate 1: pins 2,3 -> 1 (NOR)
         // Gate 2: pins 5,6 -> 4 (NOR)  
@@ -101,7 +101,7 @@ impl Component for Ttl7402 {
         crate::data::Bounds::new(0, 0, 120, 60)
     }
     
-    fn propagate(&self, state: &mut InstanceState) {
+    fn propagate(&self, state: &mut dyn InstanceState) {
         self.propagate_ttl(state);
     }
 }

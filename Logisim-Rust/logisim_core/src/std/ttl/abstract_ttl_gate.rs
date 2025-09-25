@@ -14,12 +14,10 @@
 
 use crate::{
     comp::{Component, ComponentId, Pin},
-    data::{AttributeSet, Bounds, Direction, Location},
+    data::{Direction, Location},
+    instance::{Instance, InstancePainter, InstanceState},
     signal::Value,
-    instance::{Instance, InstanceFactory, InstancePainter, InstanceState},
-    signal::Signal,
 };
-use std::collections::HashSet;
 
 /// Abstract base trait for TTL gate components
 /// 
@@ -60,7 +58,7 @@ pub trait AbstractTtlGate: Component {
     /// 
     /// This method implements the actual logic behavior of the TTL component.
     /// It should read input values and compute outputs according to the IC's specification.
-    fn propagate_ttl(&self, state: &mut InstanceState);
+    fn propagate_ttl(&self, state: &mut dyn InstanceState);
 }
 
 /// Standard TTL gate implementation structure
@@ -117,7 +115,7 @@ impl TtlGateImpl {
     }
     
     /// Check if VCC/GND power supply is properly connected
-    pub fn check_power_supply(&self, state: &InstanceState, vcc_gnd_enabled: bool) -> bool {
+    pub fn check_power_supply(&self, state: &dyn InstanceState, vcc_gnd_enabled: bool) -> bool {
         if !vcc_gnd_enabled {
             return true;
         }
