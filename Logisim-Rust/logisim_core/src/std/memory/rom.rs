@@ -162,7 +162,7 @@ impl MemoryComponent for RomFactory {
 #[derive(Clone)]
 pub struct RomContentsAttribute {
     name: String,
-    display_name: StringGetter,
+    display_name: crate::util::ConstantStringGetter,
 }
 
 impl RomContentsAttribute {
@@ -180,6 +180,8 @@ impl Default for RomContentsAttribute {
     }
 }
 
+// TODO: Fix attribute implementation - Attribute<T> is a struct, not a trait
+/*
 impl Attribute<MemContents> for RomContentsAttribute {
     fn name(&self) -> &str {
         &self.name
@@ -208,6 +210,7 @@ impl Attribute<MemContents> for RomContentsAttribute {
                 value.get_width())
     }
 }
+*/
 
 #[cfg(test)]
 mod tests {

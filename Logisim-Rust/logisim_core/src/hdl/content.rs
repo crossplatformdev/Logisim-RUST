@@ -7,7 +7,7 @@ use crate::hdl::model::{HdlModel, HdlModelListener, PortDescription};
 use std::collections::HashMap;
 
 /// HDL content base implementation
-/// 
+///
 /// Equivalent to Java HdlContent abstract class.
 /// Base class for attribute content that contains a simulatable HDL string.
 pub struct HdlContent {
@@ -68,7 +68,7 @@ impl HdlContent {
     pub fn fire_content_set(&mut self) {
         // Similar to the BasicHdlModel implementation
         let mut temp_listeners = std::mem::take(&mut self.listeners);
-        
+
         for listener in &mut temp_listeners {
             listener.content_set(self);
         }
@@ -92,10 +92,10 @@ impl HdlModel for HdlContent {
     }
 
     fn compare_model(&self, other: &dyn HdlModel) -> bool {
-        self.content == other.get_content() &&
-        self.name == other.get_name() &&
-        self.inputs == other.get_inputs() &&
-        self.outputs == other.get_outputs()
+        self.content == other.get_content()
+            && self.name == other.get_name()
+            && self.inputs == other.get_inputs()
+            && self.outputs == other.get_outputs()
     }
 
     fn compare_content(&self, value: &str) -> bool {
@@ -123,7 +123,7 @@ impl HdlModel for HdlContent {
             if index < self.listeners.len() {
                 self.listeners.remove(index);
                 self.listener_ids.remove(&listener_id);
-                
+
                 // Update indices for remaining listeners
                 for (_, stored_index) in self.listener_ids.iter_mut() {
                     if *stored_index > index {
@@ -146,7 +146,7 @@ impl HdlModel for HdlContent {
 }
 
 /// HDL content attribute wrapper
-/// 
+///
 /// Provides attribute-specific functionality for HDL content.
 /// This would be used by component attribute systems.
 #[derive(Debug)]
@@ -181,7 +181,7 @@ impl HdlContentAttribute {
 }
 
 /// HDL content editor interface
-/// 
+///
 /// Represents an editor for HDL content, equivalent to Java HdlContentEditor.
 /// This is a trait that HDL editors should implement.
 pub trait HdlContentEditor {
@@ -315,17 +315,21 @@ mod tests {
     #[test]
     fn test_get_all_ports() {
         let mut content = HdlContent::new("test".to_string());
-        
-        let inputs = vec![
-            PortDescription::new("in1".to_string(), "std_logic".to_string(), 1),
-        ];
-        let outputs = vec![
-            PortDescription::new("out1".to_string(), "std_logic".to_string(), 1),
-        ];
-        
+
+        let inputs = vec![PortDescription::new(
+            "in1".to_string(),
+            "std_logic".to_string(),
+            1,
+        )];
+        let outputs = vec![PortDescription::new(
+            "out1".to_string(),
+            "std_logic".to_string(),
+            1,
+        )];
+
         content.set_inputs(inputs.clone());
         content.set_outputs(outputs.clone());
-        
+
         let all_ports = content.get_all_ports();
         assert_eq!(all_ports.len(), 2);
         assert_eq!(all_ports[0].get_name(), "in1");

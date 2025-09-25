@@ -12,8 +12,8 @@
 //! Adapter between the instance logger system and external logging interfaces.
 
 use crate::data::BitWidth;
-use crate::{Value};
 use crate::instance::{InstanceLogger, InstanceState};
+use crate::Value;
 
 /// Adapter that bridges InstanceLogger implementations with external logging systems.
 ///
@@ -29,12 +29,20 @@ impl InstanceLoggerAdapter {
     }
 
     /// Delegates to the wrapped logger.
-    pub fn get_log_name(&self, state: &dyn InstanceState, option: &dyn std::any::Any) -> Option<String> {
+    pub fn get_log_name(
+        &self,
+        state: &dyn InstanceState,
+        option: &dyn std::any::Any,
+    ) -> Option<String> {
         self.logger.get_log_name(state, option)
     }
 
     /// Delegates to the wrapped logger.
-    pub fn get_bit_width(&self, state: &dyn InstanceState, option: &dyn std::any::Any) -> Option<BitWidth> {
+    pub fn get_bit_width(
+        &self,
+        state: &dyn InstanceState,
+        option: &dyn std::any::Any,
+    ) -> Option<BitWidth> {
         self.logger.get_bit_width(state, option)
     }
 
@@ -44,7 +52,11 @@ impl InstanceLoggerAdapter {
     }
 
     /// Delegates to the wrapped logger.
-    pub fn get_log_value(&self, state: &dyn InstanceState, option: &dyn std::any::Any) -> Option<Value> {
+    pub fn get_log_value(
+        &self,
+        state: &dyn InstanceState,
+        option: &dyn std::any::Any,
+    ) -> Option<Value> {
         self.logger.get_log_value(state, option)
     }
 

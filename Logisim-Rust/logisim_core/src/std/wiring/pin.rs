@@ -71,7 +71,7 @@ impl PinAttributes {
     pub fn is_output(&self) -> bool {
         self.pin_type == PinType::Output
     }
-    
+
     /// Check if this pin is an input pin
     pub fn is_input(&self) -> bool {
         self.pin_type == PinType::Input
@@ -113,14 +113,14 @@ impl Pin {
     pub fn new(id: ComponentId) -> Self {
         let attributes = PinAttributes::default();
         let state = PinState::default();
-        
+
         // Create the component pin based on pin type
         let pin_direction = if attributes.is_output() {
             PinDirection::Output
         } else {
             PinDirection::Input
         };
-        
+
         let component_pin = match pin_direction {
             PinDirection::Input => ComponentPin::new_input("pin", attributes.width),
             PinDirection::Output => ComponentPin::new_output("pin", attributes.width),
@@ -182,7 +182,7 @@ impl Component for Pin {
         // Pin behavior is largely passive - it responds to external changes
         // TODO: Implement tristate logic, pull-up/pull-down behavior
         let mut result = UpdateResult::new();
-        
+
         // For input pins, the intended value drives the output
         if self.attributes.is_input() && self.state.driving {
             if let Some(pin) = self.pins.get_mut("pin") {
@@ -190,17 +190,20 @@ impl Component for Pin {
                 result.add_output("pin".to_string(), pin.signal.clone());
             }
         }
-        
+
         result
     }
 
     fn reset(&mut self) {
         // Reset to initial state
-        let initial_signal = Signal::from_u64(self.attributes.initial_value, self.state.intended_value.width());
+        let initial_signal = Signal::from_u64(
+            self.attributes.initial_value,
+            self.state.intended_value.width(),
+        );
         self.state.intended_value = initial_signal.clone();
         self.state.actual_value = initial_signal;
         self.state.driving = self.attributes.is_input();
-        
+
         // Reset pin signal
         if let Some(pin) = self.pins.get_mut("pin") {
             pin.signal = self.state.intended_value.clone();
@@ -251,7 +254,7 @@ mod tests {
         let mut attrs = PinAttributes::default();
         assert!(attrs.is_input());
         assert!(!attrs.is_output());
-        
+
         attrs.pin_type = PinType::Output;
         assert!(!attrs.is_input());
         assert!(attrs.is_output());
@@ -272,7 +275,7 @@ mod tests {
     #[test]
     fn test_pin_state() {
         let mut pin = Pin::new(ComponentId(1));
-        
+
         // Test setting intended value
         let test_signal = Signal::new_single(Value::High);
         pin.set_intended_value(test_signal.clone());

@@ -21,19 +21,19 @@
 //! The implementation uses egui for rendering while maintaining compatibility
 //! with the original Java Logisim-Evolution hex editor functionality.
 
-pub mod hex_model;
-pub mod hex_editor;
 pub mod caret;
+pub mod hex_editor;
+pub mod hex_model;
 pub mod highlighter;
 pub mod measures;
 
 // Re-export commonly used types
-pub use hex_model::{HexModel, HexModelListener, HexModelEvent, MemoryHexModel};
+pub use hex_model::{HexModel, HexModelEvent, HexModelListener, MemoryHexModel};
 pub use measures::Measures;
 
 #[cfg(feature = "gui")]
-pub use hex_editor::HexEditor;
-#[cfg(feature = "gui")]
 pub use caret::Caret;
+#[cfg(feature = "gui")]
+pub use hex_editor::HexEditor;
 #[cfg(feature = "gui")]
 pub use highlighter::Highlighter;

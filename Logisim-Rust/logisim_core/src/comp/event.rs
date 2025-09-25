@@ -272,7 +272,7 @@ mod tests {
     #[test]
     fn test_component_event_creation() {
         let comp_id = ComponentId::new(42);
-        
+
         let added = ComponentEvent::component_added(comp_id);
         assert_eq!(added.component_id, comp_id);
         assert_eq!(added.event_type, ComponentEventType::ComponentAdded);
@@ -288,7 +288,10 @@ mod tests {
         assert_eq!(moved.new_location, Some(new_loc));
 
         let attr_changed = ComponentEvent::attribute_changed(comp_id, "color".to_string());
-        assert_eq!(attr_changed.event_type, ComponentEventType::AttributeChanged);
+        assert_eq!(
+            attr_changed.event_type,
+            ComponentEventType::AttributeChanged
+        );
         assert_eq!(attr_changed.attribute_name, Some("color".to_string()));
     }
 
@@ -305,8 +308,8 @@ mod tests {
         assert_eq!(key_press.event_type, UserEventType::KeyPress);
         assert_eq!(key_press.key, Some("Enter".to_string()));
 
-        let drag = ComponentUserEvent::drag_start(comp_id, location)
-            .with_modifier("shift".to_string());
+        let drag =
+            ComponentUserEvent::drag_start(comp_id, location).with_modifier("shift".to_string());
         assert_eq!(drag.event_type, UserEventType::DragStart);
         assert!(drag.modifiers.contains(&"shift".to_string()));
     }
