@@ -11,11 +11,11 @@
 //!
 //! Rust port of `com.cburch.logisim.std.base.BaseLibrary`
 
-use crate::component::ComponentId;
 use super::*;
+use crate::component::ComponentId;
 
 /// Base Library - collection of basic tools and utilities
-/// 
+///
 /// This library provides fundamental tools for circuit creation and editing,
 /// including text annotations and basic editing tools.
 pub struct BaseLibrary {
@@ -25,33 +25,34 @@ pub struct BaseLibrary {
 impl BaseLibrary {
     /// Unique identifier for the base library
     pub const ID: &'static str = "Base";
-    
+
     /// Create a new base library
     pub fn new() -> Self {
         BaseLibrary {
             id: Self::ID.to_string(),
         }
     }
-    
+
     /// Get display name for the library
     pub fn display_name() -> &'static str {
         "Base"
     }
-    
+
     /// Create a text component
     pub fn create_text(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(Text::new(id))
     }
-    
+
     /// Get list of all available component types
     pub fn get_component_types() -> Vec<&'static str> {
-        vec![
-            "Text",
-        ]
+        vec!["Text"]
     }
-    
+
     /// Create a component by type name
-    pub fn create_component_by_name(name: &str, id: ComponentId) -> Option<Box<dyn crate::component::Component>> {
+    pub fn create_component_by_name(
+        name: &str,
+        id: ComponentId,
+    ) -> Option<Box<dyn crate::component::Component>> {
         match name {
             "Text" => Some(Self::create_text(id)),
             _ => None,
@@ -86,7 +87,7 @@ mod tests {
         let text = BaseLibrary::create_component_by_name("Text", ComponentId(1));
         assert!(text.is_some());
         assert_eq!(text.unwrap().name(), "Text");
-        
+
         let invalid = BaseLibrary::create_component_by_name("Invalid", ComponentId(1));
         assert!(invalid.is_none());
     }

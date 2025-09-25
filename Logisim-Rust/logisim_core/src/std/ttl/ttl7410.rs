@@ -1,0 +1,106 @@
+/*
+ * Logisim-evolution - digital logic design tool and simulator
+ * Copyright by the Logisim-evolution developers
+ *
+ * https://github.com/logisim-evolution/
+ *
+ * This is free software released under GNU GPLv3 license
+ */
+
+//! TTL 74x10: Triple 3-input NAND gate
+//! 
+//! This is the Rust port of Ttl7410.java, implementing a triple 3-input NAND gate
+//! TTL integrated circuit.
+
+use crate::{
+    component::{Component, ComponentId},
+    instance::{InstancePainter, InstanceState},
+};
+use super::abstract_ttl_gate::{AbstractTtlGate, TtlGateImpl};
+
+/// TTL 7410: Triple 3-input NAND gate
+/// 
+/// The 7410 contains three independent 3-input NAND gates in a 14-pin DIP package.
+/// Each gate performs the logical 3-input NAND operation: output = NOT(A AND B AND C).
+#[derive(Debug, Clone)]
+pub struct Ttl7410 {
+    impl_data: TtlGateImpl,
+}
+
+impl Ttl7410 {
+    pub const ID: &'static str = "7410";
+    const PIN_COUNT: u8 = 14;
+    const OUTPUT_PINS: [u8; 3] = [6, 8, 12];
+    
+    pub fn new() -> Self {
+        Self {
+            impl_data: TtlGateImpl::new(
+                Self::ID,
+                Self::PIN_COUNT,
+                Self::OUTPUT_PINS.to_vec(),
+                vec!["1A", "1B", "2A", "2B", "2C", "2Y", "3Y", "3A", "3B", "3C", "1C", "1Y"],
+            ),
+        }
+    }
+}
+
+impl Default for Ttl7410 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AbstractTtlGate for Ttl7410 {
+    fn get_id(&self) -> &'static str {
+        self.impl_data.id
+    }
+    
+    fn get_pin_count(&self) -> u8 {
+        self.impl_data.pin_count
+    }
+    
+    fn get_output_pins(&self) -> &[u8] {
+        &self.impl_data.output_pins
+    }
+    
+    fn get_port_names(&self) -> &[&'static str] {
+        &self.impl_data.port_names
+    }
+    
+    fn paint_internal(&self, _painter: &InstancePainter, _x: i32, _y: i32, _height: i32, _up_oriented: bool) {
+        // TODO: Implement 3-input NAND gate drawing
+    }
+    
+    fn propagate_ttl(&self, state: &mut InstanceState) {
+        // TODO: Implement 3-input NAND gate logic
+        // Gate 1: pins 1,2,13 -> 12 (3-input NAND)
+        // Gate 2: pins 3,4,5 -> 6 (3-input NAND)
+        // Gate 3: pins 9,10,11 -> 8 (3-input NAND)
+    }
+}
+
+impl Component for Ttl7410 {
+    fn get_id(&self) -> ComponentId {
+        ComponentId::new(Self::ID)
+    }
+    
+    fn get_display_name(&self) -> &str {
+        "7410"
+    }
+    
+    fn get_description(&self) -> &str {
+        "TTL 74x10: Triple 3-input NAND gate"
+    }
+    
+    fn create_instance(&self) -> Box<dyn crate::instance::Instance> {
+        todo!("Create TTL 7410 instance")
+    }
+    
+    fn get_bounds(&self, _instance: &dyn crate::instance::Instance) -> crate::data::Bounds {
+        crate::data::Bounds::new(0, 0, 120, 60)
+    }
+    
+    fn propagate(&self, state: &mut InstanceState) {
+        self.propagate_ttl(state);
+    }
+}

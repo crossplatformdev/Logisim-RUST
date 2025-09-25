@@ -5,7 +5,7 @@
  * https://github.com/logisim-evolution/
  *
  * This is free software released under GNU GPLv3 license
- * 
+ *
  * Ported to Rust by the Logisim-RUST project
  * https://github.com/crossplatformdev/Logisim-RUST
  */
@@ -62,8 +62,8 @@
 //! }
 //! ```
 
-pub mod tool;
 pub mod library;
+pub mod tool;
 
 // Tool implementations
 pub mod add_tool;
@@ -88,15 +88,14 @@ pub mod wiring_tool;
 // pub mod move;
 
 // Re-export core types for convenience
-pub use tool::{
-    Tool, Canvas, Project, Circuit, Action, Selection,
-    CursorType, KeyEvent, MouseEvent, MouseButton, KeyModifiers,
-    LogisimVersion, ComponentDrawContext,
-};
-pub use library::{Library, BasicLibrary, LibraryClone};
-pub use add_tool::{AddTool, AddComponentAction};
+pub use add_tool::{AddComponentAction, AddTool};
+pub use library::{BasicLibrary, Library, LibraryClone};
 pub use select_tool::SelectTool;
-pub use wiring_tool::{WiringTool, AddWireAction};
+pub use tool::{
+    Action, Canvas, Circuit, ComponentDrawContext, CursorType, KeyEvent, KeyModifiers,
+    LogisimVersion, MouseButton, MouseEvent, Project, Selection, Tool,
+};
+pub use wiring_tool::{AddWireAction, WiringTool};
 
 /// Tool framework version for compatibility tracking
 pub const TOOLS_VERSION: &str = "1.0.0";
@@ -109,19 +108,19 @@ pub type ToolResult<T> = Result<T, ToolError>;
 pub enum ToolError {
     #[error("Tool not found: {name}")]
     ToolNotFound { name: String },
-    
+
     #[error("Library not found: {name}")]
     LibraryNotFound { name: String },
-    
+
     #[error("Invalid tool operation: {message}")]
     InvalidOperation { message: String },
-    
+
     #[error("Tool attribute error: {message}")]
     AttributeError { message: String },
-    
+
     #[error("Canvas operation error: {message}")]
     CanvasError { message: String },
-    
+
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 }
@@ -129,17 +128,23 @@ pub enum ToolError {
 impl ToolError {
     /// Create a new tool not found error
     pub fn tool_not_found(name: &str) -> Self {
-        Self::ToolNotFound { name: name.to_string() }
+        Self::ToolNotFound {
+            name: name.to_string(),
+        }
     }
-    
+
     /// Create a new library not found error
     pub fn library_not_found(name: &str) -> Self {
-        Self::LibraryNotFound { name: name.to_string() }
+        Self::LibraryNotFound {
+            name: name.to_string(),
+        }
     }
-    
+
     /// Create a new invalid operation error
     pub fn invalid_operation(message: &str) -> Self {
-        Self::InvalidOperation { message: message.to_string() }
+        Self::InvalidOperation {
+            message: message.to_string(),
+        }
     }
 }
 
@@ -151,17 +156,17 @@ mod tests {
     fn test_tools_version() {
         assert_eq!(TOOLS_VERSION, "1.0.0");
     }
-    
+
     #[test]
     fn test_tool_error_creation() {
         let error = ToolError::tool_not_found("test_tool");
         assert!(matches!(error, ToolError::ToolNotFound { .. }));
         assert_eq!(error.to_string(), "Tool not found: test_tool");
-        
+
         let error = ToolError::library_not_found("test_lib");
         assert!(matches!(error, ToolError::LibraryNotFound { .. }));
         assert_eq!(error.to_string(), "Library not found: test_lib");
-        
+
         let error = ToolError::invalid_operation("test message");
         assert!(matches!(error, ToolError::InvalidOperation { .. }));
         assert_eq!(error.to_string(), "Invalid tool operation: test message");

@@ -11,7 +11,7 @@
 //!
 //! This module provides Gray code counter and incrementer components
 //! equivalent to the Java com.cburch.gray package.
-//! 
+//!
 //! The Gray code is a binary numeral system where two successive values
 //! differ in only one bit. This property makes it useful in digital
 //! circuits to minimize glitches and in rotary encoders to reduce errors.

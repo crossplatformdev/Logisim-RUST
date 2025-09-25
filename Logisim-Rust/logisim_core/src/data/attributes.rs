@@ -59,8 +59,7 @@ impl fmt::Display for AttributeId {
 }
 
 /// An attribute definition with metadata
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Attribute<T: AttributeValue> {
     id: AttributeId,
     display_name: Option<String>,

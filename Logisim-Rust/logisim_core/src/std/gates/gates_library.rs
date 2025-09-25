@@ -11,13 +11,13 @@
 //!
 //! Rust port of `com.cburch.logisim.std.gates.GatesLibrary`
 
-use crate::component::ComponentId;
 use super::*;
+use crate::component::ComponentId;
 
 /// Gates Library - collection of all logic gate components
-/// 
+///
 /// This library provides access to all the standard logic gates including
-/// basic gates (AND, OR, NOT, etc.), specialized gates (buffers, parity), 
+/// basic gates (AND, OR, NOT, etc.), specialized gates (buffers, parity),
 /// and programmable logic (PLA).
 pub struct GatesLibrary {
     id: String,
@@ -26,84 +26,84 @@ pub struct GatesLibrary {
 impl GatesLibrary {
     /// Unique identifier for the gates library
     pub const ID: &'static str = "Gates";
-    
+
     /// Create a new gates library
     pub fn new() -> Self {
         GatesLibrary {
             id: Self::ID.to_string(),
         }
     }
-    
+
     /// Get display name for the library
     pub fn display_name() -> &'static str {
         "Gates"
     }
-    
+
     /// Create an AND gate
     pub fn create_and_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(AndGate::new(id))
     }
-    
+
     /// Create an OR gate
     pub fn create_or_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(OrGate::new(id))
     }
-    
+
     /// Create a NOT gate
     pub fn create_not_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(NotGate::new(id))
     }
-    
+
     /// Create a NAND gate
     pub fn create_nand_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(NandGate::new(id))
     }
-    
+
     /// Create a NOR gate
     pub fn create_nor_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(NorGate::new(id))
     }
-    
+
     /// Create an XOR gate
     pub fn create_xor_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(XorGate::new(id))
     }
-    
+
     /// Create an XNOR gate
     pub fn create_xnor_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(XnorGate::new(id))
     }
-    
+
     /// Create a buffer
     pub fn create_buffer(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(Buffer::new(id))
     }
-    
+
     /// Create a controlled buffer
     pub fn create_controlled_buffer(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(ControlledBuffer::new(id))
     }
-    
+
     /// Create an even parity gate
     pub fn create_even_parity_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(EvenParityGate::new(id))
     }
-    
+
     /// Create an odd parity gate
     pub fn create_odd_parity_gate(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(OddParityGate::new(id))
     }
-    
+
     /// Create a PLA
     pub fn create_pla(id: ComponentId) -> Box<dyn crate::component::Component> {
         Box::new(Pla::new(id))
     }
-    
+
     /// Get list of all available gate types
     pub fn get_gate_types() -> Vec<&'static str> {
         vec![
             "AND Gate",
-            "OR Gate", 
+            "OR Gate",
             "NOT Gate",
             "NAND Gate",
             "NOR Gate",
@@ -116,9 +116,12 @@ impl GatesLibrary {
             "PLA",
         ]
     }
-    
+
     /// Create a gate by type name
-    pub fn create_gate_by_name(name: &str, id: ComponentId) -> Option<Box<dyn crate::component::Component>> {
+    pub fn create_gate_by_name(
+        name: &str,
+        id: ComponentId,
+    ) -> Option<Box<dyn crate::component::Component>> {
         match name {
             "AND Gate" => Some(Self::create_and_gate(id)),
             "OR Gate" => Some(Self::create_or_gate(id)),
@@ -157,10 +160,10 @@ mod tests {
     fn test_gate_creation() {
         let and_gate = GatesLibrary::create_and_gate(ComponentId(1));
         assert_eq!(and_gate.name(), "AND");
-        
+
         let or_gate = GatesLibrary::create_or_gate(ComponentId(2));
         assert_eq!(or_gate.name(), "OR");
-        
+
         let not_gate = GatesLibrary::create_not_gate(ComponentId(3));
         assert_eq!(not_gate.name(), "NOT");
     }
@@ -170,7 +173,7 @@ mod tests {
         let and_gate = GatesLibrary::create_gate_by_name("AND Gate", ComponentId(1));
         assert!(and_gate.is_some());
         assert_eq!(and_gate.unwrap().name(), "AND");
-        
+
         let invalid_gate = GatesLibrary::create_gate_by_name("Invalid Gate", ComponentId(1));
         assert!(invalid_gate.is_none());
     }
