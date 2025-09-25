@@ -79,6 +79,10 @@ Each subproject has its own contribution guidelines:
 - **Rust**: See [Logisim-Rust/BUILD.md](./Logisim-Rust/BUILD.md#contributing)
 - **Java**: See [Logisim-Evolution/docs/developers.md](./Logisim-Evolution/docs/developers.md)
 
+## Maintainers
+
+This project is maintained by the Logisim-RUST community and core maintainers including @copilot.
+
 ## License
 
 Both projects are licensed under GPL-3.0. See [LICENSE.md](./LICENSE.md) for details.
