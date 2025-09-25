@@ -159,14 +159,17 @@ pub mod gui;
 pub mod headless;
 
 // Platform-specific implementations
-#[cfg(all(feature = "gui", target_arch = "wasm32"))]
+#[cfg(feature = "gui")]
 pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
-    // WebAssembly-specific initialization
-}
-
-#[cfg(all(feature = "gui", not(target_arch = "wasm32")))]
-pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
-    // Native desktop initialization
+    #[cfg(target_arch = "wasm32")]
+    {
+        // WebAssembly-specific initialization
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // Native desktop initialization
+    }
+    Ok(())
 }
 ```
 
