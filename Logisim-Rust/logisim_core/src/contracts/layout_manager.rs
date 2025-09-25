@@ -27,7 +27,7 @@ impl Dimension {
 pub struct Component {
     pub id: u32,
     pub name: String,
-    pub bounds: crate::data::Bounds,
+    pub bounds: (i32, i32, u32, u32), // x, y, width, height
 }
 
 /// Represents a container of components
@@ -35,7 +35,7 @@ pub struct Component {
 pub struct Container {
     pub id: u32,
     pub components: Vec<Component>,
-    pub bounds: crate::data::Bounds,
+    pub bounds: (i32, i32, u32, u32), // x, y, width, height
 }
 
 /// Base contract for layout managers
@@ -65,7 +65,6 @@ pub trait BaseLayoutManagerContract {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::{Bounds, Location};
 
     struct TestLayoutManager;
 
@@ -85,12 +84,12 @@ mod tests {
         let component = Component {
             id: 1,
             name: "test".to_string(),
-            bounds: Bounds::create(0, 0, 10, 10),
+            bounds: (0, 0, 10, 10),
         };
         let container = Container {
             id: 1,
             components: vec![component.clone()],
-            bounds: Bounds::create(0, 0, 100, 100),
+            bounds: (0, 0, 100, 100),
         };
 
         // Test default implementations

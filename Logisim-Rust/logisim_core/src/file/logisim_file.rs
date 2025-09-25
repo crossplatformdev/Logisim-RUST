@@ -167,7 +167,7 @@ impl LogisimFile {
     /// Save the file to a specific path
     pub fn save_to(&mut self, path: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
         // Use the circuit serializer to save the file
-        let serializer = crate::CircSerializer;
+        let _serializer = crate::CircSerializer;
         // For now, just log the save operation
         log::info!("Saving circuit file to: {}", path.display());
 

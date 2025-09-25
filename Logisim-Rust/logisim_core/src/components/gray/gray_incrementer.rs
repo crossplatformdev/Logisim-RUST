@@ -13,53 +13,11 @@
 //! For instance, given input 0100 the output is 1100.
 //! Equivalent to Java's com.cburch.gray.GrayIncrementer class.
 
-use crate::data::{Attribute, BitWidth, Bounds, Location};
-use crate::signal::Value;
-
-/// Stub for instance factory trait
-pub trait InstanceFactory {
-    fn id(&self) -> &str;
-    fn display_name(&self) -> &str;
-    fn offset_bounds(&self) -> Bounds;
-    fn create_attributes(&self) -> Vec<Attribute<BitWidth>>;
-    fn create_ports(&self) -> Vec<Port>;
-    fn paint_instance(&self, painter: &mut InstancePainter);
-    fn propagate(&self, state: &mut InstanceState);
-}
-
-/// Stub for instance painter
-pub struct InstancePainter;
-
-impl InstancePainter {
-    pub fn draw_rectangle_with_text(&mut self, _text: &str) {}
-    pub fn draw_ports(&mut self) {}
-}
-
-/// Stub for instance state
-pub struct InstanceState;
-
-impl InstanceState {
-    pub fn port_value(&self, _port: usize) -> Value {
-        Value::Low
-    }
-
-    pub fn set_port(&mut self, _port: usize, _value: Value, _delay: usize) {}
-}
-
-/// Stub for port definition
-pub struct Port;
-
-impl Port {
-    pub const INPUT: &'static str = "INPUT";
-    pub const OUTPUT: &'static str = "OUTPUT";
-
-    pub fn new(_location: Location, _kind: &str, _width: &str) -> Self {
-        Self
-    }
-}
+use super::ComponentTool;
+use crate::signal::BusWidth;
 
 /// Gray code incrementer component.
-///
+/// 
 /// This component takes a multibit input and outputs the value that follows it in Gray Code.
 /// This is equivalent to Java's GrayIncrementer class.
 pub struct GrayIncrementer;
@@ -75,78 +33,75 @@ impl GrayIncrementer {
     }
 
     /// Computes the next gray value in the sequence after prev.
-    ///
-    /// This static method just does some bit twiddling for simplified demonstration.
-    /// In the full implementation this would work with proper multi-bit values.
-    pub fn next_gray(prev: u64, width: BitWidth) -> u64 {
+    /// 
+    /// This static method implements the Gray code increment algorithm.
+    /// It converts from Gray code to binary, increments, then converts back.
+    pub fn next_gray(prev: u64, width: BusWidth) -> u64 {
         let mask = width.get_mask();
-        let mut x = prev & mask;
-
-        // Compute parity of x
-        let mut ct = (x >> 32) ^ x;
-        ct = (ct >> 16) ^ ct;
-        ct = (ct >> 8) ^ ct;
-        ct = (ct >> 4) ^ ct;
-        ct = (ct >> 2) ^ ct;
-        ct = (ct >> 1) ^ ct;
-
-        if (ct & 1) == 0 {
-            // If parity is even, flip 1's bit
-            x ^= 1;
-        } else {
-            // Else flip bit just above last 1
-            let y = x ^ (x & (x.wrapping_sub(1))); // first compute the last 1
-            let y = (y << 1) & mask;
-            x = if y == 0 { 0 } else { x ^ y };
+        
+        // Convert Gray code to Binary
+        let mut binary = prev & mask;
+        let mut temp = binary;
+        
+        // Gray to Binary conversion
+        let mut shift = 1;
+        while temp != 0 {
+            temp >>= 1;  
+            binary ^= temp;
+            shift += 1;
+            if shift >= 64 { break; }
         }
+        
+        // Increment the binary value
+        binary = (binary + 1) & mask;
+        
+        // Convert back to Gray code
+        Self::binary_to_gray(binary, width)
+    }
 
-        x & mask
+    /// Convert binary to Gray code
+    pub fn binary_to_gray(binary: u64, width: BusWidth) -> u64 {
+        let mask = width.get_mask();
+        ((binary >> 1) ^ binary) & mask
+    }
+
+    /// Convert Gray code to binary
+    pub fn gray_to_binary(gray: u64, width: BusWidth) -> u64 {
+        let mask = width.get_mask();
+        let mut binary = gray & mask;
+        let mut temp = binary;
+        
+        let mut shift = 1;
+        while temp != 0 {
+            temp >>= 1;
+            binary ^= temp;
+            shift += 1;
+            if shift >= 64 { break; }
+        }
+        
+        binary & mask
+    }
+
+    /// Get the standard Gray code sequence for a given width
+    pub fn get_gray_sequence(width: BusWidth) -> Vec<u64> {
+        let count = 1u64 << width.as_u32().min(16); // Limit to 16 bits for practical sequences
+        let mut sequence = Vec::with_capacity(count as usize);
+        
+        for i in 0..count {
+            sequence.push(Self::binary_to_gray(i, width));
+        }
+        
+        sequence
     }
 }
 
-impl InstanceFactory for GrayIncrementer {
-    fn id(&self) -> &str {
+impl ComponentTool for GrayIncrementer {
+    fn get_name(&self) -> &str {
         Self::ID
     }
 
-    fn display_name(&self) -> &str {
+    fn get_display_name(&self) -> &str {
         "Gray Incrementer"
-    }
-
-    fn offset_bounds(&self) -> Bounds {
-        Bounds::create(-30, -15, 30, 30)
-    }
-
-    fn create_attributes(&self) -> Vec<Attribute<BitWidth>> {
-        vec![Attribute::new("WIDTH".to_string())]
-    }
-
-    fn create_ports(&self) -> Vec<Port> {
-        vec![
-            Port::new(Location::new(-30, 0), Port::INPUT, "WIDTH"),
-            Port::new(Location::new(0, 0), Port::OUTPUT, "WIDTH"),
-        ]
-    }
-
-    fn paint_instance(&self, painter: &mut InstancePainter) {
-        // Draw rectangle with "G+1" label
-        painter.draw_rectangle_with_text("G+1");
-        painter.draw_ports();
-    }
-
-    fn propagate(&self, state: &mut InstanceState) {
-        // Retrieve the value being fed into the input (port 0)
-        let input = state.port_value(0);
-
-        // For simplicity, just toggle between High and Low
-        let output = match input {
-            Value::Low => Value::High,
-            Value::High => Value::Low,
-            _ => Value::Unknown,
-        };
-
-        // Propagate the output to port 1 with delay
-        state.set_port(1, output, 2);
     }
 }
 
@@ -163,24 +118,71 @@ mod tests {
     #[test]
     fn test_gray_incrementer_creation() {
         let incrementer = GrayIncrementer::new();
-        assert_eq!(incrementer.id(), "Gray Code Incrementer");
-        assert_eq!(incrementer.display_name(), "Gray Incrementer");
+        assert_eq!(incrementer.get_name(), "Gray Code Incrementer");
+        assert_eq!(incrementer.get_display_name(), "Gray Incrementer");
+    }
+
+    #[test]
+    fn test_binary_to_gray_conversion() {
+        let width = BusWidth::new(4);
+        
+        // Test known conversions
+        assert_eq!(GrayIncrementer::binary_to_gray(0b0000, width), 0b0000);
+        assert_eq!(GrayIncrementer::binary_to_gray(0b0001, width), 0b0001);
+        assert_eq!(GrayIncrementer::binary_to_gray(0b0010, width), 0b0011);
+        assert_eq!(GrayIncrementer::binary_to_gray(0b0011, width), 0b0010);
+        assert_eq!(GrayIncrementer::binary_to_gray(0b0100, width), 0b0110);
+    }
+
+    #[test]
+    fn test_gray_to_binary_conversion() {
+        let width = BusWidth::new(4);
+        
+        // Test known conversions (reverse of binary to gray)
+        assert_eq!(GrayIncrementer::gray_to_binary(0b0000, width), 0b0000);
+        assert_eq!(GrayIncrementer::gray_to_binary(0b0001, width), 0b0001);
+        assert_eq!(GrayIncrementer::gray_to_binary(0b0011, width), 0b0010);
+        assert_eq!(GrayIncrementer::gray_to_binary(0b0010, width), 0b0011);
+        assert_eq!(GrayIncrementer::gray_to_binary(0b0110, width), 0b0100);
     }
 
     #[test]
     fn test_next_gray_logic() {
-        let width = BitWidth::new(4);
-
-        // Test basic Gray code progression
+        let width = BusWidth::new(4);
+        
+        // Test basic Gray code progression  
         assert_eq!(GrayIncrementer::next_gray(0b0000, width), 0b0001);
         assert_eq!(GrayIncrementer::next_gray(0b0001, width), 0b0011);
         assert_eq!(GrayIncrementer::next_gray(0b0011, width), 0b0010);
         assert_eq!(GrayIncrementer::next_gray(0b0010, width), 0b0110);
+        assert_eq!(GrayIncrementer::next_gray(0b0110, width), 0b0111);
+    }
+
+    #[test]
+    fn test_gray_sequence() {
+        let width = BusWidth::new(3);
+        let sequence = GrayIncrementer::get_gray_sequence(width);
+        
+        // 3-bit Gray sequence should be: 000, 001, 011, 010, 110, 111, 101, 100
+        let expected = vec![0b000, 0b001, 0b011, 0b010, 0b110, 0b111, 0b101, 0b100];
+        assert_eq!(sequence, expected);
+    }
+
+    #[test]
+    fn test_roundtrip_conversion() {
+        let width = BusWidth::new(4);
+        
+        // Test that binary -> gray -> binary gives original value
+        for i in 0..16 {
+            let gray = GrayIncrementer::binary_to_gray(i, width);
+            let binary = GrayIncrementer::gray_to_binary(gray, width);
+            assert_eq!(binary, i, "Roundtrip failed for value {}", i);
+        }
     }
 
     #[test]
     fn test_default_implementation() {
         let incrementer = GrayIncrementer::default();
-        assert_eq!(incrementer.id(), "Gray Code Incrementer");
+        assert_eq!(incrementer.get_name(), "Gray Code Incrementer");
     }
 }

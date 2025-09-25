@@ -119,7 +119,7 @@ impl<T> IntoIterator for UnionVec<T> {
     type IntoIter = std::iter::Chain<std::vec::IntoIter<T>, std::vec::IntoIter<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.first.into_iter().chain(self.second.into_iter())
+        self.first.into_iter().chain(self.second)
     }
 }
 

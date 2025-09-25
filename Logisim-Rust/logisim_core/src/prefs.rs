@@ -9,9 +9,10 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 /// Look and feel theme options
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum LookAndFeel {
     /// System native look and feel
+    #[default]
     System,
     /// Light theme
     Light,
@@ -19,12 +20,6 @@ pub enum LookAndFeel {
     Dark,
     /// High contrast theme
     HighContrast,
-}
-
-impl Default for LookAndFeel {
-    fn default() -> Self {
-        LookAndFeel::System
-    }
 }
 
 impl LookAndFeel {
@@ -66,7 +61,7 @@ impl FontScale {
     /// Create new font scale
     pub fn new(scale: f32) -> Self {
         Self {
-            scale: scale.max(0.5).min(3.0), // Clamp to reasonable range
+            scale: scale.clamp(0.5, 3.0), // Clamp to reasonable range
         }
     }
 

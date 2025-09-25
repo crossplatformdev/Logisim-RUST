@@ -1,26 +1,39 @@
-/*
- * Logisim-evolution - digital logic design tool and simulator
- * Copyright by the Logisim-evolution developers
- *
- * https://github.com/logisim-evolution/
- *
- * This is free software released under GNU GPLv3 license
- */
-
-//! HDL (Hardware Description Language) support infrastructure
+//! HDL Support Module
 //!
-//! This module provides fundamental HDL support functionality including:
-//! - File I/O operations for HDL files
-//! - HDL model representation and management
-//! - Event-driven architecture for HDL model changes
-//! - Internationalization support
+//! This module provides Hardware Description Language (HDL) support for Logisim-RUST,
+//! including VHDL and BLIF format parsing, content management, and code generation.
+//! It serves as a port of the Java com.cburch.hdl package and related HDL functionality.
+//!
+//! ## Architecture
+//!
+//! The HDL module is organized into several key components:
+//! - **Model**: Core HDL model interfaces and data structures
+//! - **Content**: Base classes for HDL content management
+//! - **Parsers**: VHDL and BLIF format parsers
+//! - **Components**: HDL entity components and attributes
+//! - **Generation**: HDL code generation and template systems
+//! - **File I/O**: HDL file loading and saving operations
+//!  
+//! ## Migration from Java
+//!
+//! This module ports functionality from:
+//! - `com.cburch.hdl.*` (4 files)
+//! - `com.cburch.logisim.std.hdl.*` (17 files)
+//!
+//! The Rust implementation maintains API compatibility while leveraging
+//! Rust's type safety and memory management features.
 
-pub mod hdl_file;
-pub mod hdl_model;
-pub mod hdl_model_listener;
+pub mod model;
+pub mod content;
+pub mod parsers;
+pub mod components;
+pub mod file_io;
 pub mod strings;
 
-pub use hdl_file::HdlFile;
-pub use hdl_model::{HdlModel, PortDescription};
-pub use hdl_model_listener::HdlModelListener;
-pub use strings::Strings;
+// Re-export public types for convenience
+pub use model::*;
+pub use content::{HdlContent, HdlContentEditor, HdlContentAttribute, BasicHdlContentEditor};
+pub use parsers::*;
+pub use components::{VhdlEntityComponent, BlifCircuitComponent, HdlLibrary, VhdlEntityAttributes, BlifCircuitAttributes, GenericInterfaceAttributes, HdlAttributeFactory, HdlAttributeConstants};
+pub use file_io::*;
+pub use strings::*;
