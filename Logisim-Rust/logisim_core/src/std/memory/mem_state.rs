@@ -14,7 +14,7 @@
 
 use crate::std::memory::mem_contents::MemContents;
 use crate::instance::InstanceState;
-use crate::{Value, BitWidth};
+use crate::Value;
 use std::sync::{Arc, Mutex};
 
 /// Memory state for tracking memory contents during simulation
@@ -85,17 +85,21 @@ impl MemState {
     pub fn read(&self, addr: i64) -> Value {
         if let Ok(contents) = self.contents.lock() {
             let raw_value = contents.get(addr);
-            Value::create_known(BitWidth::create(self.data_bits), raw_value as i32)
+            // Use from_long to create Value from raw data  
+            let bus_width = crate::signal::BusWidth::new(self.data_bits as u32);
+            Value::from_long(raw_value, bus_width)
         } else {
-            Value::create_error(BitWidth::create(self.data_bits))
+            // Return error value if can't access contents
+            let bus_width = crate::signal::BusWidth::new(self.data_bits as u32);
+            Value::from_long(-1, bus_width)
         }
     }
 
-    /// Write value to memory at specified address
+    /// Write value to memory at specified address  
     pub fn write(&mut self, addr: i64, value: Value) {
         if let Ok(mut contents) = self.contents.lock() {
             if value.is_fully_defined() {
-                let raw_value = value.to_int_value() as i64;
+                let raw_value = value.to_long_value();
                 contents.set(addr, raw_value);
             }
         }
@@ -118,14 +122,14 @@ impl MemState {
     }
 
     /// Get state from instance state
-    pub fn get(state: &InstanceState) -> Option<MemState> {
+    pub fn get(state: &dyn InstanceState) -> Option<MemState> {
         // TODO: Implement proper instance state integration
         // This would interface with the component's instance data
         None
     }
 
     /// Set state in instance state
-    pub fn set(state: &mut InstanceState, mem_state: MemState) {
+    pub fn set(state: &mut dyn InstanceState, mem_state: MemState) {
         // TODO: Implement proper instance state integration
         // This would store the memory state in the instance data
     }

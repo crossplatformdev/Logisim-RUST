@@ -105,7 +105,7 @@ pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
 pub use std::wiring::WiringLibrary;
-pub use std::{base::*, gates::*, io::*};
+pub use std::{base::*, gates::*, memory::*};
 pub use tools::{
     Action, BasicLibrary, Canvas, Circuit, CursorType, Library, Project, Selection, Tool,
     ToolError, ToolResult,
