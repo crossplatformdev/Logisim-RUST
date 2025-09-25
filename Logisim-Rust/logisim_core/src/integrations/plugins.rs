@@ -25,6 +25,8 @@ pub enum PluginError {
     DependencyMissing(String),
     #[error("Plugin version incompatible: {0}")]
     VersionIncompatible(String),
+    #[error("Observer error: {0}")]
+    ObserverError(#[from] crate::observers::ObserverError),
 }
 
 /// Plugin operation result
@@ -51,6 +53,10 @@ pub struct PluginDependency {
 }
 
 /// Plugin library definition
+/// 
+/// # API Stability
+/// This trait is **UNSTABLE** and may change in future versions.
+/// Plugin developers should expect breaking changes and version compatibility requirements.
 pub trait PluginLibrary: Send + Sync {
     /// Get library information
     fn info(&self) -> &PluginInfo;
@@ -70,6 +76,33 @@ pub trait PluginLibrary: Send + Sync {
 
     /// Cleanup the plugin
     fn cleanup(&mut self) -> PluginResult<()>;
+    
+    /// Get the API version this plugin was built against
+    /// This allows for version compatibility checking
+    fn api_version(&self) -> u32 {
+        1 // Default API version
+    }
+    
+    /// Get plugin capabilities and feature flags
+    fn capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities::default()
+    }
+    
+    /// Check if plugin supports hot reloading
+    fn supports_hot_reload(&self) -> bool {
+        false
+    }
+    
+    /// Called when plugin is about to be hot-reloaded
+    fn prepare_for_reload(&mut self) -> PluginResult<()> {
+        Ok(())
+    }
+    
+    /// Validate plugin configuration
+    fn validate_config(&self, _config: &PluginConfig) -> PluginResult<()> {
+        // Default implementation accepts any config
+        Ok(())
+    }
 }
 
 /// Component information from plugin
@@ -84,11 +117,37 @@ pub struct ComponentInfo {
 }
 
 /// Plugin discovery and management system
+/// 
+/// # API Stability
+/// This struct is **UNSTABLE** and its API may change in future versions.
 pub struct PluginManager {
     plugins: HashMap<String, Box<dyn PluginLibrary>>,
     search_paths: Vec<PathBuf>,
     #[allow(dead_code)]
     loaded_plugins: Vec<String>,
+    component_registry: ComponentRegistry,
+    observer_managers: ObserverManagers,
+    plugin_configs: HashMap<String, PluginConfig>,
+}
+
+/// Container for all observer managers
+/// 
+/// # API Stability
+/// This struct is **UNSTABLE** and may be restructured in future versions.
+pub struct ObserverManagers {
+    pub simulation: crate::observers::SimulationObserverManager,
+    pub component: crate::observers::ComponentObserverManager,
+    pub system: crate::observers::SystemObserverManager,
+}
+
+impl ObserverManagers {
+    pub fn new() -> Self {
+        Self {
+            simulation: crate::observers::SimulationObserverManager::new(),
+            component: crate::observers::ComponentObserverManager::new(),
+            system: crate::observers::SystemObserverManager::new(),
+        }
+    }
 }
 
 impl PluginManager {
@@ -98,6 +157,9 @@ impl PluginManager {
             plugins: HashMap::new(),
             search_paths: Vec::new(),
             loaded_plugins: Vec::new(),
+            component_registry: ComponentRegistry::new(),
+            observer_managers: ObserverManagers::new(),
+            plugin_configs: HashMap::new(),
         }
     }
 
@@ -172,6 +234,102 @@ impl PluginManager {
         // Stub implementation - maintains API compatibility
         log::warn!("Plugin component creation not implemented in current version");
         Err(PluginError::NotImplemented)
+    }
+    
+    /// Get access to the component registry
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn component_registry(&self) -> &ComponentRegistry {
+        &self.component_registry
+    }
+    
+    /// Get mutable access to the component registry
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn component_registry_mut(&mut self) -> &mut ComponentRegistry {
+        &mut self.component_registry
+    }
+    
+    /// Get access to observer managers
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn observer_managers(&self) -> &ObserverManagers {
+        &self.observer_managers
+    }
+    
+    /// Get mutable access to observer managers
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn observer_managers_mut(&mut self) -> &mut ObserverManagers {
+        &mut self.observer_managers
+    }
+    
+    /// Register a dynamic component factory
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn register_component_factory(
+        &mut self, 
+        factory: Box<dyn DynamicComponentFactory>,
+        plugin_name: &str
+    ) -> PluginResult<()> {
+        self.component_registry.register_factory(factory, plugin_name)
+    }
+    
+    /// Create a component using the dynamic registry
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn create_dynamic_component(&mut self, component_type: &str) -> PluginResult<Box<dyn Component>> {
+        self.component_registry.create_component(component_type)
+    }
+    
+    /// Set plugin configuration
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn set_plugin_config(&mut self, plugin_name: &str, config: PluginConfig) {
+        self.plugin_configs.insert(plugin_name.to_string(), config);
+    }
+    
+    /// Get plugin configuration
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn get_plugin_config(&self, plugin_name: &str) -> Option<&PluginConfig> {
+        self.plugin_configs.get(plugin_name)
+    }
+    
+    /// Check if plugin system is fully initialized
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn is_initialized(&self) -> bool {
+        // In a full implementation, this would check if all subsystems are ready
+        true
+    }
+    
+    /// Get system capabilities
+    /// 
+    /// # API Stability
+    /// This method is **UNSTABLE** and may change in future versions.
+    pub fn get_system_capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities {
+            native_plugins: false,
+            jar_plugins: false,
+            wasm_plugins: false,
+            dynamic_loading: false,
+            hot_reload: false,
+            observer_support: true,  // We now support observers
+            custom_events: true,     // Custom events supported through observers
+            custom_rendering: false, // Not yet implemented
+            ui_extensions: false,    // Not yet implemented
+            custom_formats: false,   // Not yet implemented
+        }
     }
 }
 
@@ -289,10 +447,18 @@ pub fn get_plugin_capabilities() -> PluginCapabilities {
         wasm_plugins: false,
         dynamic_loading: false,
         hot_reload: false,
+        observer_support: true,
+        custom_events: true,
+        custom_rendering: false,
+        ui_extensions: false,
+        custom_formats: false,
     }
 }
 
 /// Plugin system capabilities
+/// 
+/// # API Stability
+/// This structure is **UNSTABLE** and may have fields added or changed in future versions.
 #[derive(Debug, Clone)]
 pub struct PluginCapabilities {
     pub native_plugins: bool,
@@ -300,6 +466,281 @@ pub struct PluginCapabilities {
     pub wasm_plugins: bool,
     pub dynamic_loading: bool,
     pub hot_reload: bool,
+    /// Plugin supports observer pattern integration
+    pub observer_support: bool,
+    /// Plugin can register custom simulation events
+    pub custom_events: bool,
+    /// Plugin supports custom rendering
+    pub custom_rendering: bool,
+    /// Plugin can extend the UI
+    pub ui_extensions: bool,
+    /// Plugin supports custom file formats
+    pub custom_formats: bool,
+}
+
+impl Default for PluginCapabilities {
+    fn default() -> Self {
+        Self {
+            native_plugins: false,
+            jar_plugins: false,
+            wasm_plugins: false,
+            dynamic_loading: false,
+            hot_reload: false,
+            observer_support: false,
+            custom_events: false,
+            custom_rendering: false,
+            ui_extensions: false,
+            custom_formats: false,
+        }
+    }
+}
+
+/// Plugin configuration data
+/// 
+/// # API Stability  
+/// This structure is **UNSTABLE** and may have fields added or changed.
+#[derive(Debug, Clone)]
+pub struct PluginConfig {
+    /// Plugin-specific configuration parameters
+    pub parameters: std::collections::HashMap<String, String>,
+    /// Enabled features for this plugin instance
+    pub enabled_features: Vec<String>,
+    /// Resource limits for plugin execution
+    pub resource_limits: ResourceLimits,
+}
+
+/// Resource limits for plugin execution
+#[derive(Debug, Clone)]
+pub struct ResourceLimits {
+    /// Maximum memory usage in bytes (0 = unlimited)
+    pub max_memory: usize,
+    /// Maximum CPU time per operation in milliseconds (0 = unlimited)
+    pub max_cpu_time: u64,
+    /// Maximum number of components this plugin can create (0 = unlimited)
+    pub max_components: usize,
+}
+
+impl Default for ResourceLimits {
+    fn default() -> Self {
+        Self {
+            max_memory: 0,
+            max_cpu_time: 0,
+            max_components: 0,
+        }
+    }
+}
+
+/// Enhanced component factory trait for dynamic component creation
+/// 
+/// # API Stability
+/// This trait is **UNSTABLE** and may change in future versions.
+pub trait DynamicComponentFactory: Send + Sync {
+    /// Get the component type this factory creates
+    fn component_type(&self) -> &str;
+    
+    /// Get detailed component information
+    fn component_info(&self) -> ComponentInfo;
+    
+    /// Create a component with the given ID
+    fn create_component(&self, id: ComponentId) -> PluginResult<Box<dyn Component>>;
+    
+    /// Create a component with custom parameters
+    fn create_component_with_params(
+        &self, 
+        id: ComponentId, 
+        _params: &std::collections::HashMap<String, String>
+    ) -> PluginResult<Box<dyn Component>> {
+        // Default implementation ignores parameters
+        self.create_component(id)
+    }
+    
+    /// Validate component parameters before creation
+    fn validate_parameters(&self, _params: &std::collections::HashMap<String, String>) -> PluginResult<()> {
+        // Default implementation accepts any parameters
+        Ok(())
+    }
+    
+    /// Get the default parameters for this component type
+    fn default_parameters(&self) -> std::collections::HashMap<String, String> {
+        std::collections::HashMap::new()
+    }
+}
+
+/// Component registry for dynamic component registration
+/// 
+/// # API Stability
+/// This structure is **UNSTABLE** and its API may change.  
+pub struct ComponentRegistry {
+    factories: std::collections::HashMap<String, Box<dyn DynamicComponentFactory>>,
+    component_metadata: std::collections::HashMap<String, ComponentMetadata>,
+    next_component_id: u64,
+}
+
+/// Metadata about a registered component type
+#[derive(Debug, Clone)]
+pub struct ComponentMetadata {
+    pub type_name: String,
+    pub display_name: String,
+    pub category: String,
+    pub description: String,
+    pub icon_path: Option<String>,
+    pub plugin_source: String,
+    pub capabilities: ComponentCapabilities,
+    pub parameters: Vec<ParameterDefinition>,
+}
+
+/// Capabilities of a component type
+#[derive(Debug, Clone)]
+pub struct ComponentCapabilities {
+    pub is_sequential: bool,
+    pub has_state: bool,
+    pub supports_bus: bool,
+    pub supports_clock: bool,
+    pub min_inputs: u32,
+    pub max_inputs: u32,
+    pub min_outputs: u32,
+    pub max_outputs: u32,
+}
+
+/// Definition of a component parameter
+#[derive(Debug, Clone)]
+pub struct ParameterDefinition {
+    pub name: String,
+    pub display_name: String,
+    pub parameter_type: ParameterType,
+    pub default_value: String,
+    pub description: String,
+    pub required: bool,
+}
+
+/// Types of component parameters  
+#[derive(Debug, Clone)]
+pub enum ParameterType {
+    String,
+    Integer { min: i64, max: i64 },
+    Float { min: f64, max: f64 },
+    Boolean,
+    Choice { options: Vec<String> },
+    Color,
+    File { extensions: Vec<String> },
+}
+
+impl ComponentRegistry {
+    /// Create a new component registry
+    pub fn new() -> Self {
+        Self {
+            factories: std::collections::HashMap::new(),
+            component_metadata: std::collections::HashMap::new(),
+            next_component_id: 1,
+        }
+    }
+    
+    /// Register a component factory
+    pub fn register_factory(
+        &mut self, 
+        factory: Box<dyn DynamicComponentFactory>,
+        plugin_name: &str
+    ) -> PluginResult<()> {
+        let component_type = factory.component_type().to_string();
+        let component_info = factory.component_info();
+        
+        // Create metadata from component info
+        let metadata = ComponentMetadata {
+            type_name: component_type.clone(),
+            display_name: component_info.name.clone(),
+            category: component_info.category.clone(),
+            description: component_info.description.clone(),
+            icon_path: component_info.icon_path.clone(),
+            plugin_source: plugin_name.to_string(),
+            capabilities: ComponentCapabilities {
+                is_sequential: false, // Default values - plugins can override
+                has_state: false,
+                supports_bus: false,
+                supports_clock: false,
+                min_inputs: component_info.input_count.unwrap_or(0),
+                max_inputs: component_info.input_count.unwrap_or(0),
+                min_outputs: component_info.output_count.unwrap_or(0),
+                max_outputs: component_info.output_count.unwrap_or(0),
+            },
+            parameters: Vec::new(), // Plugins can extend this
+        };
+        
+        self.factories.insert(component_type.clone(), factory);
+        self.component_metadata.insert(component_type.clone(), metadata);
+        
+        log::info!("Registered component factory for type: {}", component_type);
+        Ok(())
+    }
+    
+    /// Unregister a component factory
+    pub fn unregister_factory(&mut self, component_type: &str) -> PluginResult<()> {
+        if self.factories.remove(component_type).is_some() {
+            self.component_metadata.remove(component_type);
+            log::info!("Unregistered component factory for type: {}", component_type);
+            Ok(())
+        } else {
+            Err(PluginError::PluginNotFound(format!("Component type: {}", component_type)))
+        }
+    }
+    
+    /// Create a component of the specified type
+    pub fn create_component(&mut self, component_type: &str) -> PluginResult<Box<dyn Component>> {
+        let id = ComponentId::new(self.next_component_id);
+        self.next_component_id += 1;
+        
+        if let Some(factory) = self.factories.get(component_type) {
+            factory.create_component(id)
+        } else {
+            Err(PluginError::PluginNotFound(format!("Component type: {}", component_type)))
+        }
+    }
+    
+    /// Create a component with custom parameters
+    pub fn create_component_with_params(
+        &mut self, 
+        component_type: &str,
+        params: &std::collections::HashMap<String, String>
+    ) -> PluginResult<Box<dyn Component>> {
+        let id = ComponentId::new(self.next_component_id);
+        self.next_component_id += 1;
+        
+        if let Some(factory) = self.factories.get(component_type) {
+            factory.create_component_with_params(id, params)
+        } else {
+            Err(PluginError::PluginNotFound(format!("Component type: {}", component_type)))
+        }
+    }
+    
+    /// Get all registered component types
+    pub fn get_component_types(&self) -> Vec<String> {
+        self.factories.keys().cloned().collect()
+    }
+    
+    /// Get metadata for a component type
+    pub fn get_component_metadata(&self, component_type: &str) -> Option<&ComponentMetadata> {
+        self.component_metadata.get(component_type)
+    }
+    
+    /// Get all component metadata
+    pub fn get_all_metadata(&self) -> Vec<&ComponentMetadata> {
+        self.component_metadata.values().collect()
+    }
+    
+    /// Check if a component type is registered
+    pub fn is_registered(&self, component_type: &str) -> bool {
+        self.factories.contains_key(component_type)
+    }
+    
+    /// Get the number of registered component types
+    pub fn component_count(&self) -> usize {
+        self.factories.len()
+    }
+}
+
+impl Default for ComponentRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

@@ -267,13 +267,334 @@ pub const DEFAULT_TICK_WIDTH: f32 = 10.0;  // Default time scale
 - Verification against Java implementation behavior
 - Performance benchmarking
 
-## Future Enhancements
+## Extensibility Framework
 
-### Planned Features
-- VHDL/Verilog export
-- Advanced component library
-- Plugin system
-- Network simulation capabilities
+### Overview
+
+Logisim-RUST provides a comprehensive extensibility framework that allows developers to extend the simulator with custom components, observers, and plugins. The framework is designed to be type-safe, performant, and maintainable while providing flexibility for advanced users.
+
+**⚠️ API Stability Warning**: The extensibility APIs are currently **UNSTABLE** and may change in future versions. Plugin developers should expect breaking changes and plan for migration.
+
+### Extension Points
+
+#### 1. Observer Pattern Integration
+
+The observer pattern allows external code to monitor and react to simulation events, component state changes, and system events without modifying core simulator code.
+
+##### Simulation Observers
+Monitor simulation lifecycle events:
+```rust
+use logisim_core::{SimulationObserver, SimulationEvent, ObserverResult, ObserverId};
+
+pub struct MySimulationObserver {
+    id: ObserverId,
+}
+
+impl SimulationObserver for MySimulationObserver {
+    fn id(&self) -> ObserverId { self.id }
+    fn name(&self) -> &str { "My Simulation Observer" }
+    
+    fn on_simulation_event(&mut self, event: &SimulationEvent) -> ObserverResult<()> {
+        match event {
+            SimulationEvent::Started { timestamp } => {
+                println!("Simulation started at time {}", timestamp.0);
+            }
+            SimulationEvent::Stopped { timestamp } => {
+                println!("Simulation stopped at time {}", timestamp.0);
+            }
+            // Handle other events...
+            _ => {}
+        }
+        Ok(())
+    }
+}
+```
+
+##### Component Observers
+Monitor component behavior and state changes:
+```rust
+impl ComponentObserver for MyComponentObserver {
+    fn on_component_event(&mut self, event: &ComponentEvent) -> ObserverResult<()> {
+        match event {
+            ComponentEvent::StateChanged { component_id, timestamp } => {
+                println!("Component {} changed state at time {}", component_id, timestamp.0);
+            }
+            ComponentEvent::OutputChanged { component_id, pin_name, new_signal, .. } => {
+                println!("Component {} output {} changed to {:?}", component_id, pin_name, new_signal);
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+}
+```
+
+##### System Observers
+Monitor system-wide events like plugin loading:
+```rust
+impl SystemObserver for MySystemObserver {
+    fn on_plugin_loaded(&mut self, plugin_name: &str) -> ObserverResult<()> {
+        println!("Plugin {} loaded successfully", plugin_name);
+        Ok(())
+    }
+}
+```
+
+#### 2. Dynamic Component Registration
+
+The component registry allows plugins to register custom component types that can be instantiated at runtime.
+
+##### Component Factory Implementation
+```rust
+use logisim_core::{DynamicComponentFactory, ComponentInfo, ComponentId, Component, PluginResult};
+
+pub struct MyComponentFactory;
+
+impl DynamicComponentFactory for MyComponentFactory {
+    fn component_type(&self) -> &str {
+        "MyCustomComponent"
+    }
+    
+    fn component_info(&self) -> ComponentInfo {
+        ComponentInfo {
+            name: "My Custom Component".to_string(),
+            category: "Custom Logic".to_string(),
+            description: "A custom component with special features".to_string(),
+            icon_path: None,
+            input_count: Some(2),
+            output_count: Some(1),
+        }
+    }
+    
+    fn create_component(&self, id: ComponentId) -> PluginResult<Box<dyn Component>> {
+        Ok(Box::new(MyCustomComponent::new(id)))
+    }
+}
+```
+
+##### Registration with Plugin Manager
+```rust
+// Register the factory with the plugin manager
+plugin_manager.register_component_factory(
+    Box::new(MyComponentFactory), 
+    "my_plugin"
+)?;
+
+// Create components dynamically
+let component = plugin_manager.create_dynamic_component("MyCustomComponent")?;
+```
+
+#### 3. Plugin System Architecture
+
+The plugin system provides a framework for loading and managing external code that extends Logisim-RUST functionality.
+
+##### Plugin Library Implementation
+```rust
+use logisim_core::{PluginLibrary, PluginInfo, PluginResult, PluginCapabilities};
+
+pub struct MyPlugin {
+    info: PluginInfo,
+}
+
+impl PluginLibrary for MyPlugin {
+    fn info(&self) -> &PluginInfo {
+        &self.info
+    }
+    
+    fn components(&self) -> Vec<ComponentInfo> {
+        vec![/* component definitions */]
+    }
+    
+    fn create_component(&self, component_type: &str, id: ComponentId) -> PluginResult<Box<dyn Component>> {
+        match component_type {
+            "MyCustomComponent" => Ok(Box::new(MyCustomComponent::new(id))),
+            _ => Err(PluginError::PluginNotFound(format!("Unknown component: {}", component_type)))
+        }
+    }
+    
+    fn initialize(&mut self) -> PluginResult<()> {
+        // Plugin initialization logic
+        Ok(())
+    }
+    
+    fn cleanup(&mut self) -> PluginResult<()> {
+        // Plugin cleanup logic
+        Ok(())
+    }
+    
+    fn capabilities(&self) -> PluginCapabilities {
+        PluginCapabilities {
+            observer_support: true,
+            custom_events: true,
+            custom_rendering: false,
+            ui_extensions: false,
+            custom_formats: false,
+            ..Default::default()
+        }
+    }
+}
+```
+
+### API Contracts
+
+#### Version Compatibility
+
+All plugins must specify the API version they were built against:
+```rust
+pub const API_VERSION: u32 = 1;
+
+impl PluginLibrary for MyPlugin {
+    fn api_version(&self) -> u32 {
+        API_VERSION
+    }
+}
+```
+
+The simulator will check API compatibility during plugin loading and may reject incompatible plugins.
+
+#### Resource Management
+
+Plugins must implement proper resource management:
+- **Initialization**: Set up resources in `initialize()`
+- **Cleanup**: Release resources in `cleanup()`
+- **Error Handling**: Use `PluginResult<T>` for error propagation
+- **Thread Safety**: All plugin interfaces must be `Send + Sync`
+
+#### Component Lifecycle
+
+Custom components must follow the standard component lifecycle:
+1. **Creation**: Implement `Component` trait
+2. **Reset**: Handle `reset()` calls properly  
+3. **Update**: Implement `update()` for signal propagation
+4. **Clock Handling**: Implement `clock_edge()` for sequential components
+
+### Unstable APIs
+
+The following APIs are explicitly marked as **UNSTABLE** and may change:
+
+#### Observer System (`logisim_core::observers`)
+- `SimulationObserver` trait
+- `ComponentObserver` trait  
+- `SystemObserver` trait
+- Observer manager implementations
+- Event structures (`SimulationEvent`, `ComponentEvent`)
+
+#### Plugin System (`logisim_core::integrations::plugins`)
+- `PluginLibrary` trait extensions (beyond basic interface)
+- `DynamicComponentFactory` trait
+- `ComponentRegistry` structure
+- `PluginCapabilities` structure
+- `PluginConfig` and `ResourceLimits`
+
+#### Extension Utilities
+- Observer registration and management functions
+- Component factory registration system
+- Plugin lifecycle management
+
+### Stable APIs
+
+The following APIs are considered **STABLE** and will maintain backward compatibility:
+
+#### Core Component System
+- `Component` trait (basic interface)
+- `ComponentId`, `Pin`, `UpdateResult` types
+- `Signal`, `Value`, `BusWidth`, `Timestamp` types
+
+#### Basic Plugin Interface
+- `PluginInfo` structure
+- `ComponentInfo` structure  
+- `PluginError` and `PluginResult` types
+- Basic `PluginLibrary` methods (`info()`, `components()`, `create_component()`)
+
+### Migration Guidelines
+
+When API changes occur:
+
+1. **Monitor API Version**: Check `logisim_core::API_VERSION` for compatibility
+2. **Use Feature Flags**: Check `logisim_core::is_feature_enabled()` for optional features
+3. **Handle Errors Gracefully**: Use `PluginResult` error handling throughout
+4. **Follow Deprecation Notices**: Watch for deprecation warnings in logs
+5. **Test Compatibility**: Regularly test plugins against new simulator versions
+
+### Performance Considerations
+
+#### Observer Performance
+- Observers are called synchronously during simulation
+- Use `interested_in_event()` to filter unnecessary events
+- Keep observer logic lightweight to avoid simulation slowdown
+- Consider async processing for heavy operations
+
+#### Component Performance  
+- Minimize computation in `update()` method
+- Use appropriate propagation delays
+- Cache expensive calculations when possible
+- Implement efficient state management
+
+#### Memory Management
+- Release resources in `cleanup()` methods
+- Avoid memory leaks in long-running simulations
+- Use appropriate data structures for component state
+- Monitor memory usage in complex plugins
+
+### Security Considerations
+
+#### Plugin Sandboxing
+- Plugins run in the same process as the simulator
+- No current sandboxing mechanism (planned for future versions)
+- Plugin developers are responsible for security
+
+#### Resource Limits
+- Configure `ResourceLimits` for plugin instances
+- Monitor CPU and memory usage
+- Implement timeouts for long-running operations
+
+#### Input Validation
+- Validate all plugin inputs and parameters
+- Use type-safe interfaces where possible
+- Handle malformed data gracefully
+
+### Testing Framework
+
+#### Plugin Testing
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_plugin_initialization() {
+        let mut plugin = MyPlugin::new();
+        assert!(plugin.initialize().is_ok());
+        assert!(plugin.cleanup().is_ok());
+    }
+    
+    #[test]
+    fn test_component_creation() {
+        let plugin = MyPlugin::new();
+        let result = plugin.create_component("MyCustomComponent", ComponentId::new(1));
+        assert!(result.is_ok());
+    }
+}
+```
+
+#### Observer Testing
+```rust
+#[test]
+fn test_observer_events() {
+    let mut observer = MyObserver::new();
+    let event = SimulationEvent::Started { timestamp: Timestamp(0) };
+    assert!(observer.on_simulation_event(&event).is_ok());
+}
+```
+
+### Example Plugin Structure
+
+See `examples/stub_plugin/` for a complete example plugin implementation that demonstrates:
+- Custom component creation (`CustomXOR`, `CustomCounter`)
+- Observer implementation (`PluginEventLogger`, `ComponentStateTracker`)
+- Dynamic component factories
+- Plugin lifecycle management
+- Parameter validation and configuration
 
 ### Performance Optimizations
 - Multi-threaded simulation
