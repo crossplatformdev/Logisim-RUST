@@ -12,7 +12,7 @@
 //! This module provides a concrete implementation of the InstanceState trait
 //! for use during simulation. This is equivalent to Java's `InstanceStateImpl` class.
 
-use crate::data::{Attribute, AttributeSet};
+use crate::data::AttributeSet;
 use crate::instance::{Instance, InstanceData, InstanceFactory, InstanceState, Port};
 use crate::netlist::NetId;
 use crate::signal::Timestamp;

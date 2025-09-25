@@ -13,8 +13,8 @@
 //! communication between subcircuits and external interfaces.
 
 use crate::{
-    component::{Component, ComponentId, Pin as ComponentPin, PinDirection, UpdateResult},
-    data::{BitWidth, Direction},
+    comp::{ComponentId, Component, Pin as CompPin, UpdateResult},
+    data::Direction,
     signal::{BusWidth, Signal, Timestamp, Value},
     std::wiring::WiringComponentFactory,
 };
@@ -105,7 +105,7 @@ pub struct Pin {
     id: ComponentId,
     attributes: PinAttributes,
     state: PinState,
-    pins: HashMap<String, ComponentPin>,
+    pins: HashMap<String, CompPin>,
 }
 
 impl Pin {
@@ -116,15 +116,15 @@ impl Pin {
 
         // Create the component pin based on pin type
         let pin_direction = if attributes.is_output() {
-            PinDirection::Output
+            Direction::Output
         } else {
-            PinDirection::Input
+            Direction::Input
         };
 
         let component_pin = match pin_direction {
-            PinDirection::Input => ComponentPin::new_input("pin", attributes.width),
-            PinDirection::Output => ComponentPin::new_output("pin", attributes.width),
-            PinDirection::InOut => ComponentPin::new_inout("pin", attributes.width),
+            Direction::Input => CompPin::new_input("pin", attributes.width),
+            Direction::Output => CompPin::new_output("pin", attributes.width),
+            Direction::InOut => Pin::new_inout("pin", attributes.width),
         };
 
         let mut pins = HashMap::new();
@@ -170,11 +170,11 @@ impl Component for Pin {
         PIN_ID
     }
 
-    fn pins(&self) -> &HashMap<String, ComponentPin> {
+    fn pins(&self) -> &HashMap<String, CompPin> {
         &self.pins
     }
 
-    fn pins_mut(&mut self) -> &mut HashMap<String, ComponentPin> {
+    fn pins_mut(&mut self) -> &mut HashMap<String, CompPin> {
         &mut self.pins
     }
 

@@ -19,14 +19,11 @@
 //! - Access component properties and context menus
 
 use crate::{
-    component::{Component, ComponentId},
+    component::ComponentId,
     data::{Bounds, Location},
-    tools::{
-        tool::{
-            Canvas, ComponentDrawContext, CursorType, KeyEvent, KeyModifiers, LogisimVersion,
-            MouseButton, MouseEvent, Tool,
-        },
-        ToolResult,
+    tools::tool::{
+        Canvas, ComponentDrawContext, CursorType, KeyEvent, KeyModifiers, MouseButton, MouseEvent,
+        Tool,
     },
 };
 use std::collections::HashSet;

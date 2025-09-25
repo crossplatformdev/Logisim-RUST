@@ -11,7 +11,7 @@
 //!
 //! Rust port of `com.cburch.logisim.std.gates.NorGate`
 
-use crate::component::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -124,19 +124,6 @@ impl Component for NorGate {
     }
 }
 
-impl Propagator for NorGate {
-    fn propagate(
-        &mut self,
-        input_pin: &str,
-        signal: Signal,
-        current_time: Timestamp,
-    ) -> UpdateResult {
-        if let Some(pin) = self.pins.get_mut(input_pin) {
-            let _ = pin.set_signal(signal);
-        }
-        self.update(current_time)
-    }
-}
 
 #[cfg(test)]
 mod tests {

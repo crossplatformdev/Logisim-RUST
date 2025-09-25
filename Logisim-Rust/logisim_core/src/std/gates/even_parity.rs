@@ -12,7 +12,7 @@
 //! Rust port of `com.cburch.logisim.std.gates.EvenParityGate`
 //! TODO: Full implementation needed
 
-use crate::component::{Component, ComponentId};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 
 /// Even parity gate implementation (placeholder)
 ///
@@ -37,18 +37,18 @@ impl Component for EvenParityGate {
         "Even Parity"
     }
 
-    fn pins(&self) -> &std::collections::HashMap<String, crate::component::Pin> {
+    fn pins(&self) -> &std::collections::HashMap<String, Pin> {
         todo!("EvenParityGate implementation needed")
     }
 
-    fn pins_mut(&mut self) -> &mut std::collections::HashMap<String, crate::component::Pin> {
+    fn pins_mut(&mut self) -> &mut std::collections::HashMap<String, Pin> {
         todo!("EvenParityGate implementation needed")
     }
 
     fn update(
         &mut self,
         _current_time: crate::signal::Timestamp,
-    ) -> crate::component::UpdateResult {
+    ) -> UpdateResult {
         todo!("EvenParityGate implementation needed")
     }
 

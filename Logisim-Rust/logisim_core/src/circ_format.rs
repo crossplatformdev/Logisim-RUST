@@ -33,9 +33,11 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::component::{Component, ComponentId};
+use crate::comp::{Component, ComponentId};
 use crate::netlist::NodeId;
 use crate::simulation::Simulation;
+use crate::std::gates::{AndGate, OrGate, NotGate, NandGate, NorGate, XorGate, XnorGate};
+use crate::std::wiring::pin::Pin;
 
 /// Errors that can occur during .circ file processing
 #[derive(Error, Debug)]
