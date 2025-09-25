@@ -26,7 +26,7 @@ struct HighlightEntry {
 }
 
 /// Manages highlighting of address ranges in the hex editor
-/// 
+///
 /// The highlighter allows marking ranges of addresses with different colors
 /// for visual emphasis and can handle overlapping highlights.
 pub struct Highlighter {
@@ -44,12 +44,12 @@ impl Highlighter {
     }
 
     /// Add a highlight for the given address range
-    /// 
+    ///
     /// # Arguments
     /// * `start` - Starting address (inclusive)
     /// * `end` - Ending address (inclusive)
     /// * `color` - RGB color for the highlight
-    /// 
+    ///
     /// Returns a handle that can be used to remove the highlight later,
     /// or None if the range is invalid.
     pub fn add(&mut self, start: u64, end: u64, color: Color) -> Option<HighlightHandle> {
@@ -83,7 +83,7 @@ impl Highlighter {
     }
 
     /// Remove a specific highlight by handle
-    /// 
+    ///
     /// Returns true if the highlight was found and removed.
     pub fn remove(&mut self, handle: HighlightHandle) -> bool {
         let handle_id = handle.0;
@@ -96,7 +96,7 @@ impl Highlighter {
     }
 
     /// Get all highlights that intersect with the given address range
-    /// 
+    ///
     /// Returns a vector of (start, end, color) tuples for highlights
     /// that overlap with the given range.
     pub fn get_highlights_in_range(&self, start: u64, end: u64) -> Vec<(u64, u64, Color)> {
@@ -108,16 +108,16 @@ impl Highlighter {
     }
 
     /// Paint highlights for the given address range
-    /// 
+    ///
     /// This method would be called during rendering to draw the highlights.
     /// In a real GUI implementation, this would draw colored rectangles.
-    /// 
+    ///
     /// # Arguments
     /// * `measures` - Layout measurements for coordinate conversion
     /// * `start` - Starting address of visible range
     /// * `end` - Ending address of visible range
     /// * `first_offset` - First offset in the data model
-    /// 
+    ///
     /// Returns a list of rectangles to be drawn with their colors.
     pub fn paint_highlights(
         &self,
@@ -128,7 +128,7 @@ impl Highlighter {
     ) -> Vec<(i32, i32, i32, i32, Color)> {
         let mut rectangles = Vec::new();
         let base_address = measures.get_base_address(first_offset);
-        
+
         for entry in &self.entries {
             if entry.start <= end && entry.end >= start {
                 let y0 = measures.to_y(entry.start, base_address);
@@ -145,7 +145,7 @@ impl Highlighter {
                     // Multi-line highlight
                     let line_start_x = measures.get_values_x();
                     let line_width = measures.get_values_width();
-                    
+
                     // First line
                     rectangles.push((
                         x0,
@@ -154,7 +154,7 @@ impl Highlighter {
                         cell_height,
                         entry.color,
                     ));
-                    
+
                     // Middle lines (if any)
                     let mid_height = y1 - (y0 + cell_height);
                     if mid_height > 0 {
@@ -166,7 +166,7 @@ impl Highlighter {
                             entry.color,
                         ));
                     }
-                    
+
                     // Last line
                     rectangles.push((
                         line_start_x,
@@ -178,7 +178,7 @@ impl Highlighter {
                 }
             }
         }
-        
+
         rectangles
     }
 
@@ -211,26 +211,26 @@ mod tests {
     #[test]
     fn test_highlighter_basic_operations() {
         let mut highlighter = Highlighter::new();
-        
+
         // Test initial state
         assert_eq!(highlighter.len(), 0);
         assert!(highlighter.is_empty());
-        
+
         // Test adding highlights
         let handle1 = highlighter.add(0, 10, (255, 255, 0));
         assert!(handle1.is_some());
         assert_eq!(highlighter.len(), 1);
-        
+
         let handle2 = highlighter.add(20, 30, (0, 255, 255));
         assert!(handle2.is_some());
         assert_eq!(highlighter.len(), 2);
-        
+
         // Test removing highlights
         if let Some(h) = handle1 {
             assert!(highlighter.remove(h));
             assert_eq!(highlighter.len(), 1);
         }
-        
+
         // Test clearing all highlights
         highlighter.clear();
         assert_eq!(highlighter.len(), 0);
@@ -240,19 +240,19 @@ mod tests {
     #[test]
     fn test_highlight_range_queries() {
         let mut highlighter = Highlighter::new();
-        
+
         // Add some highlights
         highlighter.add(0, 10, (255, 0, 0));
         highlighter.add(15, 25, (0, 255, 0));
         highlighter.add(30, 40, (0, 0, 255));
-        
+
         // Test range queries
         let highlights = highlighter.get_highlights_in_range(5, 20);
         assert_eq!(highlights.len(), 2); // Should include first two highlights
-        
+
         let highlights = highlighter.get_highlights_in_range(35, 45);
         assert_eq!(highlights.len(), 1); // Should include only the third highlight
-        
+
         let highlights = highlighter.get_highlights_in_range(50, 60);
         assert_eq!(highlights.len(), 0); // Should include no highlights
     }
@@ -260,15 +260,15 @@ mod tests {
     #[test]
     fn test_invalid_ranges() {
         let mut highlighter = Highlighter::new();
-        
+
         // Test invalid range (start == end)
         let handle = highlighter.add(10, 10, (255, 255, 255));
         assert!(handle.is_none());
-        
+
         // Test reversed range (should be corrected)
         let handle = highlighter.add(20, 10, (255, 255, 255));
         assert!(handle.is_some());
-        
+
         if let Some(h) = handle {
             let highlights = highlighter.get_highlights_in_range(5, 25);
             assert_eq!(highlights.len(), 1);
@@ -280,7 +280,7 @@ mod tests {
     #[test]
     fn test_remove_nonexistent_highlight() {
         let mut highlighter = Highlighter::new();
-        
+
         // Try to remove a highlight that doesn't exist
         let fake_handle = HighlightHandle(999);
         assert!(!highlighter.remove(fake_handle));
@@ -290,14 +290,14 @@ mod tests {
     fn test_paint_highlights() {
         let mut highlighter = Highlighter::new();
         let measures = Measures::new(8, 16);
-        
+
         // Add a highlight
         highlighter.add(0, 5, (255, 0, 0));
-        
+
         // Test painting
         let rectangles = highlighter.paint_highlights(&measures, 0, 10, 0);
         assert!(!rectangles.is_empty());
-        
+
         // Each rectangle should have proper dimensions
         for (x, y, w, h, color) in rectangles {
             assert!(x >= 0);
@@ -312,15 +312,15 @@ mod tests {
     fn test_multiline_highlight() {
         let mut highlighter = Highlighter::new();
         let measures = Measures::new(8, 4); // Small column count to force multiline
-        
+
         // Add a highlight that spans multiple lines
         highlighter.add(2, 10, (0, 255, 0));
-        
+
         let rectangles = highlighter.paint_highlights(&measures, 0, 15, 0);
-        
+
         // Should have multiple rectangles for a multiline highlight
         assert!(!rectangles.is_empty());
-        
+
         // All rectangles should have the same color
         for (_, _, _, _, color) in rectangles {
             assert_eq!(color, (0, 255, 0));

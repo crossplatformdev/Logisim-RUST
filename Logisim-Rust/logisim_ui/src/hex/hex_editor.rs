@@ -7,12 +7,12 @@
  * This is free software released under GNU GPLv3 license
  */
 
-use super::{HexModel, HexModelListener, Caret, Highlighter, Measures, HighlightHandle, Color};
+use super::{Caret, Color, HexModel, HexModelListener, HighlightHandle, Highlighter, Measures};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 /// Main hex editor component that displays and allows editing of binary data
-/// 
+///
 /// The HexEditor combines a data model, cursor management, highlighting,
 /// and layout calculations to provide a complete hex editing interface.
 pub struct HexEditor {
@@ -37,7 +37,7 @@ impl HexEditor {
         let measures = Rc::new(Measures::new(value_width, 16));
         let highlighter = Rc::new(RefCell::new(Highlighter::new()));
         let mut caret = Caret::new(model.clone());
-        
+
         caret.set_measures(measures.clone());
         caret.set_highlighter(highlighter.clone());
 
@@ -90,7 +90,7 @@ impl HexEditor {
     }
 
     /// Add a highlight for the given address range
-    /// 
+    ///
     /// Returns a handle that can be used to remove the highlight later.
     pub fn add_highlight(&self, start: u64, end: u64, color: Color) -> Option<HighlightHandle> {
         self.highlighter.borrow_mut().add(start, end, color)
@@ -142,14 +142,19 @@ impl HexEditor {
     }
 
     /// Handle key input for hex editing
-    /// 
+    ///
     /// # Arguments
     /// * `key_char` - The character that was typed
     /// * `ctrl_pressed` - Whether Ctrl key is held
     /// * `shift_pressed` - Whether Shift key is held
-    /// 
+    ///
     /// Returns true if the key was handled.
-    pub fn handle_key_input(&mut self, key_char: char, ctrl_pressed: bool, shift_pressed: bool) -> bool {
+    pub fn handle_key_input(
+        &mut self,
+        key_char: char,
+        ctrl_pressed: bool,
+        shift_pressed: bool,
+    ) -> bool {
         match key_char {
             // Navigation keys
             ' ' => {
@@ -168,11 +173,13 @@ impl HexEditor {
                 }
                 true
             }
-            '\u{0008}' => { // Backspace
+            '\u{0008}' => {
+                // Backspace
                 self.caret.move_left(shift_pressed);
                 true
             }
-            '\u{007f}' => { // Delete
+            '\u{007f}' => {
+                // Delete
                 if ctrl_pressed {
                     self.caret.page_up(shift_pressed, 10); // Assume 10 visible rows
                 } else {
@@ -192,43 +199,51 @@ impl HexEditor {
     }
 
     /// Handle special key presses (arrow keys, etc.)
-    /// 
+    ///
     /// # Arguments
     /// * `key_code` - The key code (using common key code constants)
     /// * `shift_pressed` - Whether Shift key is held
-    /// 
+    ///
     /// Returns true if the key was handled.
     pub fn handle_key_press(&mut self, key_code: u32, shift_pressed: bool) -> bool {
         match key_code {
-            37 => { // Left arrow
+            37 => {
+                // Left arrow
                 self.caret.move_left(shift_pressed);
                 true
             }
-            38 => { // Up arrow
+            38 => {
+                // Up arrow
                 self.caret.move_up(shift_pressed);
                 true
             }
-            39 => { // Right arrow
+            39 => {
+                // Right arrow
                 self.caret.move_right(shift_pressed);
                 true
             }
-            40 => { // Down arrow
+            40 => {
+                // Down arrow
                 self.caret.move_down(shift_pressed);
                 true
             }
-            36 => { // Home
+            36 => {
+                // Home
                 self.caret.move_to_line_start(shift_pressed);
                 true
             }
-            35 => { // End
+            35 => {
+                // End
                 self.caret.move_to_line_end(shift_pressed);
                 true
             }
-            33 => { // Page Up
+            33 => {
+                // Page Up
                 self.caret.page_up(shift_pressed, 10); // Assume 10 visible rows
                 true
             }
-            34 => { // Page Down
+            34 => {
+                // Page Down
                 self.caret.page_down(shift_pressed, 10); // Assume 10 visible rows
                 true
             }
@@ -237,7 +252,7 @@ impl HexEditor {
     }
 
     /// Handle mouse click
-    /// 
+    ///
     /// # Arguments
     /// * `x` - X coordinate of the click
     /// * `y` - Y coordinate of the click
@@ -247,7 +262,7 @@ impl HexEditor {
     }
 
     /// Handle mouse drag
-    /// 
+    ///
     /// # Arguments
     /// * `x` - X coordinate of the drag
     /// * `y` - Y coordinate of the drag
@@ -261,9 +276,9 @@ impl HexEditor {
             let mut model_ref = model.borrow_mut();
             let current_value = model_ref.get(cursor);
             let new_value = (current_value * 16 + digit as u64) & self.get_value_mask();
-            
+
             model_ref.set(cursor, new_value);
-            
+
             // Move cursor to next position
             drop(model_ref); // Release borrow
             self.caret.move_right(false);
@@ -290,11 +305,11 @@ impl HexEditor {
     }
 
     /// Get visible address range for rendering
-    /// 
+    ///
     /// # Arguments
     /// * `clip_y` - Top of visible area
     /// * `clip_height` - Height of visible area
-    /// 
+    ///
     /// Returns (start_address, end_address) or None if no model
     pub fn get_visible_range(&self, clip_y: i32, clip_height: i32) -> Option<(u64, u64)> {
         if let Some(ref model) = self.model {
@@ -302,17 +317,17 @@ impl HexEditor {
             let first_offset = model_ref.get_first_offset();
             let last_offset = model_ref.get_last_offset();
             let base_address = self.measures.get_base_address(first_offset);
-            
+
             // Calculate visible address range from screen coordinates
             let cols = self.measures.get_column_count() as u64;
             let cell_height = self.measures.get_cell_height();
-            
+
             let start_row = (clip_y / cell_height) as u64;
             let end_row = ((clip_y + clip_height) / cell_height + 1) as u64;
-            
+
             let start_addr = base_address + start_row * cols;
             let end_addr = std::cmp::min(base_address + end_row * cols, last_offset + 1);
-            
+
             Some((std::cmp::max(start_addr, first_offset), end_addr))
         } else {
             None
@@ -320,22 +335,26 @@ impl HexEditor {
     }
 
     /// Get rendering information for the visible range
-    /// 
+    ///
     /// Returns a vector of (address, x, y, hex_string, is_cursor) tuples
     /// for rendering the hex display.
-    pub fn get_render_info(&self, clip_y: i32, clip_height: i32) -> Vec<(u64, i32, i32, String, bool)> {
+    pub fn get_render_info(
+        &self,
+        clip_y: i32,
+        clip_height: i32,
+    ) -> Vec<(u64, i32, i32, String, bool)> {
         let mut render_info = Vec::new();
-        
+
         if let Some(ref model) = self.model {
             let model_ref = model.borrow();
-            
+
             if let Some((start_addr, end_addr)) = self.get_visible_range(clip_y, clip_height) {
                 let first_offset = model_ref.get_first_offset();
                 let last_offset = model_ref.get_last_offset();
                 let base_address = self.measures.get_base_address(first_offset);
                 let cell_chars = self.measures.get_cell_chars();
                 let cursor_pos = self.caret.get_dot();
-                
+
                 for addr in start_addr..end_addr {
                     if addr >= first_offset && addr <= last_offset {
                         let value = model_ref.get(addr);
@@ -343,25 +362,25 @@ impl HexEditor {
                         let x = self.measures.to_x(addr);
                         let y = self.measures.to_y(addr, base_address);
                         let is_cursor = cursor_pos == Some(addr);
-                        
+
                         render_info.push((addr, x, y, hex_string, is_cursor));
                     }
                 }
             }
         }
-        
+
         render_info
     }
 
     /// Get address label information for rendering
-    /// 
+    ///
     /// Returns a vector of (base_address, x, y, label_string) tuples
     pub fn get_label_info(&self, clip_y: i32, clip_height: i32) -> Vec<(u64, i32, i32, String)> {
         let mut label_info = Vec::new();
-        
+
         if let Some(ref model) = self.model {
             let model_ref = model.borrow();
-            
+
             if let Some((start_addr, end_addr)) = self.get_visible_range(clip_y, clip_height) {
                 let first_offset = model_ref.get_first_offset();
                 let base_address = self.measures.get_base_address(first_offset);
@@ -369,21 +388,21 @@ impl HexEditor {
                 let label_chars = self.measures.get_label_chars();
                 let label_width = self.measures.get_label_width();
                 let base_x = self.measures.get_base_x();
-                
+
                 let start_row = (start_addr - base_address) / cols;
                 let end_row = (end_addr - base_address + cols - 1) / cols;
-                
+
                 for row in start_row..end_row {
                     let row_addr = base_address + row * cols;
                     let label = self.format_hex(row_addr, label_chars);
                     let x = base_x - label_width + label_width / 2; // Center the label
                     let y = self.measures.to_y(row_addr, base_address);
-                    
+
                     label_info.push((row_addr, x, y, label));
                 }
             }
         }
-        
+
         label_info
     }
 }
@@ -397,7 +416,7 @@ mod tests {
     fn test_hex_editor_creation() {
         let model = Rc::new(RefCell::new(VecHexModel::new(256, 8)));
         let editor = HexEditor::new(Some(model.clone()));
-        
+
         assert!(editor.get_model().is_some());
         assert!(!editor.selection_exists());
         assert_eq!(editor.get_background_color(), (255, 255, 255));
@@ -408,11 +427,11 @@ mod tests {
     fn test_model_management() {
         let mut editor = HexEditor::new(None);
         assert!(editor.get_model().is_none());
-        
+
         let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
         editor.set_model(Some(model.clone()));
         assert!(editor.get_model().is_some());
-        
+
         editor.set_model(None);
         assert!(editor.get_model().is_none());
     }
@@ -421,11 +440,11 @@ mod tests {
     fn test_highlight_operations() {
         let model = Rc::new(RefCell::new(VecHexModel::new(256, 8)));
         let editor = HexEditor::new(Some(model));
-        
+
         // Test add highlight
         let handle = editor.add_highlight(0, 10, (255, 255, 0));
         assert!(handle.is_some());
-        
+
         // Test remove highlight
         if let Some(h) = handle {
             assert!(editor.remove_highlight(h));
@@ -436,19 +455,19 @@ mod tests {
     fn test_selection_operations() {
         let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
         let mut editor = HexEditor::new(Some(model));
-        
+
         // Initially no selection
         assert!(!editor.selection_exists());
-        
+
         // Create selection through caret
         editor.get_caret().set_dot(Some(10), false);
         editor.get_caret().set_dot(Some(20), true);
         assert!(editor.selection_exists());
-        
+
         // Test select all
         editor.select_all();
         assert!(editor.selection_exists());
-        
+
         // Test delete selection
         editor.delete_selection();
         // Selection should still exist but data should be zeroed
@@ -459,22 +478,22 @@ mod tests {
     fn test_key_input_handling() {
         let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
         let mut editor = HexEditor::new(Some(model.clone()));
-        
+
         // Set cursor position
         editor.get_caret().set_dot(Some(10), false);
-        
+
         // Test hex digit input
         assert!(editor.handle_key_input('F', false, false));
-        
+
         // Check that value was updated
         let new_value = model.borrow().get(10);
         assert_eq!(new_value, 15); // 'F' in hex
-        
+
         // Test navigation keys
         assert!(editor.handle_key_input(' ', false, false)); // Space (move right)
         assert!(editor.handle_key_input('\n', false, false)); // Enter (move down)
         assert!(editor.handle_key_input('\u{0008}', false, false)); // Backspace (move left)
-        
+
         // Test unhandled key
         assert!(!editor.handle_key_input('Z', false, false));
     }
@@ -483,22 +502,22 @@ mod tests {
     fn test_key_press_handling() {
         let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
         let mut editor = HexEditor::new(Some(model));
-        
+
         // Set cursor position
         editor.get_caret().set_dot(Some(10), false);
-        
+
         // Test arrow keys
         assert!(editor.handle_key_press(37, false)); // Left
         assert!(editor.handle_key_press(38, false)); // Up
         assert!(editor.handle_key_press(39, false)); // Right
         assert!(editor.handle_key_press(40, false)); // Down
-        
+
         // Test special keys
         assert!(editor.handle_key_press(36, false)); // Home
         assert!(editor.handle_key_press(35, false)); // End
         assert!(editor.handle_key_press(33, false)); // Page Up
         assert!(editor.handle_key_press(34, false)); // Page Down
-        
+
         // Test unhandled key
         assert!(!editor.handle_key_press(999, false));
     }
@@ -507,13 +526,13 @@ mod tests {
     fn test_mouse_handling() {
         let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
         let mut editor = HexEditor::new(Some(model));
-        
+
         // Test mouse click
         editor.handle_mouse_click(100, 50, false);
-        
+
         // Test mouse drag
         editor.handle_mouse_drag(150, 75);
-        
+
         // Should have created a selection
         assert!(editor.selection_exists());
     }
@@ -522,7 +541,7 @@ mod tests {
     fn test_hex_formatting() {
         let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
         let editor = HexEditor::new(Some(model));
-        
+
         assert_eq!(editor.format_hex(255, 2), "ff");
         assert_eq!(editor.format_hex(16, 2), "10");
         assert_eq!(editor.format_hex(0, 2), "00");
@@ -533,7 +552,7 @@ mod tests {
     fn test_visible_range_calculation() {
         let model = Rc::new(RefCell::new(VecHexModel::new(256, 8)));
         let editor = HexEditor::new(Some(model));
-        
+
         // Test visible range calculation
         if let Some((start, end)) = editor.get_visible_range(0, 100) {
             assert!(start <= end);
@@ -545,13 +564,13 @@ mod tests {
     fn test_render_info() {
         let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
         let editor = HexEditor::new(Some(model));
-        
+
         // Get render info for visible area
         let render_info = editor.get_render_info(0, 100);
-        
+
         // Should have some entries
         assert!(!render_info.is_empty());
-        
+
         // Each entry should have valid coordinates and hex string
         for (addr, x, y, hex_str, _is_cursor) in render_info {
             assert!(addr < 64);

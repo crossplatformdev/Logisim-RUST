@@ -10,7 +10,7 @@
 pub use super::{HexModelListener, VecHexModel};
 
 /// Interface for hex editor data model
-/// 
+///
 /// Provides access to binary data that can be displayed and edited
 /// in a hex editor interface with change notification support.
 pub trait HexModel {
@@ -120,14 +120,14 @@ impl HexModel for VecHexModel {
     fn fill(&mut self, start: u64, length: u64, value: u64) {
         let start_idx = start as usize;
         let end_idx = ((start + length) as usize).min(self.data.len());
-        
+
         if start_idx < self.data.len() && start_idx < end_idx {
             let old_values: Vec<u64> = self.data[start_idx..end_idx].to_vec();
-            
+
             for i in start_idx..end_idx {
                 self.data[i] = value;
             }
-            
+
             self.notify_bytes_changed(start, length, &old_values);
         }
     }
@@ -160,16 +160,16 @@ impl HexModel for VecHexModel {
     fn set_range(&mut self, start: u64, values: &[u64]) {
         let start_idx = start as usize;
         let end_idx = (start_idx + values.len()).min(self.data.len());
-        
+
         if start_idx < self.data.len() && start_idx < end_idx {
             let old_values: Vec<u64> = self.data[start_idx..end_idx].to_vec();
-            
+
             for (i, &value) in values.iter().enumerate() {
                 if let Some(cell) = self.data.get_mut(start_idx + i) {
                     *cell = value;
                 }
             }
-            
+
             self.notify_bytes_changed(start, (end_idx - start_idx) as u64, &old_values);
         }
     }
@@ -195,7 +195,9 @@ mod tests {
 
     impl HexModelListener for TestListener {
         fn bytes_changed(&self, start: u64, num_bytes: u64, _old_values: &[u64]) {
-            self.bytes_changed_calls.borrow_mut().push((start, num_bytes));
+            self.bytes_changed_calls
+                .borrow_mut()
+                .push((start, num_bytes));
         }
 
         fn metainfo_changed(&self) {
@@ -206,23 +208,23 @@ mod tests {
     #[test]
     fn test_vec_hex_model_basic_operations() {
         let mut model = VecHexModel::new(16, 8);
-        
+
         // Test initial state
         assert_eq!(model.get_first_offset(), 0);
         assert_eq!(model.get_last_offset(), 15);
         assert_eq!(model.get_value_width(), 8);
         assert_eq!(model.get(0), 0);
-        
+
         // Test set/get
         model.set(5, 0xFF);
         assert_eq!(model.get(5), 0xFF);
-        
+
         // Test fill
         model.fill(0, 4, 0xAA);
         for i in 0..4 {
             assert_eq!(model.get(i), 0xAA);
         }
-        
+
         // Test range set
         model.set_range(10, &[0x11, 0x22, 0x33]);
         assert_eq!(model.get(10), 0x11);
@@ -233,14 +235,14 @@ mod tests {
     #[test]
     fn test_bounds_checking() {
         let mut model = VecHexModel::new(4, 8);
-        
+
         // Test out of bounds access
         assert_eq!(model.get(100), 0);
-        
+
         // Test out of bounds set (should not panic)
         model.set(100, 0xFF);
         assert_eq!(model.get(100), 0);
-        
+
         // Test partial range set beyond bounds
         model.set_range(2, &[0x11, 0x22, 0x33, 0x44]);
         assert_eq!(model.get(2), 0x11);
@@ -251,16 +253,16 @@ mod tests {
     #[test]
     fn test_configuration_changes() {
         let mut model = VecHexModel::new(8, 8);
-        
+
         // Test changing first offset
         model.set_first_offset(100);
         assert_eq!(model.get_first_offset(), 100);
         assert_eq!(model.get_last_offset(), 107);
-        
+
         // Test changing value width
         model.set_value_width(16);
         assert_eq!(model.get_value_width(), 16);
-        
+
         // Test resizing
         model.resize(16);
         assert_eq!(model.get_last_offset(), 115); // 100 + 16 - 1

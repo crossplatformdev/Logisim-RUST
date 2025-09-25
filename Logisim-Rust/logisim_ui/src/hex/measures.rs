@@ -10,7 +10,7 @@
 use super::HexModel;
 
 /// Handles layout calculations and measurements for the hex editor
-/// 
+///
 /// This struct manages the dimensions, positioning, and coordinate
 /// conversions needed to display hex data in a grid layout.
 pub struct Measures {
@@ -147,7 +147,8 @@ impl Measures {
             return None;
         }
 
-        let base = self.get_base_address(first_offset) + ((y / self.cell_height) as u64 * self.cols as u64);
+        let base = self.get_base_address(first_offset)
+            + ((y / self.cell_height) as u64 * self.cols as u64);
         let mut offs = (x - self.base_x) / (self.cell_width + (self.spacer_width + 2) / 4);
         if offs < 0 {
             offs = 0;
@@ -198,7 +199,9 @@ impl Measures {
             };
         }
 
-        let line_width = self.header_width + self.cols as i32 * self.cell_width + ((self.cols / 4) as i32 - 1) * self.spacer_width;
+        let line_width = self.header_width
+            + self.cols as i32 * self.cell_width
+            + ((self.cols / 4) as i32 - 1) * self.spacer_width;
         let new_base = self.header_width + std::cmp::max(0, (width - line_width) / 2);
         self.base_x = new_base;
     }
@@ -216,7 +219,7 @@ mod tests {
     #[test]
     fn test_measures_creation() {
         let measures = Measures::new(8, 16);
-        
+
         assert_eq!(measures.get_value_width(), 8);
         assert_eq!(measures.get_column_count(), 16);
         assert!(measures.is_computed());
@@ -225,7 +228,7 @@ mod tests {
     #[test]
     fn test_base_address_calculation() {
         let measures = Measures::new(8, 16);
-        
+
         // Test alignment to column boundary
         assert_eq!(measures.get_base_address(0), 0);
         assert_eq!(measures.get_base_address(10), 0);
@@ -236,19 +239,19 @@ mod tests {
     #[test]
     fn test_coordinate_conversions() {
         let measures = Measures::new(8, 16);
-        
+
         // Test X coordinate calculation
         let x0 = measures.to_x(0);
         let x1 = measures.to_x(1);
         let x16 = measures.to_x(16);
-        
+
         assert!(x1 > x0);
         assert!(x16 > x1);
-        
+
         // Test Y coordinate calculation
         let y0 = measures.to_y(0, 0);
         let y16 = measures.to_y(16, 0);
-        
+
         assert_eq!(y0, 0);
         assert!(y16 > y0);
     }
@@ -256,17 +259,17 @@ mod tests {
     #[test]
     fn test_address_from_coordinates() {
         let measures = Measures::new(8, 16);
-        
+
         // Test conversion from screen coordinates to address
         let base_x = measures.get_base_x();
         let cell_width = measures.get_cell_width();
         let cell_height = measures.get_cell_height();
-        
+
         // First cell should map to address 0
         if let Some(addr) = measures.to_address(base_x + cell_width / 2, cell_height / 2, 0, 255) {
             assert_eq!(addr, 0);
         }
-        
+
         // Test bounds checking
         if let Some(addr) = measures.to_address(-100, 0, 0, 255) {
             assert_eq!(addr, 0); // Should clamp to first offset
@@ -276,14 +279,14 @@ mod tests {
     #[test]
     fn test_width_changes() {
         let mut measures = Measures::new(8, 16);
-        
+
         // Test with different widths
         measures.width_changed(400);
         assert!(measures.get_column_count() >= 4);
-        
+
         measures.width_changed(800);
         assert!(measures.get_column_count() >= 8);
-        
+
         measures.width_changed(1200);
         assert!(measures.get_column_count() <= 16);
     }
@@ -292,11 +295,11 @@ mod tests {
     fn test_recompute() {
         let mut measures = Measures::new(8, 16);
         let original_cell_chars = measures.get_cell_chars();
-        
+
         // Recompute with different value width
         measures.recompute(16);
         assert_eq!(measures.get_value_width(), 16);
-        
+
         // Cell chars should change for wider values
         let new_cell_chars = measures.get_cell_chars();
         assert!(new_cell_chars >= original_cell_chars);

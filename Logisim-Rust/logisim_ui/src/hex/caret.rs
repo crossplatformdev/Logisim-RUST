@@ -7,12 +7,12 @@
  * This is free software released under GNU GPLv3 license
  */
 
-use super::{HexModel, Highlighter, HighlightHandle, Measures};
+use super::{HexModel, HighlightHandle, Highlighter, Measures};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 /// Selection and cursor management for hex editor
-/// 
+///
 /// The caret handles cursor positioning, text selection, and user input
 /// in the hex editor. It maintains both a cursor position (dot) and
 /// selection start (mark) to support text selection operations.
@@ -69,7 +69,7 @@ impl Caret {
     }
 
     /// Set the cursor position
-    /// 
+    ///
     /// # Arguments
     /// * `value` - New cursor position, or None to clear
     /// * `keep_mark` - If true, keeps the current mark position for selection
@@ -82,7 +82,7 @@ impl Caret {
 
         if self.cursor != validated_value {
             let old_cursor = self.cursor;
-            
+
             // Clear existing selection highlight
             if let Some(highlight) = self.selection_highlight {
                 if let Some(highlighter) = &self.highlighter {
@@ -108,10 +108,10 @@ impl Caret {
                         } else {
                             (cursor, mark)
                         };
-                        
-                        self.selection_highlight = highlighter
-                            .borrow_mut()
-                            .add(start, end, (192, 192, 255)); // Light blue selection
+
+                        self.selection_highlight =
+                            highlighter.borrow_mut().add(start, end, (192, 192, 255));
+                        // Light blue selection
                     }
                 }
             }
@@ -124,7 +124,7 @@ impl Caret {
     }
 
     /// Move cursor by a relative offset
-    /// 
+    ///
     /// # Arguments
     /// * `offset` - Number of positions to move (positive = forward, negative = backward)
     /// * `keep_mark` - If true, extends selection rather than moving cursor
@@ -135,7 +135,7 @@ impl Caret {
             } else {
                 current.saturating_sub((-offset) as u64)
             };
-            
+
             self.set_dot(Some(new_pos), keep_mark);
         }
     }
@@ -180,7 +180,7 @@ impl Caret {
         if let (Some(cursor), Some(measures)) = (self.cursor, &self.measures) {
             let cols = measures.get_column_count() as u64;
             let line_end = ((cursor / cols) + 1) * cols - 1;
-            
+
             // Clamp to model bounds
             let validated_end = self.validate_address(line_end).unwrap_or(line_end);
             self.set_dot(Some(validated_end), keep_mark);
@@ -228,12 +228,12 @@ impl Caret {
             let first_offset = model_ref.get_first_offset();
             let last_offset = model_ref.get_last_offset();
             drop(model_ref); // Release the borrow early
-            
+
             measures.to_address(x, y, first_offset, last_offset)
         } else {
             None
         };
-        
+
         if let Some(addr) = addr {
             self.set_dot(Some(addr), keep_mark);
         }
@@ -249,7 +249,7 @@ impl Caret {
     }
 
     /// Get the current selection range
-    /// 
+    ///
     /// Returns (start, end) where start <= end, or None if no selection
     pub fn get_selection(&self) -> Option<(u64, u64)> {
         if let (Some(mark), Some(cursor)) = (self.mark, self.cursor) {
@@ -285,7 +285,7 @@ impl Caret {
         } else {
             return;
         };
-        
+
         self.set_dot(Some(first_offset), false);
         self.set_dot(Some(last_offset), true);
     }
@@ -296,7 +296,7 @@ impl Caret {
             let model_ref = model.borrow();
             let first_offset = model_ref.get_first_offset();
             let last_offset = model_ref.get_last_offset();
-            
+
             if address >= first_offset && address <= last_offset {
                 Some(address)
             } else if address < first_offset {
@@ -310,21 +310,25 @@ impl Caret {
     }
 
     /// Paint the cursor (for rendering)
-    /// 
+    ///
     /// Returns the cursor rectangle if it should be drawn, or None if not visible
-    pub fn get_cursor_rect(&self, visible_start: u64, visible_end: u64) -> Option<(i32, i32, i32, i32)> {
+    pub fn get_cursor_rect(
+        &self,
+        visible_start: u64,
+        visible_end: u64,
+    ) -> Option<(i32, i32, i32, i32)> {
         if let (Some(cursor), Some(measures)) = (self.cursor, &self.measures) {
             if cursor >= visible_start && cursor < visible_end {
                 if let Some(model) = &self.model {
                     let model_ref = model.borrow();
                     let first_offset = model_ref.get_first_offset();
                     let base_address = measures.get_base_address(first_offset);
-                    
+
                     let x = measures.to_x(cursor);
                     let y = measures.to_y(cursor, base_address);
                     let w = measures.get_cell_width();
                     let h = measures.get_cell_height();
-                    
+
                     return Some((x, y, w, h));
                 }
             }
@@ -336,24 +340,24 @@ impl Caret {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hex::{VecHexModel, HexModel};
+    use crate::hex::{HexModel, VecHexModel};
 
     #[test]
     fn test_caret_basic_operations() {
         let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
         let mut caret = Caret::new(Some(model.clone()));
-        
+
         // Test initial state
         assert_eq!(caret.get_dot(), None);
         assert_eq!(caret.get_mark(), None);
         assert!(!caret.has_selection());
-        
+
         // Test set dot
         caret.set_dot(Some(10), false);
         assert_eq!(caret.get_dot(), Some(10));
         assert_eq!(caret.get_mark(), Some(10));
         assert!(!caret.has_selection());
-        
+
         // Test set dot with keeping mark
         caret.set_dot(Some(15), true);
         assert_eq!(caret.get_dot(), Some(15));
@@ -367,21 +371,21 @@ mod tests {
         let mut caret = Caret::new(Some(model.clone()));
         let measures = Rc::new(Measures::new(8, 16));
         caret.set_measures(measures);
-        
+
         // Set initial position
         caret.set_dot(Some(20), false);
-        
+
         // Test basic movement
         caret.move_left(false);
         assert_eq!(caret.get_dot(), Some(19));
-        
+
         caret.move_right(false);
         assert_eq!(caret.get_dot(), Some(20));
-        
+
         // Test row movement
         caret.move_up(false);
         assert_eq!(caret.get_dot(), Some(4)); // 20 - 16 = 4
-        
+
         caret.move_down(false);
         assert_eq!(caret.get_dot(), Some(20)); // 4 + 16 = 20
     }
@@ -390,21 +394,21 @@ mod tests {
     fn test_selection_operations() {
         let model = Rc::new(RefCell::new(VecHexModel::new(64, 8)));
         let mut caret = Caret::new(Some(model.clone()));
-        
+
         // Test selection creation
         caret.set_dot(Some(10), false);
         caret.set_dot(Some(20), true);
-        
+
         assert!(caret.has_selection());
         if let Some((start, end)) = caret.get_selection() {
             assert_eq!(start, 10);
             assert_eq!(end, 20);
         }
-        
+
         // Test selection clearing
         caret.clear_selection();
         assert!(!caret.has_selection());
-        
+
         // Test select all
         caret.select_all();
         assert!(caret.has_selection());
@@ -418,11 +422,11 @@ mod tests {
     fn test_bounds_validation() {
         let model = Rc::new(RefCell::new(VecHexModel::new(16, 8)));
         let mut caret = Caret::new(Some(model.clone()));
-        
+
         // Test setting cursor beyond bounds
         caret.set_dot(Some(100), false);
         assert_eq!(caret.get_dot(), Some(15)); // Should clamp to last valid address
-        
+
         // Test setting cursor before bounds
         caret.set_dot(Some(0), false);
         caret.move_cursor(-10, false);
@@ -435,14 +439,14 @@ mod tests {
         let mut caret = Caret::new(Some(model.clone()));
         let measures = Rc::new(Measures::new(8, 16));
         caret.set_measures(measures);
-        
+
         // Set position in middle of a line
         caret.set_dot(Some(22), false); // 22 % 16 = 6 (column 6)
-        
+
         // Test move to line start
         caret.move_to_line_start(false);
         assert_eq!(caret.get_dot(), Some(16)); // Start of second line
-        
+
         // Test move to line end
         caret.move_to_line_end(false);
         assert_eq!(caret.get_dot(), Some(31)); // End of second line
@@ -454,13 +458,13 @@ mod tests {
         let mut caret = Caret::new(Some(model.clone()));
         let measures = Rc::new(Measures::new(8, 16));
         caret.set_measures(measures.clone());
-        
+
         // Set cursor and test coordinate conversion
         caret.set_dot(Some(10), false);
-        
+
         let rect = caret.get_cursor_rect(0, 64);
         assert!(rect.is_some());
-        
+
         if let Some((x, y, w, h)) = rect {
             assert!(x >= 0);
             assert!(y >= 0);

@@ -42,7 +42,7 @@ impl InstanceState {
     pub fn port_value(&self, _port: usize) -> Value {
         Value::Low
     }
-    
+
     pub fn set_port(&mut self, _port: usize, _value: Value, _delay: usize) {}
 }
 
@@ -52,14 +52,14 @@ pub struct Port;
 impl Port {
     pub const INPUT: &'static str = "INPUT";
     pub const OUTPUT: &'static str = "OUTPUT";
-    
+
     pub fn new(_location: Location, _kind: &str, _width: &str) -> Self {
         Self
     }
 }
 
 /// Gray code incrementer component.
-/// 
+///
 /// This component takes a multibit input and outputs the value that follows it in Gray Code.
 /// This is equivalent to Java's GrayIncrementer class.
 pub struct GrayIncrementer;
@@ -75,13 +75,13 @@ impl GrayIncrementer {
     }
 
     /// Computes the next gray value in the sequence after prev.
-    /// 
+    ///
     /// This static method just does some bit twiddling for simplified demonstration.
     /// In the full implementation this would work with proper multi-bit values.
     pub fn next_gray(prev: u64, width: BitWidth) -> u64 {
         let mask = width.get_mask();
         let mut x = prev & mask;
-        
+
         // Compute parity of x
         let mut ct = (x >> 32) ^ x;
         ct = (ct >> 16) ^ ct;
@@ -89,7 +89,7 @@ impl GrayIncrementer {
         ct = (ct >> 4) ^ ct;
         ct = (ct >> 2) ^ ct;
         ct = (ct >> 1) ^ ct;
-        
+
         if (ct & 1) == 0 {
             // If parity is even, flip 1's bit
             x ^= 1;
@@ -99,7 +99,7 @@ impl GrayIncrementer {
             let y = (y << 1) & mask;
             x = if y == 0 { 0 } else { x ^ y };
         }
-        
+
         x & mask
     }
 }
@@ -118,9 +118,7 @@ impl InstanceFactory for GrayIncrementer {
     }
 
     fn create_attributes(&self) -> Vec<Attribute<BitWidth>> {
-        vec![
-            Attribute::new("WIDTH".to_string()),
-        ]
+        vec![Attribute::new("WIDTH".to_string())]
     }
 
     fn create_ports(&self) -> Vec<Port> {
@@ -139,14 +137,14 @@ impl InstanceFactory for GrayIncrementer {
     fn propagate(&self, state: &mut InstanceState) {
         // Retrieve the value being fed into the input (port 0)
         let input = state.port_value(0);
-        
+
         // For simplicity, just toggle between High and Low
         let output = match input {
             Value::Low => Value::High,
             Value::High => Value::Low,
             _ => Value::Unknown,
         };
-        
+
         // Propagate the output to port 1 with delay
         state.set_port(1, output, 2);
     }
@@ -172,7 +170,7 @@ mod tests {
     #[test]
     fn test_next_gray_logic() {
         let width = BitWidth::new(4);
-        
+
         // Test basic Gray code progression
         assert_eq!(GrayIncrementer::next_gray(0b0000, width), 0b0001);
         assert_eq!(GrayIncrementer::next_gray(0b0001, width), 0b0011);

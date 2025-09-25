@@ -41,7 +41,7 @@ mod main_lib;
 // Re-export main UI types for convenience
 pub use gui::app::LogisimApp;
 pub use gui::frame::MainFrame;
-pub use hex::{HexEditor, HexModel, VecHexModel, Caret, Highlighter, Measures};
+pub use hex::{Caret, HexEditor, HexModel, Highlighter, Measures, VecHexModel};
 
 #[cfg(feature = "gui")]
 pub use gui::canvas::Canvas;

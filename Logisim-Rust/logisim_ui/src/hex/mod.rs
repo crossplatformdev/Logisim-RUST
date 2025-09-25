@@ -23,5 +23,5 @@ pub use caret::Caret;
 pub use hex_editor::HexEditor;
 pub use hex_model::{HexModel, VecHexModel};
 pub use hex_model_listener::HexModelListener;
-pub use highlighter::{Highlighter, HighlightHandle, Color};
+pub use highlighter::{Color, HighlightHandle, Highlighter};
 pub use measures::Measures;

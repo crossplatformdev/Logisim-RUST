@@ -13,7 +13,7 @@
 //! Equivalent to Java's com.cburch.gray.GrayCounter class.
 
 /// Gray counter component with configurable width and label support.
-/// 
+///
 /// This is equivalent to Java's GrayCounter class.
 pub struct GrayCounter;
 

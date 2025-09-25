@@ -13,7 +13,7 @@
 //! Equivalent to Java's com.cburch.gray.Components class.
 
 /// The library of Gray code components that the user can access.
-/// 
+///
 /// This is equivalent to Java's Components class in the com.cburch.gray package.
 pub struct GrayComponents {
     /// The list of all tools contained in this library.
@@ -26,13 +26,13 @@ impl GrayComponents {
     pub const ID: &'static str = "Components";
 
     /// Constructs an instance of this library.
-    /// 
+    ///
     /// This constructor is how Logisim accesses first when it opens the JAR file:
     /// It looks for a no-arguments constructor method of the user-designated class.
     pub fn new() -> Self {
         let tools = vec![
             "Gray Incrementer".to_string(),
-            "Simple Gray Counter".to_string(), 
+            "Simple Gray Counter".to_string(),
             "Gray Counter".to_string(),
         ];
 

@@ -13,7 +13,7 @@
 //! Equivalent to Java's com.cburch.gray.SimpleGrayCounter class.
 
 /// Simple Gray counter that iterates over 4-bit Gray Code.
-/// 
+///
 /// This is equivalent to Java's SimpleGrayCounter class.
 pub struct SimpleGrayCounter;
 

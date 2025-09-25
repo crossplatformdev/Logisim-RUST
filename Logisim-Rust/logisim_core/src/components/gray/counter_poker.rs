@@ -14,7 +14,7 @@
 //! Equivalent to Java's com.cburch.gray.CounterPoker class.
 
 /// Counter poker for handling user interaction with Gray counters.
-/// 
+///
 /// This is equivalent to Java's CounterPoker class.
 pub struct CounterPoker;
 
