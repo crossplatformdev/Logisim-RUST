@@ -58,18 +58,178 @@ Prepared structure for component implementations:
 
 ## User Interface (`logisim_ui`)
 
-### GUI Framework
-The UI is built using **egui**, a modern immediate-mode GUI framework for Rust that provides:
-- Cross-platform compatibility
-- High performance rendering
-- Integration with wgpu/OpenGL backends
+### GUI Framework Selection
+
+#### Framework Comparison: egui vs iced
+
+| Criteria | egui | iced | Winner |
+|----------|------|------|--------|
+| **Canvas Performance** | ✅ **Excellent** - Immediate mode, custom painting API, 60+ FPS for complex circuits, efficient partial redraws | ⚠️ **Good** - Retained mode with canvas widget, more overhead for custom drawing, potential performance issues with complex circuits | **egui** |
+| **Text/i18n Support** | ⚠️ **Limited** - Basic text rendering, no built-in i18n, requires external crates (fluent-rs, sys-locale), Unicode support present | ✅ **Better** - More mature text handling, better RTL support, easier integration with i18n libraries | **iced** |
+| **Packaging** | ✅ **Excellent** - Native (Windows/macOS/Linux), WebAssembly, single binary, eframe provides unified backend | ✅ **Excellent** - Native platforms, WASM support, good cross-compilation | **Tie** |
+| **Widget Maturity** | ⚠️ **Developing** - Growing ecosystem, basic widgets complete, some specialized widgets missing, custom widgets easy to build | ✅ **Mature** - Rich widget ecosystem, many third-party widgets, canvas widget for custom drawing | **iced** |
+| **Active Maintenance** | ✅ **Very Active** - Emil Ernerfeldt (main dev), frequent releases, active Discord community, 21k+ GitHub stars | ✅ **Very Active** - Large contributor base, regular releases, good documentation, 22k+ GitHub stars | **Tie** |
+| **Learning Curve** | ✅ **Easy** - Immediate mode is intuitive, minimal boilerplate, great for prototyping | ⚠️ **Steeper** - Elm architecture, more concepts to learn, retained mode complexity | **egui** |
+| **Memory Usage** | ✅ **Low** - Immediate mode means less state retention, efficient for large applications | ⚠️ **Higher** - Retained mode requires more memory for widget trees | **egui** |
+| **Custom Drawing** | ✅ **Excellent** - Direct access to painter, easy custom rendering, perfect for circuit diagrams | ⚠️ **Limited** - Canvas widget exists but more constrained, harder to integrate with other widgets | **egui** |
+
+#### Recommendation: **egui/eframe**
+
+**Justification for Logisim-RUST:**
+
+**Pros of egui:**
+- **Superior canvas performance**: Immediate mode GUI is ideal for circuit simulation where the canvas needs frequent updates
+- **Custom drawing flexibility**: Direct access to painting primitives essential for drawing circuits, components, and wires
+- **Lower memory footprint**: Important for complex circuits with many components
+- **Easier integration**: Already implemented and working in the current codebase
+- **Web deployment**: eframe provides seamless native + WebAssembly support for browser-based Logisim
+- **Rapid development**: Immediate mode reduces boilerplate for complex UI interactions
+
+**Acknowledged tradeoffs:**
+- **i18n limitations**: Will require additional work to implement comprehensive internationalization
+- **Widget ecosystem**: Some specialized widgets may need custom implementation
+- **Text rendering**: Less mature than iced for complex text scenarios
+
+**Mitigation strategies:**
+- Implement robust i18n system using fluent-rs (already started in codebase)
+- Create custom widgets as needed (project already has good foundation)
+- Leverage egui's active community for specialized requirements
+
+The current codebase already demonstrates egui's suitability for Logisim's requirements, with working canvas, chronogram, and component systems.
+
+### Current Implementation
+The UI is built using **egui/eframe**, chosen for its superior canvas performance and custom drawing capabilities essential for circuit design:
+- Cross-platform compatibility (Windows, macOS, Linux, WebAssembly)
+- High performance immediate-mode rendering
+- Direct integration with GPU backends (OpenGL/wgpu)
+- Efficient handling of complex circuit diagrams with real-time updates
+
+### UI Crate Structure (`logisim_ui`)
+
+#### Module Organization
+```
+logisim_ui/src/
+├── main.rs                   # Binary entry point
+├── lib.rs                    # Library root with feature gates
+├── gui/                      # GUI components (feature-gated)
+│   ├── mod.rs               # GUI module exports
+│   ├── app.rs               # Main LogisimApp struct and eframe integration
+│   ├── frame.rs             # MainFrame - primary window layout
+│   ├── startup.rs           # Command line parsing and startup logic
+│   ├── canvas.rs            # Circuit editing canvas with custom painting
+│   ├── menu.rs              # Application menu bar
+│   ├── toolbar.rs           # Main toolbar with tools
+│   ├── toolbox.rs           # Component palette/toolbox panel
+│   ├── project_explorer.rs  # Circuit hierarchy tree view
+│   ├── properties.rs        # Component properties panel
+│   ├── selection.rs         # Selection management system
+│   ├── edit_handler.rs      # Clipboard and edit operations
+│   ├── i18n.rs              # Internationalization system
+│   ├── tests.rs             # GUI unit tests
+│   ├── generic/             # Generic UI utilities
+│   │   ├── mod.rs          # Generic components module
+│   │   └── option_pane.rs  # Dialog and popup utilities
+│   └── chronogram/          # Timing diagram subsystem
+│       ├── mod.rs          # Chronogram module exports and constants
+│       ├── model.rs        # Signal data model and storage
+│       ├── panel.rs        # Main chronogram UI panel
+│       ├── timeline.rs     # Time axis and navigation controls
+│       └── waveform.rs     # Individual signal waveform rendering
+├── hex/                     # Hex editor components
+│   ├── mod.rs              # Hex editor module
+│   ├── hex_editor.rs       # Main hex editor widget
+│   ├── hex_model.rs        # Data model for hex editing
+│   ├── caret.rs            # Text cursor management
+│   ├── measures.rs         # Layout and measurement utilities
+│   └── highlighter.rs     # Syntax highlighting
+└── headless/               # Headless mode components
+    ├── mod.rs              # Headless module
+    └── runner.rs           # CLI simulation runner
+```
+
+#### Key Architectural Decisions
+
+##### Feature-Gated Architecture
+```rust
+// Conditional compilation for different deployment scenarios
+#[cfg(feature = "gui")]
+pub mod gui;
+
+#[cfg(not(feature = "gui"))]
+pub mod headless;
+
+// Platform-specific implementations
+#[cfg(feature = "gui")]
+pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_arch = "wasm32")]
+    {
+        // WebAssembly-specific initialization
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // Native desktop initialization
+    }
+    Ok(())
+}
+```
+
+##### Component Lifecycle Management
+- **App Level**: `LogisimApp` manages global state and eframe integration
+- **Frame Level**: `MainFrame` handles window layout and panel management
+- **Panel Level**: Individual panels (`Canvas`, `Toolbox`, etc.) manage their own state
+- **Widget Level**: Custom widgets for specialized circuit editing functionality
+
+##### State Management Pattern
+```rust
+// Centralized state in MainFrame with panel delegation
+pub struct MainFrame {
+    canvas: Canvas,
+    toolbox: Toolbox,
+    project_explorer: ProjectExplorer,
+    chronogram_panel: ChronogramPanel,
+    simulation: Option<Simulation>,
+    // ... other components
+}
+
+impl MainFrame {
+    pub fn update(&mut self, ctx: &egui::Context) {
+        // Coordinate updates between panels
+        self.handle_menu_bar(ctx);
+        self.handle_central_panel(ctx);
+        self.handle_side_panels(ctx);
+    }
+}
+```
+
+##### Internationalization Integration
+```rust
+// Global i18n system accessible throughout GUI
+use crate::gui::i18n::{tr, tr_args, Language};
+
+// Usage in UI components
+egui::Button::new(tr("menu.file.open"))
+egui::Label::new(tr_args("status.components_selected", &[&count.to_string()]))
+```
 
 ### Main Components
-- **MainFrame**: Primary application window
-- **Canvas**: Circuit editing and display area
-- **Toolbox**: Component palette
-- **ProjectExplorer**: Circuit hierarchy navigation
-- **ChronogramPanel**: Timing diagram display
+
+#### Core UI Components
+- **LogisimApp**: Top-level application struct implementing `eframe::App`
+- **MainFrame**: Primary window layout manager with panel coordination
+- **Canvas**: Interactive circuit editing surface with custom painting
+- **Toolbox**: Component palette with drag-and-drop support
+- **ProjectExplorer**: Hierarchical circuit navigation tree
+- **ChronogramPanel**: Real-time timing diagram visualization
+- **Properties**: Context-sensitive component property editor
+- **MenuBar**: Application menu with keyboard shortcuts
+- **Toolbar**: Quick-access tool selection and actions
+
+#### Specialized Subsystems
+- **I18n System**: Complete internationalization with 9+ language support
+- **Selection Manager**: Multi-object selection with rectangular and individual selection
+- **Edit Handler**: Clipboard operations (cut/copy/paste) with undo/redo
+- **Hex Editor**: Memory viewing and editing with syntax highlighting
+- **Dialog System**: Modal dialogs and popup windows
 
 ## Chronogram (Waveform/Timing View) Feature
 
