@@ -11,7 +11,7 @@
 
 use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 
-use crate::signal::{BusWidth, Signal, Timestamp, Value};
+use crate::signal::{BusWidth, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

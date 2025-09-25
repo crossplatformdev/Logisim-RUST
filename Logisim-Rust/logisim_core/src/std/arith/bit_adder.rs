@@ -81,7 +81,7 @@ impl BitAdder {
         
         // Carry_Out = (A AND B) OR (A AND Carry_In) OR (B AND Carry_In)
         // This is the majority function - true when at least 2 of the 3 inputs are true
-        let carry_out = (a.and(b)).or((a.and(carry_in))).or((b.and(carry_in)));
+        let carry_out = (a.and(b)).or(a.and(carry_in)).or(b.and(carry_in));
         
         (sum, carry_out)
     }
@@ -106,9 +106,9 @@ impl Component for BitAdder {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let a = self.pins.get("A").map(|p| *p.signal().value()).unwrap_or(Value::Unknown);
-        let b = self.pins.get("B").map(|p| *p.signal().value()).unwrap_or(Value::Unknown);
-        let carry_in = self.pins.get("CarryIn").map(|p| *p.signal().value()).unwrap_or(Value::Low);
+        let a = self.pins.get("A").map(|p| *p.get_signal().value()).unwrap_or(Value::Unknown);
+        let b = self.pins.get("B").map(|p| *p.get_signal().value()).unwrap_or(Value::Unknown);
+        let carry_in = self.pins.get("CarryIn").map(|p| *p.get_signal().value()).unwrap_or(Value::Low);
         
         // Compute outputs
         let (sum, carry_out) = self.compute_outputs(a, b, carry_in);
@@ -117,14 +117,14 @@ impl Component for BitAdder {
         let mut changed = false;
         
         if let Some(pin) = self.pins.get_mut("Sum") {
-            if *pin.signal().value() != sum {
+            if *pin.get_signal().value() != sum {
                 let _ = pin.set_signal(Signal::new(sum, current_time));
                 changed = true;
             }
         }
         
         if let Some(pin) = self.pins.get_mut("CarryOut") {
-            if *pin.signal().value() != carry_out {
+            if *pin.get_signal().value() != carry_out {
                 let _ = pin.set_signal(Signal::new(carry_out, current_time));
                 changed = true;
             }

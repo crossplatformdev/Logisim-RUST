@@ -143,10 +143,10 @@ impl Comparator {
     pub fn set_bit_width(&mut self, width: BusWidth) {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("A") {
-            pin.set_width(width);
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("B") {
-            pin.set_width(width);
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
     }
     
@@ -175,8 +175,8 @@ impl Component for Comparator {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let value_a = self.pins.get("A").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
-        let value_b = self.pins.get("B").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
+        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
+        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
         
         // Perform comparison
         let (gt, eq, lt) = self.compare_values(&value_a, &value_b);
@@ -185,21 +185,21 @@ impl Component for Comparator {
         let mut changed = false;
         
         if let Some(gt_pin) = self.pins.get_mut("Greater") {
-            if gt_pin.signal().value() != &gt {
+            if gt_pin.get_signal().value() != &gt {
                 let _ = gt_pin.set_signal(Signal::new(gt, current_time));
                 changed = true;
             }
         }
         
         if let Some(eq_pin) = self.pins.get_mut("Equal") {
-            if eq_pin.signal().value() != &eq {
+            if eq_pin.get_signal().value() != &eq {
                 let _ = eq_pin.set_signal(Signal::new(eq, current_time));
                 changed = true;
             }
         }
         
         if let Some(lt_pin) = self.pins.get_mut("Less") {
-            if lt_pin.signal().value() != &lt {
+            if lt_pin.get_signal().value() != &lt {
                 let _ = lt_pin.set_signal(Signal::new(lt, current_time));
                 changed = true;
             }

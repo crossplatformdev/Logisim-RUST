@@ -164,13 +164,13 @@ impl Shifter {
         let shift_width = BusWidth(((width.0 as f64).log2().ceil() as u32).max(1));
         
         if let Some(pin) = self.pins.get_mut("Input") {
-            pin.set_width(width);
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("Shift") {
             pin.set_width(shift_width);
         }
         if let Some(pin) = self.pins.get_mut("Output") {
-            pin.set_width(width);
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
     }
     
@@ -199,8 +199,8 @@ impl Component for Shifter {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let data = self.pins.get("Input").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
-        let distance = self.pins.get("Shift").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
+        let data = self.pins.get("Input").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
+        let distance = self.pins.get("Shift").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
         
         // Perform shift operation
         let output = self.shift_value(&data, &distance);
@@ -208,7 +208,7 @@ impl Component for Shifter {
         // Update output pin
         let mut changed = false;
         if let Some(pin) = self.pins.get_mut("Output") {
-            if pin.signal().value() != &output {
+            if pin.get_signal().value() != &output {
                 let _ = pin.set_signal(Signal::new(output, current_time));
                 changed = true;
             }

@@ -98,10 +98,11 @@ impl Adder {
             }
         } else {
             // Bit-by-bit computation for undefined values
-            let mut result_bits = vec![Value::Error; width];
+            let width_usize = width as usize;
+            let mut result_bits = vec![Value::Error; width_usize];
             let mut carry = carry_in.clone();
             
-            for i in 0..width {
+            for i in 0..width_usize {
                 if matches!(carry, Value::Error) {
                     result_bits[i] = Value::Error;
                 } else if matches!(carry, Value::Unknown) {
@@ -144,13 +145,16 @@ impl Adder {
     pub fn set_bit_width(&mut self, width: BusWidth) {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("A") {
-            pin.set_width(width);
+            pin.width = width;
+            pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("B") {
-            pin.set_width(width);
+            pin.width = width;
+            pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("Sum") {
-            pin.set_width(width);
+            pin.width = width;
+            pin.signal = Signal::unknown(width);
         }
     }
 }
@@ -174,9 +178,9 @@ impl Component for Adder {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let value_a = self.pins.get("A").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
-        let value_b = self.pins.get("B").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
-        let carry_in = self.pins.get("Carry_In").map(|p| p.signal().value()).unwrap_or(Value::Low);
+        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let carry_in = self.pins.get("Carry_In").map(|p| p.get_signal().value()).unwrap_or(&Value::Low);
         
         // Compute sum and carry out
         let (sum, carry_out) = Self::compute_sum(self.bit_width, &value_a, &value_b, &carry_in);
@@ -184,14 +188,14 @@ impl Component for Adder {
         // Update output pins
         let mut changed = false;
         if let Some(sum_pin) = self.pins.get_mut("Sum") {
-            if sum_pin.signal().value() != &sum {
+            if sum_pin.get_signal().value() != &sum {
                 let _ = sum_pin.set_signal(Signal::new(sum, _current_time));
                 changed = true;
             }
         }
         
         if let Some(carry_pin) = self.pins.get_mut("Carry_Out") {
-            if carry_pin.signal().value() != &carry_out {
+            if carry_pin.get_signal().value() != &carry_out {
                 let _ = carry_pin.set_signal(Signal::new(carry_out, _current_time));
                 changed = true;
             }
