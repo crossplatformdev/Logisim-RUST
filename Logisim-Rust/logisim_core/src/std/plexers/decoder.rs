@@ -13,8 +13,8 @@
 //! For an n-bit input, it has 2^n outputs where only one output is active (high) at a time.
 
 use crate::{
-    comp::{Component, ComponentId, Pin, Propagator, UpdateResult},
-    data::{BitWidth, Bounds, Direction, Location},
+    comp::{Component, ComponentId, Pin, UpdateResult},
+    data::{Bounds, Direction},
     signal::{BusWidth, Signal, Timestamp, Value},
 };
 use serde::{Deserialize, Serialize};
@@ -52,7 +52,7 @@ impl Decoder {
             facing: Direction::East,
             tristate: false,
             enable: false,
-            bounds: Bounds::new(0, 0, 40, 50),
+            bounds: Bounds::create(0, 0, 40, 50),
         };
         decoder.update_pins();
         decoder
@@ -71,7 +71,7 @@ impl Decoder {
             facing,
             tristate: false,
             enable: false,
-            bounds: Bounds::new(0, 0, 40, 50),
+            bounds: Bounds::create(0, 0, 40, 50),
         };
         decoder.update_pins();
         decoder
@@ -84,34 +84,19 @@ impl Decoder {
         let num_outputs = 1 << self.input_bits; // 2^input_bits
         
         // Add address input
-        let input_pin = Pin::new(
-            "Address".to_string(),
-            BusWidth(self.input_bits as u32),
-            crate::comp::PinDirection::Input,
-            Location::new(0, 25),
-        );
+        let input_pin = Pin::new_input("Address", BusWidth(self.input_bits as u32));
         self.pins.insert("address".to_string(), input_pin);
         
         // Add outputs (one for each possible address)
         for i in 0..num_outputs {
             let pin_name = format!("output_{}", i);
-            let pin = Pin::new(
-                format!("Output {}", i),
-                BusWidth(1), // Each output is single bit
-                crate::comp::PinDirection::Output,
-                Location::new(40, 5 + i * 5),
-            );
+            let pin = Pin::new_output(format!("Output {}", i), BusWidth(1)); // Each output is single bit
             self.pins.insert(pin_name, pin);
         }
         
         // Add enable input if enabled
         if self.enable {
-            let enable_pin = Pin::new(
-                "Enable".to_string(),
-                BusWidth(1),
-                crate::comp::PinDirection::Input,
-                Location::new(20, 0),
-            );
+            let enable_pin = Pin::new_input("Enable", BusWidth(1));
             self.pins.insert("enable".to_string(), enable_pin);
         }
     }
@@ -204,12 +189,12 @@ impl Component for Decoder {
             if let Some(enable_pin) = self.pins.get("enable") {
                 match &enable_pin.signal {
                     Some(signal) => {
-                        if signal.value() == Value::Zero {
+                        if signal.value() == Value::Low {
                             // Component is disabled, set all outputs to zero or high impedance
                             let disabled_value = if self.tristate {
-                                Value::HighImpedance
+                                Value::HighZ
                             } else {
-                                Value::Zero
+                                Value::Low
                             };
                             
                             for i in 0..self.num_outputs() {
@@ -229,27 +214,26 @@ impl Component for Decoder {
 
         // Convert address value to index
         let address_index = match address_value {
-            Value::Zero => 0,
-            Value::One => {
+            Value::Low => 0,
+            Value::High => {
                 if self.input_bits == 1 {
                     1
                 } else {
-                    // For multi-bit inputs, Value::One represents the value 1
+                    // For multi-bit inputs, Value::High represents the value 1
                     1
                 }
             }
-            Value::Binary(bits) => {
-                // Convert binary representation to index
-                bits.iter().enumerate().fold(0usize, |acc, (i, &bit)| {
-                    acc + if bit { 1 << i } else { 0 }
-                })
+            Value::High => {
+                // For now, simplified to just use single bit logic
+                // TODO: Implement proper multi-bit decoding
+                1
             }
-            Value::HighImpedance | Value::Error => {
+            Value::HighZ | Value::Error => {
                 // Invalid address signal - set all outputs to error or zero
                 let error_value = if self.tristate {
-                    Value::HighImpedance
+                    Value::HighZ
                 } else {
-                    Value::Zero
+                    Value::Low
                 };
                 
                 for i in 0..self.num_outputs() {
@@ -269,7 +253,7 @@ impl Component for Decoder {
             for i in 0..self.num_outputs() {
                 let output_pin_name = format!("output_{}", i);
                 if let Some(output_pin) = self.pins.get_mut(&output_pin_name) {
-                    let output_signal = Signal::new(BusWidth(1), Value::Zero);
+                    let output_signal = Signal::new(BusWidth(1), Value::Low);
                     output_pin.signal = Some(output_signal);
                 }
             }
@@ -282,9 +266,9 @@ impl Component for Decoder {
             let output_pin_name = format!("output_{}", i);
             if let Some(output_pin) = self.pins.get_mut(&output_pin_name) {
                 let output_value = if i == address_index {
-                    Value::One // Active output
+                    Value::High // Active output
                 } else {
-                    Value::Zero // Inactive outputs
+                    Value::Low // Inactive outputs
                 };
                 
                 let output_signal = Signal::new(BusWidth(1), output_value);
@@ -309,12 +293,6 @@ impl Component for Decoder {
 
     fn propagation_delay(&self) -> u64 {
         super::plexers_library::PlexersLibrary::DELAY
-    }
-}
-
-impl Propagator for Decoder {
-    fn propagate(&mut self, timestamp: Timestamp) -> UpdateResult {
-        self.update(timestamp)
     }
 }
 

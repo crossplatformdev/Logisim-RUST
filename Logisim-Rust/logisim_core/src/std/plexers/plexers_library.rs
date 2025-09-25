@@ -13,12 +13,11 @@
 //! multiplexers, demultiplexers, decoders, encoders, and bit selectors.
 
 use crate::{
-    data::{BitWidth, Bounds, Direction, Location},
+    data::{AttributeSet, Bounds, Direction, Location},
     tools::{Library, Tool, AddTool},
     comp::{ComponentFactory, ComponentId},
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Plexers library containing multiplexers, demultiplexers, decoders, etc.
 #[derive(Debug)]
@@ -54,14 +53,6 @@ impl PlexersLibrary {
 
     /// Initialize all plexer tools in the library
     fn initialize_tools(&mut self) {
-        use super::{
-            bit_selector::BitSelector,
-            decoder::Decoder,
-            demultiplexer::Demultiplexer,
-            multiplexer::Multiplexer,
-            priority_encoder::PriorityEncoder,
-        };
-
         // Create factory functions for each component type
         let multiplexer_factory = Box::new(MultiplexerFactory);
         let demultiplexer_factory = Box::new(DemultiplexerFactory);
@@ -189,90 +180,150 @@ impl Library for PlexersLibrary {
 struct MultiplexerFactory;
 
 impl ComponentFactory for MultiplexerFactory {
-    fn create_component(&self, id: ComponentId) -> Box<dyn crate::Component> {
-        Box::new(super::multiplexer::Multiplexer::new(id))
-    }
-
-    fn get_name(&self) -> &str {
+    fn name(&self) -> &str {
         "Multiplexer"
     }
 
-    fn get_display_name(&self) -> String {
-        "Multiplexer".to_string()
+    fn display_name(&self) -> &str {
+        "Multiplexer"
     }
 
+    fn create_component(
+        &self,
+        id: ComponentId,
+        _location: Location,
+        _attrs: &AttributeSet,
+    ) -> Box<dyn crate::Component> {
+        Box::new(super::multiplexer::Multiplexer::new(id))
+    }
+
+    fn create_attribute_set(&self) -> AttributeSet {
+        AttributeSet::new()
+    }
+
+    fn get_bounds(&self, _attrs: &AttributeSet) -> Bounds {
+        Bounds::create(0, 0, 40, 30)
+    }
 }
 
 #[derive(Debug, Clone)]
 struct DemultiplexerFactory;
 
 impl ComponentFactory for DemultiplexerFactory {
-    fn create_component(&self, id: ComponentId) -> Box<dyn crate::Component> {
-        Box::new(super::demultiplexer::Demultiplexer::new(id))
-    }
-
-    fn get_name(&self) -> &str {
+    fn name(&self) -> &str {
         "Demultiplexer"
     }
 
-    fn get_display_name(&self) -> String {
-        "Demultiplexer".to_string()
+    fn display_name(&self) -> &str {
+        "Demultiplexer"
     }
 
+    fn create_component(
+        &self,
+        id: ComponentId,
+        _location: Location,
+        _attrs: &AttributeSet,
+    ) -> Box<dyn crate::Component> {
+        Box::new(super::demultiplexer::Demultiplexer::new(id))
+    }
+
+    fn create_attribute_set(&self) -> AttributeSet {
+        AttributeSet::new()
+    }
+
+    fn get_bounds(&self, _attrs: &AttributeSet) -> Bounds {
+        Bounds::create(0, 0, 40, 30)
+    }
 }
 
 #[derive(Debug, Clone)]
 struct DecoderFactory;
 
 impl ComponentFactory for DecoderFactory {
-    fn create_component(&self, id: ComponentId) -> Box<dyn crate::Component> {
-        Box::new(super::decoder::Decoder::new(id))
-    }
-
-    fn get_name(&self) -> &str {
+    fn name(&self) -> &str {
         "Decoder"
     }
 
-    fn get_display_name(&self) -> String {
-        "Decoder".to_string()
+    fn display_name(&self) -> &str {
+        "Decoder"
     }
 
+    fn create_component(
+        &self,
+        id: ComponentId,
+        _location: Location,
+        _attrs: &AttributeSet,
+    ) -> Box<dyn crate::Component> {
+        Box::new(super::decoder::Decoder::new(id))
+    }
+
+    fn create_attribute_set(&self) -> AttributeSet {
+        AttributeSet::new()
+    }
+
+    fn get_bounds(&self, _attrs: &AttributeSet) -> Bounds {
+        Bounds::create(0, 0, 40, 50)
+    }
 }
 
 #[derive(Debug, Clone)]
 struct PriorityEncoderFactory;
 
 impl ComponentFactory for PriorityEncoderFactory {
-    fn create_component(&self, id: ComponentId) -> Box<dyn crate::Component> {
-        Box::new(super::priority_encoder::PriorityEncoder::new(id))
-    }
-
-    fn get_name(&self) -> &str {
+    fn name(&self) -> &str {
         "Priority Encoder"
     }
 
-    fn get_display_name(&self) -> String {
-        "Priority Encoder".to_string()
+    fn display_name(&self) -> &str {
+        "Priority Encoder"
     }
 
+    fn create_component(
+        &self,
+        id: ComponentId,
+        _location: Location,
+        _attrs: &AttributeSet,
+    ) -> Box<dyn crate::Component> {
+        Box::new(super::priority_encoder::PriorityEncoder::new(id))
+    }
+
+    fn create_attribute_set(&self) -> AttributeSet {
+        AttributeSet::new()
+    }
+
+    fn get_bounds(&self, _attrs: &AttributeSet) -> Bounds {
+        Bounds::create(0, 0, 40, 50)
+    }
 }
 
 #[derive(Debug, Clone)]
 struct BitSelectorFactory;
 
 impl ComponentFactory for BitSelectorFactory {
-    fn create_component(&self, id: ComponentId) -> Box<dyn crate::Component> {
-        Box::new(super::bit_selector::BitSelector::new(id))
-    }
-
-    fn get_name(&self) -> &str {
+    fn name(&self) -> &str {
         "Bit Selector"
     }
 
-    fn get_display_name(&self) -> String {
-        "Bit Selector".to_string()
+    fn display_name(&self) -> &str {
+        "Bit Selector"
     }
 
+    fn create_component(
+        &self,
+        id: ComponentId,
+        _location: Location,
+        _attrs: &AttributeSet,
+    ) -> Box<dyn crate::Component> {
+        Box::new(super::bit_selector::BitSelector::new(id))
+    }
+
+    fn create_attribute_set(&self) -> AttributeSet {
+        AttributeSet::new()
+    }
+
+    fn get_bounds(&self, _attrs: &AttributeSet) -> Bounds {
+        Bounds::create(0, 0, 40, 30)
+    }
 }
 
 // Plexer-specific attributes and types
@@ -331,7 +382,7 @@ mod tests {
 
     #[test]
     fn test_bounds_checking() {
-        let bounds = Bounds::new(10, 10, 40, 30);
+        let bounds = Bounds::create(10, 10, 40, 30);
         let loc_inside = Location::new(20, 20);
         let loc_outside = Location::new(5, 5);
         
@@ -341,7 +392,7 @@ mod tests {
 
     #[test]
     fn test_trapezoid_drawing() {
-        let bounds = Bounds::new(0, 0, 40, 30);
+        let bounds = Bounds::create(0, 0, 40, 30);
         let points = PlexersLibrary::draw_trapezoid(bounds, Direction::East, 5);
         
         assert_eq!(points.len(), 4);
