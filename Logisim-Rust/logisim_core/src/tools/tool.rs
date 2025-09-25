@@ -18,7 +18,7 @@
 
 use crate::{
     component::{Component, ComponentId},
-    data::{Attribute, AttributeSet, AttributeValue, Location},
+    data::{AttributeSet, Location},
 };
 use std::collections::HashSet;
 

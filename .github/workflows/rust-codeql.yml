@@ -51,7 +51,9 @@ jobs:
     # Note: Excluding GUI features to avoid winit platform compatibility issues in headless CI
     - name: "Build project"
       run: |
+        echo "Building project for CodeQL analysis (headless mode)..."
         cargo build --verbose --workspace
+        echo "✅ Build completed for CodeQL analysis"
       working-directory: Logisim-Rust
 
     - name: "Perform CodeQL Analysis"

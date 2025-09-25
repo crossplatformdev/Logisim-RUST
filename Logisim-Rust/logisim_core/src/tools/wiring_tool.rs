@@ -17,17 +17,13 @@
 //! provides visual feedback during wire placement.
 
 use crate::{
-    component::{Component, ComponentId},
-    data::{Direction, Location},
+    component::ComponentId,
+    data::Location,
     tools::{
-        tool::{
-            Canvas, ComponentDrawContext, CursorType, KeyEvent, KeyModifiers, LogisimVersion,
-            MouseButton, MouseEvent, Tool,
-        },
+        tool::{Canvas, ComponentDrawContext, CursorType, KeyEvent, MouseButton, MouseEvent, Tool},
         ToolResult,
     },
 };
-use std::collections::HashSet;
 
 /// Direction constraint for wire placement
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

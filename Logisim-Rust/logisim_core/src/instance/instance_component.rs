@@ -213,7 +213,6 @@ impl fmt::Display for InstanceComponent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::BitWidth;
     use crate::instance::{PortType, PortWidth};
 
     #[derive(Debug)]
