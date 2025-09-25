@@ -88,6 +88,7 @@ pub use contracts::{
     BaseLayoutManagerContract, BaseListDataListenerContract, BaseMouseInputListenerContract,
     BaseMouseListenerContract, BaseMouseMotionListenerContract, BaseWindowFocusListenerContract,
     BaseWindowListenerContract, ComponentEvent, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
+};
 pub use components::gray::*;
 pub use std::{base::*, gates::*};
 pub use data::{
@@ -99,6 +100,7 @@ pub use hdl::{
     HdlModel, HdlModelListener, PortDescription, HdlContent, HdlContentEditor,
     VhdlParser, VhdlContentComponent, BlifParser, BlifContentComponent,
     HdlFile, HdlFileType, HdlStrings, VhdlEntityComponent, BlifCircuitComponent, HdlLibrary,
+};
 pub use instance::{
     Instance, InstanceComponent, InstanceData, InstanceFactory, InstanceState, Port, PortType, PortWidth,
 };
