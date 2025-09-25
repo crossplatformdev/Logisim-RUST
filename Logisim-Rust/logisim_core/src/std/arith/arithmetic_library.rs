@@ -11,7 +11,7 @@
 //!
 //! Rust port of `com.cburch.logisim.std.arith.ArithmeticLibrary`
 
-use crate::component::ComponentId;
+use crate::comp::ComponentId;
 use super::*;
 
 /// Arithmetic Library - collection of all arithmetic components
@@ -41,87 +41,87 @@ impl ArithmeticLibrary {
     }
     
     /// Create an adder component
-    pub fn create_adder(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_adder(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Adder::new(id))
     }
     
     /// Create a subtractor component
-    pub fn create_subtractor(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_subtractor(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Subtractor::new(id))
     }
     
     /// Create a multiplier component
-    pub fn create_multiplier(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_multiplier(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Multiplier::new(id))
     }
     
     /// Create a divider component
-    pub fn create_divider(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_divider(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Divider::new(id))
     }
     
     /// Create a negator component
-    pub fn create_negator(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_negator(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Negator::new(id))
     }
     
     /// Create a comparator component
-    pub fn create_comparator(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_comparator(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Comparator::new(id))
     }
     
     /// Create a shifter component
-    pub fn create_shifter(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_shifter(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Shifter::new(id))
     }
     
     /// Create a bit adder component
-    pub fn create_bit_adder(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_bit_adder(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(BitAdder::new(id))
     }
     
     /// Create a bit finder component
-    pub fn create_bit_finder(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_bit_finder(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(BitFinder::new(id))
     }
     
     /// Create a floating-point adder component
-    pub fn create_fp_adder(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_fp_adder(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(FpAdder::new(id))
     }
     
     /// Create a floating-point subtractor component
-    pub fn create_fp_subtractor(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_fp_subtractor(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(FpSubtractor::new(id))
     }
     
     /// Create a floating-point multiplier component
-    pub fn create_fp_multiplier(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_fp_multiplier(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(FpMultiplier::new(id))
     }
     
     /// Create a floating-point divider component
-    pub fn create_fp_divider(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_fp_divider(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(FpDivider::new(id))
     }
     
     /// Create a floating-point negator component
-    pub fn create_fp_negator(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_fp_negator(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(FpNegator::new(id))
     }
     
     /// Create a floating-point comparator component
-    pub fn create_fp_comparator(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_fp_comparator(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(FpComparator::new(id))
     }
     
     /// Create a floating-point to integer converter component
-    pub fn create_fp_to_int(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_fp_to_int(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(FpToInt::new(id))
     }
     
     /// Create an integer to floating-point converter component
-    pub fn create_int_to_fp(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_int_to_fp(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(IntToFp::new(id))
     }
     
@@ -152,7 +152,7 @@ impl ArithmeticLibrary {
     pub fn create_component(
         component_type: &str, 
         id: ComponentId
-    ) -> Option<Box<dyn crate::component::Component>> {
+    ) -> Option<Box<dyn crate::comp::Component>> {
         match component_type {
             "Adder" => Some(Self::create_adder(id)),
             "Subtractor" => Some(Self::create_subtractor(id)),

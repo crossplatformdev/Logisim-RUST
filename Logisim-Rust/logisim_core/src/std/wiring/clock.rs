@@ -13,7 +13,7 @@
 //! to drive sequential logic circuits.
 
 use crate::{
-    component::{ClockEdge, Component, ComponentId, Pin as ComponentPin, UpdateResult},
+    comp::{Component, ComponentId, Pin, UpdateResult},
     data::Direction,
     signal::{BusWidth, Signal, Timestamp, Value},
     std::wiring::WiringComponentFactory,
@@ -69,7 +69,7 @@ pub struct Clock {
     id: ComponentId,
     attributes: ClockAttributes,
     state: ClockState,
-    pins: HashMap<String, ComponentPin>,
+    pins: HashMap<String, Pin>,
 }
 
 impl Clock {
@@ -82,8 +82,10 @@ impl Clock {
         state.next_transition_time = attributes.low_duration;
 
         // Create the output pin - always 1-bit wide
-        let mut output_pin = ComponentPin::new_output("out", BusWidth(1));
-        output_pin.signal = Signal::new_single(state.current_value);
+        let mut output_pin = Pin::new_output("out", BusWidth(1));
+        output_pin
+            .set_signal(Signal::new_single(state.current_value))
+            .unwrap();
 
         let mut pins = HashMap::new();
         pins.insert("out".to_string(), output_pin);
@@ -147,7 +149,7 @@ impl Clock {
 
     /// Get the current clock value
     pub fn get_current_value(&self) -> Value {
-        self.state.current_value.clone()
+        self.state.current_value
     }
 
     /// Check if it's time for the next transition
@@ -175,11 +177,11 @@ impl Component for Clock {
         CLOCK_ID
     }
 
-    fn pins(&self) -> &HashMap<String, ComponentPin> {
+    fn pins(&self) -> &HashMap<String, Pin> {
         &self.pins
     }
 
-    fn pins_mut(&mut self) -> &mut HashMap<String, ComponentPin> {
+    fn pins_mut(&mut self) -> &mut HashMap<String, Pin> {
         &mut self.pins
     }
 
@@ -216,10 +218,6 @@ impl Component for Clock {
         if let Some(pin) = self.pins.get_mut("out") {
             pin.signal = Signal::new_single(self.state.current_value);
         }
-    }
-
-    fn is_sequential(&self) -> bool {
-        true // Clock is a sequential component
     }
 
     fn propagation_delay(&self) -> u64 {

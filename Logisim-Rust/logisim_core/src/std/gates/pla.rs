@@ -12,7 +12,7 @@
 //! Rust port of `com.cburch.logisim.std.gates.Pla`
 //! TODO: Full implementation needed
 
-use crate::component::{Component, ComponentId};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 
 /// Programmable Logic Array implementation (placeholder)
 ///
@@ -38,18 +38,15 @@ impl Component for Pla {
         "PLA"
     }
 
-    fn pins(&self) -> &std::collections::HashMap<String, crate::component::Pin> {
+    fn pins(&self) -> &std::collections::HashMap<String, Pin> {
         todo!("PLA implementation needed")
     }
 
-    fn pins_mut(&mut self) -> &mut std::collections::HashMap<String, crate::component::Pin> {
+    fn pins_mut(&mut self) -> &mut std::collections::HashMap<String, Pin> {
         todo!("PLA implementation needed")
     }
 
-    fn update(
-        &mut self,
-        _current_time: crate::signal::Timestamp,
-    ) -> crate::component::UpdateResult {
+    fn update(&mut self, _current_time: crate::signal::Timestamp) -> UpdateResult {
         todo!("PLA implementation needed")
     }
 

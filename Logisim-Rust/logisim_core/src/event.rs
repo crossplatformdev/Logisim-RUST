@@ -4,7 +4,7 @@
 //! the priority queue for scheduling events and the event types used
 //! throughout the simulation.
 
-use crate::component::ComponentId;
+use crate::comp::ComponentId;
 use crate::netlist::NodeId;
 use crate::signal::{Signal, Timestamp};
 use serde::{Deserialize, Serialize};

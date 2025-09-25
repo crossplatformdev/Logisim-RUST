@@ -11,11 +11,10 @@
 //!
 //! Rust port of `com.cburch.logisim.std.gates.NotGate`
 
-use crate::component::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ops::Not;
 
 /// NOT Gate (Inverter) implementation
 ///
@@ -95,20 +94,6 @@ impl Component for NotGate {
 
     fn propagation_delay(&self) -> u64 {
         1 // 1 time unit for NOT gate
-    }
-}
-
-impl Propagator for NotGate {
-    fn propagate(
-        &mut self,
-        input_pin: &str,
-        signal: Signal,
-        current_time: Timestamp,
-    ) -> UpdateResult {
-        if let Some(pin) = self.pins.get_mut(input_pin) {
-            let _ = pin.set_signal(signal);
-        }
-        self.update(current_time)
     }
 }
 
