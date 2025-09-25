@@ -98,10 +98,10 @@ impl Multiplier {
         let product_width = BusWidth(width.0 * 2);
         
         if let Some(pin) = self.pins.get_mut("A") {
-            pin.width = width; pin.signal = Signal::unknown(width);
+            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
         }
         if let Some(pin) = self.pins.get_mut("B") {
-            pin.width = width; pin.signal = Signal::unknown(width);
+            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
         }
         if let Some(pin) = self.pins.get_mut("Product") {
             pin.set_width(product_width);
@@ -128,8 +128,8 @@ impl Component for Multiplier {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
-        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
+        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
         
         // Compute product
         let product = self.multiply_values(&value_a, &value_b);

@@ -88,13 +88,13 @@ impl Subtractor {
     pub fn set_bit_width(&mut self, width: BusWidth) {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("A") {
-            pin.width = width; pin.signal = Signal::unknown(width);
+            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
         }
         if let Some(pin) = self.pins.get_mut("B") {
-            pin.width = width; pin.signal = Signal::unknown(width);
+            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
         }
         if let Some(pin) = self.pins.get_mut("Difference") {
-            pin.width = width; pin.signal = Signal::unknown(width);
+            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
         }
     }
 }
@@ -118,9 +118,9 @@ impl Component for Subtractor {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
-        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
-        let borrow_in = self.pins.get("Borrow_In").map(|p| p.get_signal().value()).unwrap_or(Value::Low);
+        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let borrow_in = self.pins.get("Borrow_In").map(|p| p.get_signal().value()).unwrap_or(&Value::Low);
         
         // Compute difference and borrow out
         let (difference, borrow_out) = Self::compute_difference(

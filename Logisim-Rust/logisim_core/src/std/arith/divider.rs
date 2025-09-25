@@ -61,7 +61,7 @@ impl Divider {
         
         for pin_name in &["Dividend", "Divisor", "Quotient", "Remainder"] {
             if let Some(pin) = self.pins.get_mut(*pin_name) {
-                pin.width = width; pin.signal = Signal::unknown(width);
+                pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
             }
         }
     }
@@ -86,8 +86,8 @@ impl Component for Divider {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let dividend = self.pins.get("Dividend").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
-        let divisor = self.pins.get("Divisor").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
+        let dividend = self.pins.get("Dividend").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let divisor = self.pins.get("Divisor").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
         
         // Perform division
         let (quotient, remainder) = if dividend.is_fully_defined() && divisor.is_fully_defined() {

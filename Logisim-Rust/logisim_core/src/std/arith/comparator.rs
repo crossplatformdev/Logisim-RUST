@@ -143,10 +143,10 @@ impl Comparator {
     pub fn set_bit_width(&mut self, width: BusWidth) {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("A") {
-            pin.width = width; pin.signal = Signal::unknown(width);
+            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
         }
         if let Some(pin) = self.pins.get_mut("B") {
-            pin.width = width; pin.signal = Signal::unknown(width);
+            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
         }
     }
     
@@ -175,8 +175,8 @@ impl Component for Comparator {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
-        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
+        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
         
         // Perform comparison
         let (gt, eq, lt) = self.compare_values(&value_a, &value_b);

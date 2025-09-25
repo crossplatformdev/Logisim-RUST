@@ -106,9 +106,9 @@ impl Component for BitAdder {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let a = self.pins.get("A").map(|p| *p.get_signal().value()).unwrap_or(Value::Unknown);
-        let b = self.pins.get("B").map(|p| *p.get_signal().value()).unwrap_or(Value::Unknown);
-        let carry_in = self.pins.get("CarryIn").map(|p| *p.get_signal().value()).unwrap_or(Value::Low);
+        let a = self.pins.get("A").map(|p| *p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let b = self.pins.get("B").map(|p| *p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let carry_in = self.pins.get("CarryIn").map(|p| *p.get_signal().value()).unwrap_or(&Value::Low);
         
         // Compute outputs
         let (sum, carry_out) = self.compute_outputs(a, b, carry_in);

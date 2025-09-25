@@ -75,10 +75,10 @@ impl Negator {
     pub fn set_bit_width(&mut self, width: BusWidth) {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("Input") {
-            pin.width = width; pin.signal = Signal::unknown(width);
+            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
         }
         if let Some(pin) = self.pins.get_mut("Output") {
-            pin.width = width; pin.signal = Signal::unknown(width);
+            pin.width = width; pin.signal = Signal::unknown(BusWidth::new(width));
         }
     }
 }
@@ -102,7 +102,7 @@ impl Component for Negator {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input value
-        let input = self.pins.get("Input").map(|p| p.get_signal().value()).unwrap_or(Value::Unknown);
+        let input = self.pins.get("Input").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
         
         // Compute negated output
         let output = self.negate_value(&input);

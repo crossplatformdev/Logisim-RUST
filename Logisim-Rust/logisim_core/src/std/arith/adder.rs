@@ -146,15 +146,15 @@ impl Adder {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("A") {
             pin.width = width;
-            pin.signal = Signal::unknown(width);
+            pin.signal = Signal::unknown(BusWidth::new(width));
         }
         if let Some(pin) = self.pins.get_mut("B") {
             pin.width = width;
-            pin.signal = Signal::unknown(width);
+            pin.signal = Signal::unknown(BusWidth::new(width));
         }
         if let Some(pin) = self.pins.get_mut("Sum") {
             pin.width = width;
-            pin.signal = Signal::unknown(width);
+            pin.signal = Signal::unknown(BusWidth::new(width));
         }
     }
 }
