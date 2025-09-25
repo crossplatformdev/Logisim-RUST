@@ -13,18 +13,17 @@
 //! and makes them available to the Logisim system.
 
 use crate::{
-    instance::InstanceFactory,
-    std::io::{Button, Led},
-    tools::Library,
+    comp::ComponentFactory,
+    tools::{Library, Tool},
 };
+use std::any::Any;
 
 /// The I/O Components Library
 /// 
 /// This library provides input/output components for user interaction
 /// and external interfacing, equivalent to the Java IoLibrary class.
-#[derive(Debug)]
 pub struct IoLibrary {
-    components: Vec<Box<dyn InstanceFactory>>,
+    // TODO: Add components when ComponentFactory integration is complete
 }
 
 impl IoLibrary {
@@ -33,22 +32,11 @@ impl IoLibrary {
     pub const ID: &'static str = "I/O";
     
     pub fn new() -> Self {
-        let mut components: Vec<Box<dyn InstanceFactory>> = Vec::new();
-        
-        // Add basic I/O components
-        components.push(Box::new(Button::new()));
-        components.push(Box::new(Led::new()));
-        
-        // TODO: Add more components as they are implemented
-        // components.push(Box::new(DipSwitch::new()));
-        // components.push(Box::new(SevenSegment::new()));
-        // etc.
-        
-        Self { components }
-    }
-    
-    pub fn get_components(&self) -> &[Box<dyn InstanceFactory>] {
-        &self.components
+        Self {
+            // TODO: Add basic I/O components
+            // components.push(Box::new(Button::new()));
+            // components.push(Box::new(Led::new()));
+        }
     }
 }
 
@@ -59,24 +47,29 @@ impl Default for IoLibrary {
 }
 
 impl Library for IoLibrary {
-    fn get_name(&self) -> &str {
-        Self::ID
+    fn get_name(&self) -> String {
+        Self::ID.to_string()
     }
     
     fn get_display_name(&self) -> String {
         "I/O".to_string() // TODO: Use localization S.get("ioLibrary")
     }
     
-    fn contains(&self, factory: &dyn InstanceFactory) -> bool {
-        // Check if this library contains the given factory
-        let factory_name = factory.get_name();
-        
-        for component in &self.components {
-            if component.get_name() == factory_name {
-                return true;
-            }
-        }
-        
+    fn contains(&self, _factory: &dyn ComponentFactory) -> bool {
+        // TODO: Check if this library contains the given factory
         false
+    }
+    
+    fn get_tools(&self) -> Vec<Box<dyn Tool>> {
+        // TODO: Convert components to tools
+        Vec::new()
+    }
+    
+    fn set_hidden(&mut self) {
+        // TODO: Implement library hiding functionality
+    }
+    
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
