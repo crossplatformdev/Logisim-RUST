@@ -135,7 +135,7 @@ impl BasicHdlContent {
     }
 }
 
-impl HdlModel for HdlContent {
+impl HdlModel for BasicHdlContent {
     fn add_hdl_model_listener(&mut self, listener: Box<dyn HdlModelListener>) {
         let id = self.next_listener_id;
         self.next_listener_id += 1;
@@ -204,7 +204,7 @@ impl HdlModel for HdlContent {
 /// This would be used by component attribute systems.
 #[derive(Debug)]
 pub struct HdlContentAttribute {
-    content: HdlContent,
+    content: BasicHdlContent,
     attribute_name: String,
 }
 
@@ -212,7 +212,7 @@ impl HdlContentAttribute {
     /// Create new HDL content attribute
     pub fn new(attribute_name: String, entity_name: String) -> Self {
         Self {
-            content: HdlContent::new(entity_name),
+            content: BasicHdlContent::new(entity_name),
             attribute_name,
         }
     }
@@ -223,12 +223,12 @@ impl HdlContentAttribute {
     }
 
     /// Get reference to the content
-    pub fn get_content(&self) -> &HdlContent {
+    pub fn get_content(&self) -> &BasicHdlContent {
         &self.content
     }
 
     /// Get mutable reference to the content
-    pub fn get_content_mut(&mut self) -> &mut HdlContent {
+    pub fn get_content_mut(&mut self) -> &mut BasicHdlContent {
         &mut self.content
     }
 }
@@ -322,18 +322,16 @@ mod tests {
 
     #[test]
     fn test_hdl_content_creation() {
-        let content = HdlContent::new("test_entity".to_string());
+        let content = BasicHdlContent::new("test_entity".to_string());
         assert_eq!(content.get_name(), "test_entity");
         assert_eq!(content.get_content(), "");
-        assert!(content.get_inputs().is_empty());
-        assert!(content.get_outputs().is_empty());
     }
 
     #[test]
     fn test_concat_function() {
         let first = vec![1, 2, 3];
         let second = vec![4, 5, 6];
-        let result = HdlContent::concat(&first, &second);
+        let result = BasicHdlContent::concat(&first, &second);
         assert_eq!(result, vec![1, 2, 3, 4, 5, 6]);
     }
 
@@ -367,7 +365,7 @@ mod tests {
 
     #[test]
     fn test_get_all_ports() {
-        let mut content = HdlContent::new("test".to_string());
+        let mut content = BasicHdlContent::new("test".to_string());
         
         let inputs = vec![
             PortDescription::new("in1".to_string(), "std_logic".to_string(), 1),

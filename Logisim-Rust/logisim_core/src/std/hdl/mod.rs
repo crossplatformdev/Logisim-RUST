@@ -58,22 +58,21 @@ pub mod dense_logic_builder;
 pub mod generic_interface;
 
 // Re-export commonly used types
-pub use hdl_content::*;
-pub use hdl_content_attr::*;
-pub use hdl_content_editor::*;
+pub use hdl_content::{HdlContent, BasicHdlContent, HdlContentAttribute as HdlContentAttributeType, BasicHdlContentEditor};
+pub use hdl_content_attr::HdlContentAttribute;
+pub use hdl_content_editor::HdlContentEditor;
 pub use hdl_circuit::*;
 pub use hdl_library::*;
 
-pub use vhdl_entity::*;
-pub use vhdl_entity_attr::*;
-pub use vhdl_content::*;
-pub use vhdl_parser::*;
+pub use vhdl_entity::VhdlEntityComponent;
+pub use vhdl_entity_attr::{VhdlEntityContentAttribute, VhdlEntityNameAttribute, VhdlEntityAttributes};
+pub use vhdl_content::VhdlContentComponent;
+pub use vhdl_parser::{VhdlParser, VhdlResult, VhdlError};
 pub use vhdl_generator::*;
 
-pub use blif_circuit::*;
-pub use blif_content::*;
-pub use blif_parser::*;
-pub use attributes::*;
+pub use blif_circuit::BlifCircuitComponent;  
+pub use blif_content::BlifContentComponent;
+pub use blif_parser::{BlifParser, BlifResult, BlifError};
 
 pub use dense_logic_circuit::*;
 pub use dense_logic_builder::*;

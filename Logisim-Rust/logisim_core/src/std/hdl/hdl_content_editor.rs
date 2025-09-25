@@ -12,8 +12,7 @@
 //! Equivalent to Java HdlContentEditor.java
 //! Provides editing functionality for HDL content.
 
-use crate::hdl::HdlContent;
-use std::collections::HashMap;
+use super::HdlContent;
 
 /// HDL Content Editor
 /// 
