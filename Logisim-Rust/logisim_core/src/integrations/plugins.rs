@@ -588,7 +588,7 @@ impl PluginManager {
         
         // Components from dynamic registry
         for component_type in self.component_registry.component_types() {
-            if let Some(factory) = self.component_registry.factories.get(component_type) {
+            if let Some(factory) = self.component_registry.get_factory(component_type) {
                 let info = factory.component_info();
                 components.push((format!("dynamic:{}", component_type), info));
             }
