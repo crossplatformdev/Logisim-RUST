@@ -12,6 +12,32 @@ The project is organized into several crates, each with specific responsibilitie
 
 ## Core Architecture (`logisim_core`)
 
+### Foundation Infrastructure
+
+#### Utility Classes (`logisim_core/src/util/`)
+The utility module provides essential helper functions and data structures:
+
+- **StringUtil & StringGetter**: Trait-based string handling with hex conversion, null checking, and text resizing operations
+- **CollectionUtil**: Type-safe collection operations for Vec, HashMap, HashSet with union types and null-safe operations  
+- **Cache**: Generic caching system with configurable sizing and string interning capabilities for performance optimization
+- **FileUtil**: Cross-platform file operations with temporary file management and comprehensive I/O utilities
+- **LocaleManager**: Internationalization system with string getter patterns and locale switching support
+
+#### Core Data Structures (`logisim_core/src/data/`)
+The data module contains fundamental types used throughout the system:
+
+- **Direction**: Four cardinal directions (North, South, East, West) with rotation logic, degree/radian conversion, and display formatting
+- **Location**: Immutable 2D coordinate system with grid snapping, Manhattan distance calculations, and spatial operations
+- **Bounds**: Immutable rectangular bounding box with union/intersection operations, collision detection, and rotation support
+- **BitWidth**: Enhanced bit width system with UI integration, mask generation, and compatibility with existing BusWidth types
+- **Attribute System**: Complete type-safe component configuration system with generics, validation, and standard attributes for component properties
+
+#### Component Framework (`logisim_core/src/components/`)
+Prepared structure for component implementations:
+
+- **Base Module**: Foundation for component implementations with proper module organization
+- **Extensible Architecture**: Ready for systematic addition of gates, memory, I/O, and specialized components
+
 ### Circuit Representation
 - **Circuit Format (.circ)**: XML-based format for storing circuit designs
 - **Netlist**: Represents the connectivity between components

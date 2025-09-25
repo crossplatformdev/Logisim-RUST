@@ -1,9 +1,8 @@
+use crate::gui::i18n::tr;
+use logisim_core::ComponentId;
 /// Complete toolbar system with component palette and tool selection
 /// Provides comprehensive tool management and component organization
-
 use std::collections::HashMap;
-use logisim_core::ComponentId;
-use crate::gui::i18n::tr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Tool {
@@ -24,7 +23,7 @@ pub enum ComponentType {
     NorGate,
     XnorGate,
     Buffer,
-    
+
     // Input/Output
     InputPin,
     OutputPin,
@@ -32,7 +31,7 @@ pub enum ComponentType {
     Switch,
     Led,
     SevenSegmentDisplay,
-    
+
     // Memory
     DFlipFlop,
     JKFlipFlop,
@@ -42,21 +41,21 @@ pub enum ComponentType {
     Counter,
     Ram,
     Rom,
-    
+
     // Arithmetic
     Adder,
     Subtractor,
     Multiplier,
     Divider,
     Comparator,
-    
+
     // Plexers
     Multiplexer,
     Demultiplexer,
     Decoder,
     Encoder,
     PriorityEncoder,
-    
+
     // Advanced
     Clock,
     Random,
@@ -111,25 +110,48 @@ impl ComponentType {
 
     pub fn category(&self) -> ComponentCategory {
         match self {
-            ComponentType::AndGate | ComponentType::OrGate | ComponentType::NotGate |
-            ComponentType::XorGate | ComponentType::NandGate | ComponentType::NorGate |
-            ComponentType::XnorGate | ComponentType::Buffer => ComponentCategory::Gates,
-            
-            ComponentType::InputPin | ComponentType::OutputPin | ComponentType::Button |
-            ComponentType::Switch | ComponentType::Led | ComponentType::SevenSegmentDisplay => ComponentCategory::InputOutput,
-            
-            ComponentType::DFlipFlop | ComponentType::JKFlipFlop | ComponentType::SRLatch |
-            ComponentType::DLatch | ComponentType::Register | ComponentType::Counter |
-            ComponentType::Ram | ComponentType::Rom => ComponentCategory::Memory,
-            
-            ComponentType::Adder | ComponentType::Subtractor | ComponentType::Multiplier |
-            ComponentType::Divider | ComponentType::Comparator => ComponentCategory::Arithmetic,
-            
-            ComponentType::Multiplexer | ComponentType::Demultiplexer | ComponentType::Decoder |
-            ComponentType::Encoder | ComponentType::PriorityEncoder => ComponentCategory::Plexers,
-            
-            ComponentType::Clock | ComponentType::Random | ComponentType::Splitter |
-            ComponentType::Tunnel | ComponentType::PullResistor => ComponentCategory::Wiring,
+            ComponentType::AndGate
+            | ComponentType::OrGate
+            | ComponentType::NotGate
+            | ComponentType::XorGate
+            | ComponentType::NandGate
+            | ComponentType::NorGate
+            | ComponentType::XnorGate
+            | ComponentType::Buffer => ComponentCategory::Gates,
+
+            ComponentType::InputPin
+            | ComponentType::OutputPin
+            | ComponentType::Button
+            | ComponentType::Switch
+            | ComponentType::Led
+            | ComponentType::SevenSegmentDisplay => ComponentCategory::InputOutput,
+
+            ComponentType::DFlipFlop
+            | ComponentType::JKFlipFlop
+            | ComponentType::SRLatch
+            | ComponentType::DLatch
+            | ComponentType::Register
+            | ComponentType::Counter
+            | ComponentType::Ram
+            | ComponentType::Rom => ComponentCategory::Memory,
+
+            ComponentType::Adder
+            | ComponentType::Subtractor
+            | ComponentType::Multiplier
+            | ComponentType::Divider
+            | ComponentType::Comparator => ComponentCategory::Arithmetic,
+
+            ComponentType::Multiplexer
+            | ComponentType::Demultiplexer
+            | ComponentType::Decoder
+            | ComponentType::Encoder
+            | ComponentType::PriorityEncoder => ComponentCategory::Plexers,
+
+            ComponentType::Clock
+            | ComponentType::Random
+            | ComponentType::Splitter
+            | ComponentType::Tunnel
+            | ComponentType::PullResistor => ComponentCategory::Wiring,
         }
     }
 
@@ -321,21 +343,28 @@ impl ToolbarState {
     }
 
     pub fn toggle_category(&mut self, category: ComponentCategory) {
-        let expanded = self.expanded_categories.get(&category).copied().unwrap_or(true);
+        let expanded = self
+            .expanded_categories
+            .get(&category)
+            .copied()
+            .unwrap_or(true);
         self.expanded_categories.insert(category, !expanded);
     }
 
     pub fn is_category_expanded(&self, category: &ComponentCategory) -> bool {
-        self.expanded_categories.get(category).copied().unwrap_or(true)
+        self.expanded_categories
+            .get(category)
+            .copied()
+            .unwrap_or(true)
     }
 
     pub fn add_recent_component(&mut self, component: ComponentType) {
         // Remove if already exists
         self.recent_components.retain(|c| c != &component);
-        
+
         // Add to front
         self.recent_components.insert(0, component);
-        
+
         // Limit to 10 recent components
         if self.recent_components.len() > 10 {
             self.recent_components.truncate(10);
@@ -343,7 +372,11 @@ impl ToolbarState {
     }
 
     pub fn toggle_favorite(&mut self, component: ComponentType) {
-        if let Some(index) = self.favorite_components.iter().position(|c| c == &component) {
+        if let Some(index) = self
+            .favorite_components
+            .iter()
+            .position(|c| c == &component)
+        {
             self.favorite_components.remove(index);
         } else {
             self.favorite_components.push(component);
@@ -426,9 +459,15 @@ impl KeyboardShortcut {
 
     pub fn to_string(&self) -> String {
         let mut parts = Vec::new();
-        if self.ctrl { parts.push("Ctrl"); }
-        if self.shift { parts.push("Shift"); }
-        if self.alt { parts.push("Alt"); }
+        if self.ctrl {
+            parts.push("Ctrl");
+        }
+        if self.shift {
+            parts.push("Shift");
+        }
+        if self.alt {
+            parts.push("Alt");
+        }
         parts.push(&self.key);
         parts.join("+")
     }
@@ -436,16 +475,31 @@ impl KeyboardShortcut {
 
 pub fn get_tool_shortcuts() -> HashMap<Tool, KeyboardShortcut> {
     let mut shortcuts = HashMap::new();
-    
+
     shortcuts.insert(Tool::Select, KeyboardShortcut::new("S"));
     shortcuts.insert(Tool::Wire, KeyboardShortcut::new("W"));
     shortcuts.insert(Tool::Text, KeyboardShortcut::new("T"));
-    shortcuts.insert(Tool::Component(ComponentType::AndGate), KeyboardShortcut::new("A"));
-    shortcuts.insert(Tool::Component(ComponentType::OrGate), KeyboardShortcut::new("O"));
-    shortcuts.insert(Tool::Component(ComponentType::NotGate), KeyboardShortcut::new("N"));
-    shortcuts.insert(Tool::Component(ComponentType::InputPin), KeyboardShortcut::new("I"));
-    shortcuts.insert(Tool::Component(ComponentType::OutputPin), KeyboardShortcut::new("P"));
-    
+    shortcuts.insert(
+        Tool::Component(ComponentType::AndGate),
+        KeyboardShortcut::new("A"),
+    );
+    shortcuts.insert(
+        Tool::Component(ComponentType::OrGate),
+        KeyboardShortcut::new("O"),
+    );
+    shortcuts.insert(
+        Tool::Component(ComponentType::NotGate),
+        KeyboardShortcut::new("N"),
+    );
+    shortcuts.insert(
+        Tool::Component(ComponentType::InputPin),
+        KeyboardShortcut::new("I"),
+    );
+    shortcuts.insert(
+        Tool::Component(ComponentType::OutputPin),
+        KeyboardShortcut::new("P"),
+    );
+
     shortcuts
 }
 
@@ -456,11 +510,14 @@ mod tests {
     #[test]
     fn test_toolbar_state() {
         let mut toolbar = ToolbarState::new();
-        
+
         assert_eq!(toolbar.current_tool, Tool::Select);
-        
+
         toolbar.set_tool(Tool::Component(ComponentType::AndGate));
-        assert_eq!(toolbar.current_tool, Tool::Component(ComponentType::AndGate));
+        assert_eq!(
+            toolbar.current_tool,
+            Tool::Component(ComponentType::AndGate)
+        );
         assert_eq!(toolbar.recent_components.len(), 1);
         assert_eq!(toolbar.recent_components[0], ComponentType::AndGate);
     }
@@ -469,7 +526,7 @@ mod tests {
     fn test_component_categories() {
         let gates = ComponentCategory::Gates;
         let components = gates.components();
-        
+
         assert!(components.contains(&ComponentType::AndGate));
         assert!(components.contains(&ComponentType::OrGate));
         assert!(!components.contains(&ComponentType::InputPin));
@@ -478,11 +535,11 @@ mod tests {
     #[test]
     fn test_component_search() {
         let toolbar = ToolbarState::new();
-        
+
         let results = toolbar.search_components("and");
         assert!(results.contains(&ComponentType::AndGate));
         assert!(results.contains(&ComponentType::NandGate));
-        
+
         let empty_results = toolbar.search_components("");
         assert!(empty_results.is_empty());
     }
@@ -490,12 +547,12 @@ mod tests {
     #[test]
     fn test_favorites() {
         let mut toolbar = ToolbarState::new();
-        
+
         assert!(toolbar.is_favorite(&ComponentType::AndGate));
-        
+
         toolbar.toggle_favorite(ComponentType::AndGate);
         assert!(!toolbar.is_favorite(&ComponentType::AndGate));
-        
+
         toolbar.toggle_favorite(ComponentType::AndGate);
         assert!(toolbar.is_favorite(&ComponentType::AndGate));
     }
@@ -503,10 +560,10 @@ mod tests {
     #[test]
     fn test_keyboard_shortcuts() {
         let shortcuts = get_tool_shortcuts();
-        
+
         assert!(shortcuts.contains_key(&Tool::Select));
         assert!(shortcuts.contains_key(&Tool::Wire));
-        
+
         let select_shortcut = &shortcuts[&Tool::Select];
         assert_eq!(select_shortcut.key, "S");
         assert!(!select_shortcut.ctrl);
