@@ -247,6 +247,173 @@ pub trait ComponentListener: Send + Sync {
     }
 }
 
+/// Advanced observer pattern for extensible event handling
+/// 
+/// **API Stability: UNSTABLE** - This trait may change in future versions
+pub trait ExtensibleObserver: Send + Sync {
+    /// Handle component lifecycle events
+    fn on_component_event(&mut self, event: &ComponentEvent) {
+        // Default: delegate to simple listener interface
+        self.on_legacy_event(event);
+    }
+    
+    /// Handle simulation state changes
+    fn on_simulation_event(&mut self, _event: &SimulationEvent) {
+        // Default implementation does nothing
+    }
+    
+    /// Handle circuit structure changes
+    fn on_circuit_event(&mut self, _event: &CircuitEvent) {
+        // Default implementation does nothing
+    }
+    
+    /// Handle plugin lifecycle events
+    fn on_plugin_event(&mut self, _event: &PluginEvent) {
+        // Default implementation does nothing
+    }
+    
+    /// Priority for event handling (higher numbers = higher priority)
+    fn priority(&self) -> i32 {
+        0
+    }
+    
+    /// Backward compatibility with ComponentListener
+    fn on_legacy_event(&mut self, _event: &ComponentEvent) {
+        // Default implementation for legacy compatibility
+    }
+}
+
+/// Simulation state change events
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum SimulationEvent {
+    /// Simulation started
+    Started,
+    /// Simulation paused
+    Paused,
+    /// Simulation stopped
+    Stopped,
+    /// Simulation step completed
+    StepCompleted { step: u64 },
+    /// Signal value changed
+    SignalChanged { node_id: String, value: String },
+    /// Clock tick occurred
+    ClockTick { clock_name: String },
+}
+
+/// Circuit structure change events  
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum CircuitEvent {
+    /// New circuit created
+    CircuitCreated { name: String },
+    /// Circuit deleted
+    CircuitDeleted { name: String },
+    /// Wire added
+    WireAdded { from: Location, to: Location },
+    /// Wire removed
+    WireRemoved { from: Location, to: Location },
+    /// Circuit hierarchy changed
+    HierarchyChanged,
+}
+
+/// Plugin lifecycle events
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum PluginEvent {
+    /// Plugin loaded
+    PluginLoaded { name: String, version: String },
+    /// Plugin unloaded
+    PluginUnloaded { name: String },
+    /// Plugin error occurred
+    PluginError { name: String, error: String },
+    /// Component registered by plugin
+    ComponentRegistered { plugin_name: String, component_name: String },
+}
+
+/// Observer registry for managing extensible observers
+/// 
+/// **API Stability: UNSTABLE** - This struct may change in future versions
+pub struct ObserverRegistry {
+    observers: Vec<Box<dyn ExtensibleObserver>>,
+    enabled: bool,
+}
+
+impl ObserverRegistry {
+    /// Create a new observer registry
+    pub fn new() -> Self {
+        Self {
+            observers: Vec::new(),
+            enabled: true,
+        }
+    }
+    
+    /// Register a new observer
+    pub fn register(&mut self, observer: Box<dyn ExtensibleObserver>) {
+        self.observers.push(observer);
+        // Sort by priority (highest first)
+        self.observers.sort_by(|a, b| b.priority().cmp(&a.priority()));
+    }
+    
+    /// Remove all observers
+    pub fn clear(&mut self) {
+        self.observers.clear();
+    }
+    
+    /// Enable/disable observer notifications
+    pub fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+    
+    /// Notify all observers of a component event
+    pub fn notify_component_event(&mut self, event: &ComponentEvent) {
+        if !self.enabled {
+            return;
+        }
+        for observer in &mut self.observers {
+            observer.on_component_event(event);
+        }
+    }
+    
+    /// Notify all observers of a simulation event
+    pub fn notify_simulation_event(&mut self, event: &SimulationEvent) {
+        if !self.enabled {
+            return;
+        }
+        for observer in &mut self.observers {
+            observer.on_simulation_event(event);
+        }
+    }
+    
+    /// Notify all observers of a circuit event
+    pub fn notify_circuit_event(&mut self, event: &CircuitEvent) {
+        if !self.enabled {
+            return;
+        }
+        for observer in &mut self.observers {
+            observer.on_circuit_event(event);
+        }
+    }
+    
+    /// Notify all observers of a plugin event
+    pub fn notify_plugin_event(&mut self, event: &PluginEvent) {
+        if !self.enabled {
+            return;
+        }
+        for observer in &mut self.observers {
+            observer.on_plugin_event(event);
+        }
+    }
+    
+    /// Get number of registered observers
+    pub fn observer_count(&self) -> usize {
+        self.observers.len()
+    }
+}
+
+impl Default for ObserverRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A simple component listener that stores events for testing
 #[derive(Debug, Default)]
 pub struct TestComponentListener {
