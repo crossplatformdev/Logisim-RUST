@@ -97,6 +97,15 @@ impl Default for UpdateResult {
     }
 }
 
+/// Clock edge types for sequential components
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ClockEdge {
+    /// Rising edge (low to high)
+    Rising,
+    /// Falling edge (high to low)
+    Falling,
+}
+
 /// Trait that all simulation components must implement
 ///
 /// This is the core interface equivalent to Java's `Component` interface.
@@ -165,6 +174,16 @@ pub trait Component: std::fmt::Debug + Send + Sync {
             // TODO: Implement proper pin position checking
             false
         })
+    }
+
+    /// Check if this component is sequential (has state that depends on clock)
+    fn is_sequential(&self) -> bool {
+        false // Default: most components are combinational
+    }
+
+    /// Handle a clock edge if this is a sequential component
+    fn clock_edge(&mut self, _edge: ClockEdge, _current_time: Timestamp) -> UpdateResult {
+        UpdateResult::new() // Default: no response to clock edges
     }
 }
 

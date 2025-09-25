@@ -29,7 +29,7 @@ impl OptionPane {
 
     /// Display a simple message dialog
     /// Equivalent to Java's showMessageDialog(parentComponent, message)
-    pub fn show_message_dialog(parent_component: Option<&str>, message: &str) {
+    pub fn show_message_dialog(_parent_component: Option<&str>, message: &str) {
         if crate::main::has_gui() {
             #[cfg(feature = "gui")]
             {
@@ -48,7 +48,7 @@ impl OptionPane {
     /// Display a message dialog with title and message type
     /// Equivalent to Java's showMessageDialog(parentComponent, message, title, messageType)
     pub fn show_message_dialog_with_type(
-        parent_component: Option<&str>,
+        _parent_component: Option<&str>,
         message: &str,
         title: &str,
         message_type: i32,
@@ -76,10 +76,10 @@ impl OptionPane {
     /// Display a confirmation dialog
     /// Equivalent to Java's showConfirmDialog(parentComponent, message, title, optionType)
     pub fn show_confirm_dialog(
-        parent_component: Option<&str>,
+        _parent_component: Option<&str>,
         message: &str,
         title: &str,
-        option_type: i32,
+        _option_type: i32,
     ) -> i32 {
         if crate::main::has_gui() {
             #[cfg(feature = "gui")]

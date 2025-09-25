@@ -313,8 +313,6 @@ impl<S: InstanceState + ?Sized> InstanceStateExt for S {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::BitWidth;
-    use crate::instance::{PortType, PortWidth};
     use std::collections::HashMap;
 
     // Mock implementation for testing

@@ -337,7 +337,7 @@ impl Waveform {
         match value {
             Value::High => high_y,
             Value::Low => low_y,
-            Value::Unknown | Value::Error => (high_y + low_y) / 2.0,
+            Value::Unknown | Value::Error | Value::HighZ => (high_y + low_y) / 2.0,
         }
     }
 
@@ -348,6 +348,7 @@ impl Waveform {
             Value::Low => self.colors.low,
             Value::Unknown => self.colors.unknown,
             Value::Error => self.colors.error,
+            Value::HighZ => self.colors.unknown, // Treat HighZ similar to unknown
         }
     }
 
@@ -358,17 +359,6 @@ impl Waveform {
 
     /// Format a signal value for display (internal implementation)
     fn format_signal_value_internal(&self, signal: &Signal) -> String {
-        // Convert signal to numeric value for display
-        let mut value = 0u64;
-        for (i, bit_value) in signal.values().iter().enumerate() {
-            match bit_value {
-                Value::High => value |= 1 << i,
-                Value::Low => {} // Already 0
-                Value::Unknown => return "?".to_string(),
-                Value::Error => return "X".to_string(),
-            }
-        }
-
         // Format based on bus width
         if signal.is_single_bit() {
             match signal.get_bit(0) {
@@ -376,14 +366,19 @@ impl Waveform {
                 Some(Value::Low) => "0".to_string(),
                 Some(Value::Unknown) => "?".to_string(),
                 Some(Value::Error) => "X".to_string(),
+                Some(Value::HighZ) => "Z".to_string(),
                 None => "".to_string(),
             }
         } else {
-            // For multi-bit, show hex for wider buses, decimal for narrow ones
-            if signal.values().len() > 4 {
-                format!("{:X}", value)
-            } else {
-                format!("{}", value)
+            // For multi-bit signals, we need to handle them differently
+            // For now, treat as single bit since current Signal only holds one Value
+            let value = signal.value();
+            match value {
+                Value::High => "1".to_string(),
+                Value::Low => "0".to_string(),
+                Value::Unknown => "?".to_string(),
+                Value::Error => "X".to_string(),
+                Value::HighZ => "Z".to_string(),
             }
         }
     }
