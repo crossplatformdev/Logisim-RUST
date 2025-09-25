@@ -27,6 +27,7 @@
 pub mod base;
 pub mod bfh;
 pub mod gates;
+pub mod io;
 pub mod wiring;
 
 
@@ -34,4 +35,5 @@ pub mod wiring;
 pub use base::*;
 pub use bfh::*;
 pub use gates::*;
+pub use io::*;
 pub use wiring::*;

@@ -85,7 +85,7 @@ pub use contracts::{
     BaseWindowListenerContract, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
 };
 pub use components::gray::*;
-pub use std::{base::*, gates::*};
+pub use std::{base::*, gates::*, io::*};
 pub use data::{
     Attribute, AttributeSet, AttributeValue, BitWidth, Bounds, Direction, Location, StdAttr,
 };
