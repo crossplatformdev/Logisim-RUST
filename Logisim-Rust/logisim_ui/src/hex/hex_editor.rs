@@ -221,7 +221,7 @@ impl HexEditor {
     }
 
     /// Get model for functions that need &dyn HexModel
-    fn with_model<T, F>(&self, f: F) -> Option<T>
+    fn with_model_ref<T, F>(&self, f: F) -> Option<T>
     where
         F: FnOnce(&dyn HexModel) -> T,
     {
