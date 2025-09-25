@@ -100,7 +100,7 @@ pub use video::*;
 pub use hdl_generators::*;
 pub use extra::*;
 
-use crate::data::{Attribute, Attributes};
+use crate::data::{Attribute, AttributeSet};
 use crate::comp::Color;
 
 /// Default background color (transparent white)

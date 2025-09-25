@@ -4,6 +4,7 @@
 //! This module provides trait definitions for HDL content components.
 
 use crate::hdl::{HdlModel, HdlModelListener, PortDescription};
+use std::collections::HashMap;
 
 /// Trait for HDL content components
 pub trait HdlContent {
@@ -20,9 +21,21 @@ pub trait HdlContent {
     fn is_valid(&self) -> bool;
 }
 
-impl std::fmt::Debug for HdlContent {
+/// HDL content structure for managing HDL components
+#[derive(Clone)]
+pub struct BasicHdlContent {
+    name: String,
+    content: String,
+    inputs: Vec<PortDescription>,
+    outputs: Vec<PortDescription>,
+    listeners: Vec<Box<dyn HdlModelListener + Send + Sync>>,
+    next_listener_id: u32,
+    listener_ids: HashMap<u32, usize>,
+}
+
+impl std::fmt::Debug for BasicHdlContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("HdlContent")
+        f.debug_struct("BasicHdlContent")
             .field("name", &self.name)
             .field("content", &self.content)
             .field("inputs", &self.inputs)
@@ -32,7 +45,7 @@ impl std::fmt::Debug for HdlContent {
     }
 }
 
-impl HdlContent {
+impl BasicHdlContent {
     /// Create new HDL content
     pub fn new(name: String) -> Self {
         Self {
@@ -46,6 +59,26 @@ impl HdlContent {
         }
     }
 
+    /// Get the HDL content as string
+    pub fn get_content(&self) -> &str {
+        &self.content
+    }
+
+    /// Set the HDL content
+    pub fn set_content(&mut self, content: String) {
+        self.content = content;
+    }
+
+    /// Get the name of the component
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    /// Check if the content is valid
+    pub fn is_valid(&self) -> bool {
+        !self.content.is_empty()
+    }
+
     /// Concatenate two arrays (equivalent to Java HdlContent.concat)
     pub fn concat<T: Clone>(first: &[T], second: &[T]) -> Vec<T> {
         let mut result = Vec::with_capacity(first.len() + second.len());
@@ -53,7 +86,27 @@ impl HdlContent {
         result.extend_from_slice(second);
         result
     }
+}
 
+impl HdlContent for BasicHdlContent {
+    fn get_content(&self) -> &str {
+        &self.content
+    }
+
+    fn set_content(&mut self, content: String) {
+        self.content = content;
+    }
+
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    fn is_valid(&self) -> bool {
+        !self.content.is_empty()
+    }
+}
+
+impl BasicHdlContent {
     /// Set inputs
     pub fn set_inputs(&mut self, inputs: Vec<PortDescription>) {
         self.inputs = inputs;

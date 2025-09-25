@@ -13,7 +13,7 @@
 //! seven-segment display decoders like the TTL 7447.
 
 use crate::{
-    data::Value,
+    signal::Value,
     instance::InstanceState,
 };
 

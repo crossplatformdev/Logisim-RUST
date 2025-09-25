@@ -14,7 +14,8 @@
 
 use crate::{
     component::{Component, ComponentId, Pin},
-    data::{AttributeSet, Bounds, Direction, Location, Value},
+    data::{AttributeSet, Bounds, Direction, Location},
+    signal::Value,
     instance::{Instance, InstanceFactory, InstancePainter, InstanceState},
     signal::Signal,
 };
