@@ -15,13 +15,17 @@ use super::hex_model::{HexModel, HexModelListener};
 use super::measures::Measures;
 use super::caret::Caret;
 use super::highlighter::Highlighter;
+
+#[cfg(feature = "gui")]
 use egui::{
     Color32, Context, FontId, Key, Modifiers, Painter, Pos2, Rect, Response, ScrollArea, Sense,
     Stroke, TextStyle, Ui, Vec2, Widget, Rounding,
 };
-use std::sync::{Arc, Mutex, Weak};
+
+use std::sync::{Arc, Mutex};
 
 /// Main hex editor widget
+#[cfg(feature = "gui")]
 pub struct HexEditor {
     /// Data model
     model: Option<Arc<Mutex<dyn HexModel>>>,
@@ -42,9 +46,11 @@ pub struct HexEditor {
     /// Read-only mode
     read_only: bool,
     /// Last mouse position for drag detection
+    #[cfg(feature = "gui")]
     last_mouse_pos: Option<Pos2>,
 }
 
+#[cfg(feature = "gui")]
 impl HexEditor {
     /// Create a new hex editor
     pub fn new() -> Self {
@@ -58,6 +64,7 @@ impl HexEditor {
             show_addresses: true,
             bytes_per_row: None,
             read_only: false,
+            #[cfg(feature = "gui")]
             last_mouse_pos: None,
         }
     }
@@ -314,6 +321,7 @@ impl HexEditor {
     }
 }
 
+#[cfg(feature = "gui")]
 impl Widget for &mut HexEditor {
     type Response = Response;
     
@@ -330,6 +338,7 @@ impl Widget for &mut HexEditor {
     }
 }
 
+#[cfg(feature = "gui")]
 impl Default for HexEditor {
     fn default() -> Self {
         Self::new()
@@ -337,12 +346,14 @@ impl Default for HexEditor {
 }
 
 /// Helper struct for creating a scrollable hex editor
+#[cfg(feature = "gui")]
 pub struct ScrollableHexEditor<'a> {
     editor: &'a mut HexEditor,
     max_height: Option<f32>,
     max_width: Option<f32>,
 }
 
+#[cfg(feature = "gui")]
 impl<'a> ScrollableHexEditor<'a> {
     pub fn new(editor: &'a mut HexEditor) -> Self {
         Self {
@@ -363,6 +374,7 @@ impl<'a> ScrollableHexEditor<'a> {
     }
 }
 
+#[cfg(feature = "gui")]
 impl<'a> Widget for ScrollableHexEditor<'a> {
     type Response = Response;
     
@@ -389,6 +401,7 @@ mod tests {
     use crate::hex::hex_model::MemoryHexModel;
     use std::sync::{Arc, Mutex};
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_hex_editor_creation() {
         let editor = HexEditor::new();
@@ -396,6 +409,7 @@ mod tests {
         assert!(editor.get_cursor().is_none());
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_hex_editor_with_model() {
         let model = Arc::new(Mutex::new(MemoryHexModel::new(256, 8)));
@@ -404,6 +418,7 @@ mod tests {
         assert!(editor.get_model().is_some());
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_cursor_operations() {
         let model = Arc::new(Mutex::new(MemoryHexModel::new(256, 8)));
@@ -419,6 +434,7 @@ mod tests {
         assert!(editor.get_selection().is_none());
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_highlight_operations() {
         let model = Arc::new(Mutex::new(MemoryHexModel::new(256, 8)));
@@ -431,6 +447,7 @@ mod tests {
         assert!(removed);
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_configuration() {
         let mut editor = HexEditor::new();

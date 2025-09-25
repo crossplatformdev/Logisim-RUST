@@ -32,6 +32,7 @@
 //! compatibility with existing .circ files.
 
 pub mod gui;
+pub mod hex;
 pub mod main {
     pub use crate::main_lib::*;
 }
@@ -49,6 +50,12 @@ pub use gui::toolbox::Toolbox;
 // Always export these (not GUI dependent)
 pub use gui::edit_handler::EditHandler;
 pub use gui::selection::Selection;
+
+// Re-export hex editor components
+pub use hex::{HexModel, HexModelListener, Measures, MemoryHexModel};
+
+#[cfg(feature = "gui")]
+pub use hex::{HexEditor, Caret, Highlighter};
 
 /// UI-specific error types
 #[derive(Debug, thiserror::Error)]

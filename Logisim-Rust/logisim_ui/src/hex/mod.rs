@@ -28,8 +28,12 @@ pub mod highlighter;
 pub mod measures;
 
 // Re-export commonly used types
-pub use hex_model::{HexModel, HexModelListener, HexModelEvent};
-pub use hex_editor::HexEditor;
-pub use caret::Caret;
-pub use highlighter::Highlighter;
+pub use hex_model::{HexModel, HexModelListener, HexModelEvent, MemoryHexModel};
 pub use measures::Measures;
+
+#[cfg(feature = "gui")]
+pub use hex_editor::HexEditor;
+#[cfg(feature = "gui")]
+pub use caret::Caret;
+#[cfg(feature = "gui")]
+pub use highlighter::Highlighter;

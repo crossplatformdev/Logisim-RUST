@@ -13,11 +13,15 @@
 
 use super::hex_model::HexModel;
 use super::measures::Measures;
-use super::highlighter::{Highlighter, HighlightEntry};
+use super::highlighter::Highlighter;
+
+#[cfg(feature = "gui")]
 use egui::{Color32, Key, Modifiers, Painter, Rect, Stroke, Rounding};
 
 /// Selection colors
+#[cfg(feature = "gui")]
 const SELECT_COLOR: Color32 = Color32::from_rgb(192, 192, 255);
+#[cfg(feature = "gui")]
 const CURSOR_COLOR: Color32 = Color32::BLACK;
 
 /// Represents the cursor and selection state in the hex editor
@@ -107,6 +111,7 @@ impl Caret {
     }
     
     /// Handle key input
+    #[cfg(feature = "gui")]
     pub fn handle_key_input(
         &mut self,
         key: Key,
@@ -190,6 +195,7 @@ impl Caret {
     }
     
     /// Handle mouse click
+    #[cfg(feature = "gui")]
     pub fn handle_mouse_click(
         &mut self,
         pos: egui::Pos2,
@@ -204,6 +210,7 @@ impl Caret {
     }
     
     /// Handle mouse drag
+    #[cfg(feature = "gui")]
     pub fn handle_mouse_drag(
         &mut self,
         pos: egui::Pos2,
@@ -217,6 +224,7 @@ impl Caret {
     }
     
     /// Paint the cursor
+    #[cfg(feature = "gui")]
     pub fn paint_cursor(
         &mut self,
         painter: &Painter,
@@ -288,7 +296,14 @@ impl Caret {
         // Add new selection highlight if there is a selection
         if self.has_selection() {
             let (start, end) = self.get_selection_range().unwrap();
-            self.selection_highlight_id = highlighter.add(start, end, SELECT_COLOR, model);
+            #[cfg(feature = "gui")]
+            {
+                self.selection_highlight_id = highlighter.add(start, end, SELECT_COLOR, model);
+            }
+            #[cfg(not(feature = "gui"))]
+            {
+                self.selection_highlight_id = highlighter.add(start, end, [192, 192, 255, 255], model);
+            }
         }
     }
     
@@ -310,6 +325,7 @@ impl Caret {
     }
     
     /// Get current address bounds for scrolling
+    #[cfg(feature = "gui")]
     pub fn get_cursor_bounds(&self, measures: &Measures, model: Option<&dyn HexModel>) -> Option<Rect> {
         if self.cursor < 0 {
             return None;
@@ -402,6 +418,7 @@ mod tests {
         assert_eq!(end, model.get_last_offset());
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_key_navigation() {
         let mut caret = Caret::new();
@@ -435,6 +452,7 @@ mod tests {
         assert_eq!(caret.get_dot(), 10);
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_key_selection() {
         let mut caret = Caret::new();
@@ -459,6 +477,7 @@ mod tests {
         assert!(caret.has_selection());
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_home_end_keys() {
         let mut caret = Caret::new();

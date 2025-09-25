@@ -13,6 +13,8 @@
 
 use super::measures::Measures;
 use super::hex_model::HexModel;
+
+#[cfg(feature = "gui")]
 use egui::{Color32, Rect, Painter, Stroke, Rounding};
 
 /// Represents a highlighted range in the hex editor
@@ -20,7 +22,10 @@ use egui::{Color32, Rect, Painter, Stroke, Rounding};
 pub struct HighlightEntry {
     pub start: u64,
     pub end: u64,
+    #[cfg(feature = "gui")]
     pub color: Color32,
+    #[cfg(not(feature = "gui"))]
+    pub color: [u8; 4], // RGBA fallback
     pub id: usize,
 }
 
@@ -40,7 +45,40 @@ impl Highlighter {
     }
     
     /// Add a highlight for the given address range
+    #[cfg(feature = "gui")]
     pub fn add(&mut self, start: u64, end: u64, color: Color32, model: Option<&dyn HexModel>) -> Option<usize> {
+        let model = model?;
+        
+        let (start, end) = if start > end {
+            (end, start)
+        } else {
+            (start, end)
+        };
+        
+        let start = start.max(model.get_first_offset());
+        let end = end.min(model.get_last_offset());
+        
+        if start >= end {
+            return None;
+        }
+        
+        let id = self.next_id;
+        self.next_id += 1;
+        
+        let entry = HighlightEntry {
+            start,
+            end,
+            color,
+            id,
+        };
+        
+        self.entries.push(entry);
+        Some(id)
+    }
+    
+    /// Add a highlight for the given address range (non-GUI version)
+    #[cfg(not(feature = "gui"))]
+    pub fn add(&mut self, start: u64, end: u64, color: [u8; 4], model: Option<&dyn HexModel>) -> Option<usize> {
         let model = model?;
         
         let (start, end) = if start > end {
@@ -91,6 +129,7 @@ impl Highlighter {
     }
     
     /// Paint highlights for the visible address range
+    #[cfg(feature = "gui")]
     pub fn paint(
         &self,
         painter: &Painter,
@@ -154,6 +193,7 @@ impl Highlighter {
     }
     
     /// Check if an address is highlighted
+    #[cfg(feature = "gui")]
     pub fn is_highlighted(&self, address: u64) -> Option<Color32> {
         for entry in &self.entries {
             if address >= entry.start && address <= entry.end {
@@ -180,6 +220,7 @@ impl Highlighter {
     }
     
     /// Get the bounding rectangle for a highlight entry
+    #[cfg(feature = "gui")]
     pub fn get_highlight_bounds(
         &self,
         entry: &HighlightEntry,
@@ -213,6 +254,7 @@ impl Highlighter {
     }
     
     /// Update highlight color
+    #[cfg(feature = "gui")]
     pub fn update_color(&mut self, id: usize, color: Color32) -> bool {
         if let Some(entry) = self.entries.iter_mut().find(|e| e.id == id) {
             entry.color = color;
@@ -263,6 +305,7 @@ mod tests {
         assert_eq!(highlighter.entries.len(), 0);
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_add_highlight() {
         let mut highlighter = Highlighter::new();
@@ -278,12 +321,32 @@ mod tests {
         assert_eq!(entry.color, Color32::RED);
     }
     
+    #[cfg(not(feature = "gui"))]
+    #[test]
+    fn test_add_highlight() {
+        let mut highlighter = Highlighter::new();
+        let model = MemoryHexModel::new(256, 8);
+        
+        let id = highlighter.add(10, 20, [255, 0, 0, 255], Some(&model));
+        assert!(id.is_some());
+        assert_eq!(highlighter.entries.len(), 1);
+        
+        let entry = &highlighter.entries[0];
+        assert_eq!(entry.start, 10);
+        assert_eq!(entry.end, 20);
+        assert_eq!(entry.color, [255, 0, 0, 255]);
+    }
+    
     #[test]
     fn test_remove_highlight() {
         let mut highlighter = Highlighter::new();
         let model = MemoryHexModel::new(256, 8);
         
+        #[cfg(feature = "gui")]
         let id = highlighter.add(10, 20, Color32::RED, Some(&model)).unwrap();
+        #[cfg(not(feature = "gui"))]
+        let id = highlighter.add(10, 20, [255, 0, 0, 255], Some(&model)).unwrap();
+        
         assert_eq!(highlighter.entries.len(), 1);
         
         let removed = highlighter.remove(id);
@@ -300,14 +363,24 @@ mod tests {
         let mut highlighter = Highlighter::new();
         let model = MemoryHexModel::new(256, 8);
         
-        highlighter.add(10, 20, Color32::RED, Some(&model));
-        highlighter.add(30, 40, Color32::BLUE, Some(&model));
+        #[cfg(feature = "gui")]
+        {
+            highlighter.add(10, 20, Color32::RED, Some(&model));
+            highlighter.add(30, 40, Color32::BLUE, Some(&model));
+        }
+        #[cfg(not(feature = "gui"))]
+        {
+            highlighter.add(10, 20, [255, 0, 0, 255], Some(&model));
+            highlighter.add(30, 40, [0, 0, 255, 255], Some(&model));
+        }
+        
         assert_eq!(highlighter.entries.len(), 2);
         
         highlighter.clear();
         assert_eq!(highlighter.entries.len(), 0);
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_is_highlighted() {
         let mut highlighter = Highlighter::new();
@@ -325,15 +398,26 @@ mod tests {
         let mut highlighter = Highlighter::new();
         let model = MemoryHexModel::new(256, 8);
         
-        highlighter.add(10, 20, Color32::RED, Some(&model));
-        highlighter.add(15, 25, Color32::BLUE, Some(&model));
+        #[cfg(feature = "gui")]
+        {
+            highlighter.add(10, 20, Color32::RED, Some(&model));
+            highlighter.add(15, 25, Color32::BLUE, Some(&model));
+        }
+        #[cfg(not(feature = "gui"))]
+        {
+            highlighter.add(10, 20, [255, 0, 0, 255], Some(&model));
+            highlighter.add(15, 25, [0, 0, 255, 255], Some(&model));
+        }
         
         let highlights_at_5 = highlighter.get_highlights_at(5);
         assert_eq!(highlights_at_5.len(), 0);
         
         let highlights_at_12 = highlighter.get_highlights_at(12);
         assert_eq!(highlights_at_12.len(), 1);
+        #[cfg(feature = "gui")]
         assert_eq!(highlights_at_12[0].color, Color32::RED);
+        #[cfg(not(feature = "gui"))]
+        assert_eq!(highlights_at_12[0].color, [255, 0, 0, 255]);
         
         let highlights_at_17 = highlighter.get_highlights_at(17);
         assert_eq!(highlights_at_17.len(), 2); // Both highlights overlap here
@@ -344,17 +428,27 @@ mod tests {
         let mut highlighter = Highlighter::new();
         let model = MemoryHexModel::new(256, 8);
         
-        highlighter.add(10, 20, Color32::RED, Some(&model));
-        highlighter.add(25, 35, Color32::BLUE, Some(&model));
-        highlighter.add(15, 30, Color32::GREEN, Some(&model));
+        #[cfg(feature = "gui")]
+        {
+            highlighter.add(10, 20, Color32::RED, Some(&model));
+            highlighter.add(25, 35, Color32::BLUE, Some(&model));
+            highlighter.add(15, 30, Color32::GREEN, Some(&model));
+        }
+        #[cfg(not(feature = "gui"))]
+        {
+            highlighter.add(10, 20, [255, 0, 0, 255], Some(&model));
+            highlighter.add(25, 35, [0, 0, 255, 255], Some(&model));
+            highlighter.add(15, 30, [0, 255, 0, 255], Some(&model));
+        }
         
-        let overlapping = highlighter.get_overlapping_highlights(12, 27);
-        assert_eq!(overlapping.len(), 2); // RED and GREEN overlap with range 12-27
+        let overlapping = highlighter.get_overlapping_highlights(12, 24);
+        assert_eq!(overlapping.len(), 2); // RED and GREEN overlap with range 12-24
         
         let overlapping_all = highlighter.get_overlapping_highlights(0, 100);
         assert_eq!(overlapping_all.len(), 3); // All highlights overlap with large range
     }
     
+    #[cfg(feature = "gui")]
     #[test]
     fn test_update_highlight() {
         let mut highlighter = Highlighter::new();
@@ -380,7 +474,11 @@ mod tests {
         let model = MemoryHexModel::new(100, 8); // Model with addresses 0-99
         
         // Try to add highlight beyond model bounds
+        #[cfg(feature = "gui")]
         let id = highlighter.add(50, 150, Color32::RED, Some(&model));
+        #[cfg(not(feature = "gui"))]
+        let id = highlighter.add(50, 150, [255, 0, 0, 255], Some(&model));
+        
         assert!(id.is_some());
         
         let entry = &highlighter.entries[0];

@@ -11,8 +11,6 @@
 //!
 //! Rust port of HexModel.java and HexModelListener.java
 
-use std::sync::{Arc, Weak};
-
 /// Event fired when hex model data changes
 #[derive(Debug, Clone)]
 pub struct HexModelEvent {
@@ -149,7 +147,7 @@ impl MemoryHexModel {
                 let mask = (1u64 << self.value_width) - 1;
                 for &byte in bytes {
                     for i in 0..values_per_byte {
-                        let shift = i * self.value_width;
+                        let shift = i * self.value_width as usize;
                         if shift < 8 {
                             let value = (byte as u64 >> shift) & mask;
                             self.data.push(value);
@@ -201,11 +199,11 @@ impl MemoryHexModel {
         
         match self.value_width {
             1..=8 => {
-                let values_per_byte = 8 / self.value_width;
+                let values_per_byte = 8 / self.value_width as usize;
                 for chunk in self.data.chunks(values_per_byte) {
                     let mut byte = 0u8;
                     for (i, &value) in chunk.iter().enumerate() {
-                        byte |= (value as u8) << (i * self.value_width);
+                        byte |= (value as u8) << (i * self.value_width as usize);
                     }
                     bytes.push(byte);
                 }

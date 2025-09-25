@@ -12,7 +12,6 @@
 //! Rust port of Measures.java
 
 use super::hex_model::HexModel;
-use std::sync::{Arc, Weak};
 
 /// Manages layout calculations and measurements for the hex editor
 pub struct Measures {
