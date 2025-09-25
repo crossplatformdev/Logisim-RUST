@@ -162,7 +162,7 @@ impl MemoryComponent for RomFactory {
 #[derive(Clone)]
 pub struct RomContentsAttribute {
     name: String,
-    display_name: StringGetter,
+    display_name: crate::util::ConstantStringGetter,
 }
 
 impl RomContentsAttribute {
