@@ -13,7 +13,7 @@
 //! For an n-bit input, it has 2^n outputs where only one output is active (high) at a time.
 
 use crate::{
-    component::{Component, ComponentId, Pin, Propagator, UpdateResult},
+    comp::{Component, ComponentId, Pin, Propagator, UpdateResult},
     data::{BitWidth, Bounds, Direction, Location},
     signal::{BusWidth, Signal, Timestamp, Value},
 };
@@ -87,7 +87,7 @@ impl Decoder {
         let input_pin = Pin::new(
             "Address".to_string(),
             BusWidth(self.input_bits as u32),
-            crate::component::PinDirection::Input,
+            crate::comp::PinDirection::Input,
             Location::new(0, 25),
         );
         self.pins.insert("address".to_string(), input_pin);
@@ -98,7 +98,7 @@ impl Decoder {
             let pin = Pin::new(
                 format!("Output {}", i),
                 BusWidth(1), // Each output is single bit
-                crate::component::PinDirection::Output,
+                crate::comp::PinDirection::Output,
                 Location::new(40, 5 + i * 5),
             );
             self.pins.insert(pin_name, pin);
@@ -109,7 +109,7 @@ impl Decoder {
             let enable_pin = Pin::new(
                 "Enable".to_string(),
                 BusWidth(1),
-                crate::component::PinDirection::Input,
+                crate::comp::PinDirection::Input,
                 Location::new(20, 0),
             );
             self.pins.insert("enable".to_string(), enable_pin);

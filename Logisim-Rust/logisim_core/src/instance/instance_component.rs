@@ -13,7 +13,7 @@
 //! trait with instance-specific behavior. This is equivalent to Java's `InstanceComponent` class.
 
 // Component trait will be integrated later
-// use crate::component::Component;
+// use crate::comp::Component;
 use crate::data::{AttributeSet, Bounds, Location};
 use crate::instance::{Instance, InstanceFactory, Port};
 use std::fmt;
@@ -213,7 +213,6 @@ impl fmt::Display for InstanceComponent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::BitWidth;
     use crate::instance::{PortType, PortWidth};
 
     #[derive(Debug)]

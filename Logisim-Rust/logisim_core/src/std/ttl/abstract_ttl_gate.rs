@@ -13,7 +13,7 @@
 //! functionality for all TTL integrated circuit components.
 
 use crate::{
-    component::{Component, ComponentId, Pin},
+    comp::{Component, ComponentId, Pin},
     data::{AttributeSet, Bounds, Direction, Location},
     signal::Value,
     instance::{Instance, InstanceFactory, InstancePainter, InstanceState},

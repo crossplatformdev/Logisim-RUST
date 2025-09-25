@@ -12,7 +12,7 @@
 //! Rust port of `com.cburch.logisim.std.base.BaseLibrary`
 
 use super::*;
-use crate::component::ComponentId;
+use crate::comp::ComponentId;
 
 /// Base Library - collection of basic tools and utilities
 ///
@@ -39,7 +39,7 @@ impl BaseLibrary {
     }
 
     /// Create a text component
-    pub fn create_text(id: ComponentId) -> Box<dyn crate::component::Component> {
+    pub fn create_text(id: ComponentId) -> Box<dyn crate::comp::Component> {
         Box::new(Text::new(id))
     }
 
@@ -52,7 +52,7 @@ impl BaseLibrary {
     pub fn create_component_by_name(
         name: &str,
         id: ComponentId,
-    ) -> Option<Box<dyn crate::component::Component>> {
+    ) -> Option<Box<dyn crate::comp::Component>> {
         match name {
             "Text" => Some(Self::create_text(id)),
             _ => None,

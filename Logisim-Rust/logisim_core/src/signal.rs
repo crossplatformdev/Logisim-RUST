@@ -106,7 +106,7 @@ impl Value {
         match self {
             Value::High => Some(true),
             Value::Low => Some(false),
-            Value::Unknown | Value::Error => None,
+            Value::Unknown | Value::Error | Value::HighZ => None,
         }
     }
 
@@ -280,6 +280,52 @@ impl Signal {
     /// Check if this signal is at a definite value
     pub fn is_definite(&self) -> bool {
         self.value.is_fully_defined()
+    }
+
+    /// Create a single-bit signal (convenience method)
+    pub fn new_single(value: Value) -> Self {
+        Signal {
+            value,
+            timestamp: Timestamp(0),
+        }
+    }
+
+    /// Get the value as a single bit (if this is single-bit signal)
+    pub fn as_single(&self) -> Option<Value> {
+        Some(self.value)
+    }
+
+    /// Check if this is a single-bit signal
+    pub fn is_single_bit(&self) -> bool {
+        true // For now, all signals are single-bit
+    }
+
+    /// Get a specific bit from this signal
+    pub fn get_bit(&self, _index: u32) -> Option<Value> {
+        Some(self.value) // For single-bit signals, always return the value
+    }
+
+    /// Create a signal from a u64 value
+    pub fn from_u64(value: u64, _width: BusWidth) -> Self {
+        let signal_value = if value == 0 { Value::Low } else { Value::High };
+        Signal::new_single(signal_value)
+    }
+
+    /// Create a bus signal from multiple values
+    pub fn new_bus(values: Vec<Value>) -> Self {
+        // For now, just use the first value as a single-bit signal
+        let value = values.first().copied().unwrap_or(Value::Unknown);
+        Signal::new_single(value)
+    }
+
+    /// Create a signal with all bits low
+    pub fn all_low(_width: BusWidth) -> Self {
+        Signal::new_single(Value::Low)
+    }
+
+    /// Create a signal with all bits high
+    pub fn all_high(_width: BusWidth) -> Self {
+        Signal::new_single(Value::High)
     }
 }
 

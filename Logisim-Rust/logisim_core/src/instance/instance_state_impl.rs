@@ -12,7 +12,7 @@
 //! This module provides a concrete implementation of the InstanceState trait
 //! for use during simulation. This is equivalent to Java's `InstanceStateImpl` class.
 
-use crate::data::{Attribute, AttributeSet};
+use crate::data::AttributeSet;
 use crate::instance::{Instance, InstanceData, InstanceFactory, InstanceState, Port};
 use crate::netlist::NetId;
 use crate::signal::Timestamp;
@@ -88,7 +88,12 @@ impl InstanceState for InstanceStateImpl {
     }
 
     fn get_data_mut(&mut self) -> Option<&mut (dyn InstanceData + '_)> {
-        self.data.as_deref_mut()
+        // Use as_mut() instead of as_deref_mut() to work around lifetime constraints
+        if let Some(ref mut data) = self.data {
+            Some(data.as_mut())
+        } else {
+            None
+        }
     }
 
     fn get_factory(&self) -> &dyn InstanceFactory {

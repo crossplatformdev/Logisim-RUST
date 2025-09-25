@@ -12,7 +12,7 @@
 //! Equivalent to Java GenericInterfaceComponent.java
 //! Provides generic interface component implementation.
 
-use crate::component::{Component, Pin, UpdateResult};
+use crate::comp::{Component, Pin, UpdateResult};
 use crate::{ComponentId, Timestamp};
 use std::collections::HashMap;
 
