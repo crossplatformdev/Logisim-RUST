@@ -13,8 +13,8 @@
 //! This is equivalent to Java's `InstancePainter` class.
 
 use crate::data::{Attribute, AttributeSet, Bounds, Direction};
-use crate::{Value};
 use crate::instance::{Instance, InstanceFactory, InstanceState, Port};
+use crate::Value;
 use std::fmt;
 
 /// Drawing context and utilities for rendering component instances.
@@ -42,7 +42,7 @@ use std::fmt;
 ///     
 ///     // Draw the gate body
 ///     painter.draw_rectangle(bounds.x(), bounds.y(), bounds.width()/2, bounds.height());
-///     painter.draw_arc(bounds.x() + bounds.width()/2, bounds.y(), 
+///     painter.draw_arc(bounds.x() + bounds.width()/2, bounds.y(),
 ///                     bounds.width()/2, bounds.height(), 90, 180);
 ///     
 ///     // Draw input/output pins
@@ -174,7 +174,15 @@ impl InstancePainter {
     /// * `width`, `height` - Bounding box dimensions
     /// * `start_angle` - Starting angle in degrees
     /// * `arc_angle` - Arc span in degrees
-    pub fn draw_arc(&self, x: i32, y: i32, width: u32, height: u32, start_angle: i32, arc_angle: i32) {
+    pub fn draw_arc(
+        &self,
+        x: i32,
+        y: i32,
+        width: u32,
+        height: u32,
+        start_angle: i32,
+        arc_angle: i32,
+    ) {
         let _ = (x, y, width, height, start_angle, arc_angle);
     }
 
@@ -228,7 +236,12 @@ impl InstancePainter {
     /// Draws the component's bounding box (for debugging).
     pub fn draw_bounds(&self) {
         let bounds = self.bounds;
-        self.draw_rectangle(bounds.get_x(), bounds.get_y(), bounds.get_width() as u32, bounds.get_height() as u32);
+        self.draw_rectangle(
+            bounds.get_x(),
+            bounds.get_y(),
+            bounds.get_width() as u32,
+            bounds.get_height() as u32,
+        );
     }
 
     /// Draws a connection dot at the specified location.
@@ -275,7 +288,10 @@ impl InstanceState for InstancePainter {
             .expect("No instance set for painter")
     }
 
-    fn get_attribute_value_erased(&self, attr: &dyn std::any::Any) -> Option<Box<dyn std::any::Any>> {
+    fn get_attribute_value_erased(
+        &self,
+        attr: &dyn std::any::Any,
+    ) -> Option<Box<dyn std::any::Any>> {
         // Would need proper attribute access through instance
         let _ = attr;
         None
@@ -299,9 +315,7 @@ impl InstanceState for InstancePainter {
     }
 
     fn get_instance(&self) -> &Instance {
-        self.instance
-            .as_ref()
-            .expect("No instance set for painter")
+        self.instance.as_ref().expect("No instance set for painter")
     }
 
     fn get_port_index(&self, port: &Port) -> Option<usize> {
@@ -358,27 +372,32 @@ impl InstanceState for InstancePainter {
     }
 
     fn get_port(&self, index: usize) -> Option<&Port> {
-        self.instance
-            .as_ref()
-            .and_then(|i| i.get_port(index))
+        self.instance.as_ref().and_then(|i| i.get_port(index))
     }
 
     fn get_port_count(&self) -> usize {
-        self.instance
-            .as_ref()
-            .map(|i| i.ports().len())
-            .unwrap_or(0)
+        self.instance.as_ref().map(|i| i.ports().len()).unwrap_or(0)
     }
 
     fn is_input_port(&self, port_index: usize) -> bool {
         self.get_port(port_index)
-            .map(|p| matches!(p.port_type(), crate::instance::PortType::Input | crate::instance::PortType::InOut))
+            .map(|p| {
+                matches!(
+                    p.port_type(),
+                    crate::instance::PortType::Input | crate::instance::PortType::InOut
+                )
+            })
             .unwrap_or(false)
     }
 
     fn is_output_port(&self, port_index: usize) -> bool {
         self.get_port(port_index)
-            .map(|p| matches!(p.port_type(), crate::instance::PortType::Output | crate::instance::PortType::InOut))
+            .map(|p| {
+                matches!(
+                    p.port_type(),
+                    crate::instance::PortType::Output | crate::instance::PortType::InOut
+                )
+            })
             .unwrap_or(false)
     }
 }

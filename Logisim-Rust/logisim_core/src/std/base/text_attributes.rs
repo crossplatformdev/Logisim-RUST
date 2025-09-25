@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TextAlignment {
     Left,
-    Center, 
+    Center,
     Right,
 }
 
@@ -69,19 +69,19 @@ impl Color {
     pub const fn new(r: u8, g: u8, b: u8) -> Self {
         Color { r, g, b }
     }
-    
+
     /// Black color
     pub const BLACK: Color = Color::new(0, 0, 0);
-    
+
     /// White color
     pub const WHITE: Color = Color::new(255, 255, 255);
-    
+
     /// Red color
     pub const RED: Color = Color::new(255, 0, 0);
-    
+
     /// Green color
     pub const GREEN: Color = Color::new(0, 255, 0);
-    
+
     /// Blue color
     pub const BLUE: Color = Color::new(0, 0, 255);
 }
@@ -97,22 +97,22 @@ impl Default for Color {
 pub struct TextAttributes {
     /// The text content
     pub text: String,
-    
+
     /// Font family name
     pub font_family: String,
-    
+
     /// Font size in points
     pub font_size: u32,
-    
+
     /// Font style
     pub font_style: FontStyle,
-    
+
     /// Text color
     pub color: Color,
-    
+
     /// Horizontal alignment
     pub horizontal_alignment: TextAlignment,
-    
+
     /// Vertical alignment
     pub vertical_alignment: VerticalAlignment,
 }
@@ -130,44 +130,44 @@ impl TextAttributes {
             vertical_alignment: VerticalAlignment::Top,
         }
     }
-    
+
     /// Create text attributes with specified text
     pub fn with_text(text: String) -> Self {
         let mut attrs = Self::new();
         attrs.text = text;
         attrs
     }
-    
+
     /// Set the text content
     pub fn set_text(&mut self, text: String) -> &mut Self {
         self.text = text;
         self
     }
-    
+
     /// Set the font size
     pub fn set_font_size(&mut self, size: u32) -> &mut Self {
         self.font_size = size;
         self
     }
-    
+
     /// Set the font style
     pub fn set_font_style(&mut self, style: FontStyle) -> &mut Self {
         self.font_style = style;
         self
     }
-    
+
     /// Set the text color
     pub fn set_color(&mut self, color: Color) -> &mut Self {
         self.color = color;
         self
     }
-    
+
     /// Set horizontal alignment
     pub fn set_horizontal_alignment(&mut self, alignment: TextAlignment) -> &mut Self {
         self.horizontal_alignment = alignment;
         self
     }
-    
+
     /// Set vertical alignment
     pub fn set_vertical_alignment(&mut self, alignment: VerticalAlignment) -> &mut Self {
         self.vertical_alignment = alignment;
@@ -206,14 +206,15 @@ mod tests {
     #[test]
     fn test_text_attributes_modification() {
         let mut attrs = TextAttributes::new();
-        
-        attrs.set_text("Test".to_string())
-             .set_font_size(16)
-             .set_font_style(FontStyle::Bold)
-             .set_color(Color::RED)
-             .set_horizontal_alignment(TextAlignment::Center)
-             .set_vertical_alignment(VerticalAlignment::Middle);
-        
+
+        attrs
+            .set_text("Test".to_string())
+            .set_font_size(16)
+            .set_font_style(FontStyle::Bold)
+            .set_color(Color::RED)
+            .set_horizontal_alignment(TextAlignment::Center)
+            .set_vertical_alignment(VerticalAlignment::Middle);
+
         assert_eq!(attrs.text, "Test");
         assert_eq!(attrs.font_size, 16);
         assert_eq!(attrs.font_style, FontStyle::Bold);

@@ -5,7 +5,7 @@
  * https://github.com/logisim-evolution/
  *
  * This is free software released under GNU GPLv3 license
- * 
+ *
  * Ported to Rust by the Logisim-RUST project
  * https://github.com/crossplatformdev/Logisim-RUST
  */
@@ -16,14 +16,11 @@
 //! functionality to the circuit designer. They can be built-in libraries
 //! like the base gate library, or external libraries loaded from files.
 
-use crate::{
-    component::ComponentFactory,
-    tools::tool::Tool,
-};
+use crate::{component::ComponentFactory, tools::tool::Tool};
 use std::any::Any;
 
 /// Trait for all libraries in the Logisim-RUST system
-/// 
+///
 /// Libraries organize tools and components into logical groups.
 /// They can contain other sub-libraries, creating a hierarchical
 /// organization system.
@@ -32,7 +29,7 @@ pub trait Library: Send + Sync {
     fn contains(&self, query: &dyn ComponentFactory) -> bool {
         self.index_of(query).is_some()
     }
-    
+
     /// Check if this library contains a tool that shares source with the query
     fn contains_from_source(&self, query: &dyn Tool) -> bool {
         for tool in self.get_tools() {
@@ -42,20 +39,20 @@ pub trait Library: Send + Sync {
         }
         false
     }
-    
+
     /// Get the display name of this library (human-readable)
     fn get_display_name(&self) -> String {
         self.get_name()
     }
-    
+
     /// Get the unique identifier name of this library
     fn get_name(&self) -> String;
-    
+
     /// Get all sub-libraries contained in this library
     fn get_libraries(&self) -> Vec<Box<dyn Library>> {
         Vec::new() // Default: no sub-libraries
     }
-    
+
     /// Get a specific sub-library by name
     fn get_library(&self, name: &str) -> Option<Box<dyn Library>> {
         for lib in self.get_libraries() {
@@ -65,12 +62,12 @@ pub trait Library: Send + Sync {
         }
         None
     }
-    
+
     /// Remove a sub-library by name
     fn remove_library(&mut self, name: &str) -> bool {
         false // Default: cannot remove libraries
     }
-    
+
     /// Get a specific tool by name
     fn get_tool(&self, name: &str) -> Option<Box<dyn Tool>> {
         for tool in self.get_tools() {
@@ -80,15 +77,18 @@ pub trait Library: Send + Sync {
         }
         None
     }
-    
+
     /// Get all tools provided by this library
     fn get_tools(&self) -> Vec<Box<dyn Tool>>;
-    
+
     /// Get the index of a component factory in this library's tools
     fn index_of(&self, query: &dyn ComponentFactory) -> Option<usize> {
         for (index, tool) in self.get_tools().iter().enumerate() {
             // Check if this tool is an AddTool that contains the factory
-            if let Some(add_tool) = tool.as_any().downcast_ref::<crate::tools::add_tool::AddTool>() {
+            if let Some(add_tool) = tool
+                .as_any()
+                .downcast_ref::<crate::tools::add_tool::AddTool>()
+            {
                 if std::ptr::eq(add_tool.get_factory(), query) {
                     return Some(index);
                 }
@@ -96,20 +96,20 @@ pub trait Library: Send + Sync {
         }
         None
     }
-    
+
     /// Check if this library has been modified and needs saving
     fn is_dirty(&self) -> bool {
         false // Default: not dirty
     }
-    
+
     /// Check if this library is hidden from the user interface
     fn is_hidden(&self) -> bool {
         false // Default: not hidden
     }
-    
+
     /// Mark this library as hidden
     fn set_hidden(&mut self);
-    
+
     /// Get library as Any trait for downcasting
     fn as_any(&self) -> &dyn std::any::Any;
 }
@@ -137,7 +137,7 @@ impl BasicLibrary {
             dirty: false,
         }
     }
-    
+
     /// Create a new basic library with display name
     pub fn new_with_display_name(name: String, display_name: String) -> Self {
         Self {
@@ -149,19 +149,19 @@ impl BasicLibrary {
             dirty: false,
         }
     }
-    
+
     /// Add a tool to this library
     pub fn add_tool(&mut self, tool: Box<dyn Tool>) {
         self.tools.push(tool);
         self.dirty = true;
     }
-    
+
     /// Add a sub-library to this library
     pub fn add_library(&mut self, library: Box<dyn Library>) {
         self.sub_libraries.push(library);
         self.dirty = true;
     }
-    
+
     /// Remove a tool by name
     pub fn remove_tool(&mut self, name: &str) -> bool {
         let initial_len = self.tools.len();
@@ -172,7 +172,7 @@ impl BasicLibrary {
         }
         removed
     }
-    
+
     /// Clear the dirty flag
     pub fn mark_clean(&mut self) {
         self.dirty = false;
@@ -183,37 +183,37 @@ impl Library for BasicLibrary {
     fn get_name(&self) -> String {
         self.name.clone()
     }
-    
+
     fn get_display_name(&self) -> String {
         self.display_name.clone()
     }
-    
+
     fn get_libraries(&self) -> Vec<Box<dyn Library>> {
         // TODO: Implement proper sub-library support
         Vec::new()
     }
-    
+
     fn remove_library(&mut self, _name: &str) -> bool {
         // TODO: Implement proper sub-library support
         false
     }
-    
+
     fn get_tools(&self) -> Vec<Box<dyn Tool>> {
         self.tools.iter().map(|tool| tool.clone_tool()).collect()
     }
-    
+
     fn is_dirty(&self) -> bool {
         self.dirty
     }
-    
+
     fn is_hidden(&self) -> bool {
         self.hidden
     }
-    
+
     fn set_hidden(&mut self) {
         self.hidden = true;
     }
-    
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -300,7 +300,7 @@ mod tests {
         fn get_name(&self) -> String {
             self.name.clone()
         }
-        
+
         fn as_any(&self) -> &dyn std::any::Any {
             self
         }
@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn test_basic_library_creation() {
         let lib = BasicLibrary::new("test_lib".to_string());
-        
+
         assert_eq!(lib.get_name(), "test_lib");
         assert_eq!(lib.get_display_name(), "test_lib");
         assert!(!lib.is_hidden());
@@ -320,11 +320,9 @@ mod tests {
 
     #[test]
     fn test_library_with_display_name() {
-        let lib = BasicLibrary::new_with_display_name(
-            "test_lib".to_string(),
-            "Test Library".to_string()
-        );
-        
+        let lib =
+            BasicLibrary::new_with_display_name("test_lib".to_string(), "Test Library".to_string());
+
         assert_eq!(lib.get_name(), "test_lib");
         assert_eq!(lib.get_display_name(), "Test Library");
     }
@@ -333,15 +331,15 @@ mod tests {
     fn test_add_tool_to_library() {
         let mut lib = BasicLibrary::new("test_lib".to_string());
         let tool = Box::new(MockTool::new("test_tool", "A test tool"));
-        
+
         assert_eq!(lib.get_tools().len(), 0);
         assert!(!lib.is_dirty());
-        
+
         lib.add_tool(tool);
-        
+
         assert_eq!(lib.get_tools().len(), 1);
         assert!(lib.is_dirty());
-        
+
         let tools = lib.get_tools();
         assert_eq!(tools[0].get_name(), "test_tool");
     }
@@ -351,11 +349,11 @@ mod tests {
         let mut lib = BasicLibrary::new("test_lib".to_string());
         let tool = Box::new(MockTool::new("test_tool", "A test tool"));
         lib.add_tool(tool);
-        
+
         let found_tool = lib.get_tool("test_tool");
         assert!(found_tool.is_some());
         assert_eq!(found_tool.unwrap().get_name(), "test_tool");
-        
+
         let not_found = lib.get_tool("nonexistent");
         assert!(not_found.is_none());
     }
@@ -366,15 +364,15 @@ mod tests {
         let tool = Box::new(MockTool::new("test_tool", "A test tool"));
         lib.add_tool(tool);
         lib.mark_clean();
-        
+
         assert_eq!(lib.get_tools().len(), 1);
         assert!(!lib.is_dirty());
-        
+
         let removed = lib.remove_tool("test_tool");
         assert!(removed);
         assert_eq!(lib.get_tools().len(), 0);
         assert!(lib.is_dirty());
-        
+
         let not_removed = lib.remove_tool("nonexistent");
         assert!(!not_removed);
     }
@@ -382,7 +380,7 @@ mod tests {
     #[test]
     fn test_library_hidden_flag() {
         let mut lib = BasicLibrary::new("test_lib".to_string());
-        
+
         assert!(!lib.is_hidden());
         lib.set_hidden();
         assert!(lib.is_hidden());
@@ -393,9 +391,9 @@ mod tests {
         let mut lib = BasicLibrary::new("test_lib".to_string());
         let tool = Box::new(MockTool::new("test_tool", "A test tool"));
         lib.add_tool(tool);
-        
+
         let cloned = lib.clone();
-        
+
         assert_eq!(lib.get_name(), cloned.get_name());
         assert_eq!(lib.get_tools().len(), cloned.get_tools().len());
         assert_eq!(lib.is_dirty(), cloned.is_dirty());
@@ -405,16 +403,16 @@ mod tests {
     fn test_sub_libraries() {
         let mut parent_lib = BasicLibrary::new("parent".to_string());
         let child_lib = Box::new(BasicLibrary::new("child".to_string()));
-        
+
         assert_eq!(parent_lib.get_libraries().len(), 0);
-        
+
         // Note: Simplified implementation doesn't support sub-libraries yet
         // This test documents the expected behavior for future implementation
-        
+
         // parent_lib.add_library(child_lib);
         // assert_eq!(parent_lib.get_libraries().len(), 1);
         // assert!(parent_lib.is_dirty());
-        
+
         // For now, we just verify the interface exists
         let not_found = parent_lib.get_library("nonexistent");
         assert!(not_found.is_none());

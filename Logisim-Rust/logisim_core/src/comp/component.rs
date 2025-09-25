@@ -98,7 +98,7 @@ impl Default for UpdateResult {
 }
 
 /// Trait that all simulation components must implement
-/// 
+///
 /// This is the core interface equivalent to Java's `Component` interface.
 /// All digital logic components must implement this trait to participate
 /// in the simulation.
@@ -169,7 +169,7 @@ pub trait Component: std::fmt::Debug + Send + Sync {
 }
 
 /// Abstract base implementation providing common component functionality
-/// 
+///
 /// This provides default implementations for common component operations,
 /// equivalent to Java's `AbstractComponent` class.
 pub trait AbstractComponent: Component {
@@ -224,7 +224,7 @@ mod tests {
     fn test_update_result_with_outputs() {
         let mut outputs = HashMap::new();
         outputs.insert("Y".to_string(), Signal::new_single(Value::Low));
-        
+
         let result = UpdateResult::with_outputs(outputs, 3);
         assert!(result.state_changed);
         assert_eq!(result.outputs.len(), 1);

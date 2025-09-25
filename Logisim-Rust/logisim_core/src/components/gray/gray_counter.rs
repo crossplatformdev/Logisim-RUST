@@ -16,7 +16,7 @@ use super::{ComponentTool, CounterData, CounterPoker, GrayIncrementer};
 use crate::signal::{BusWidth, Value};
 
 /// Gray counter component with configurable width and label support.
-/// 
+///
 /// This is equivalent to Java's GrayCounter class.
 /// This version demonstrates several additional features beyond the SimpleGrayCounter:
 /// - Configurable bit width
@@ -81,7 +81,7 @@ impl GrayCounter {
     /// Returns the new output value given the current state and clock input
     pub fn step(&self, current_data: &mut CounterData, clock: Value) -> u64 {
         let triggered = current_data.update_clock(clock);
-        
+
         if triggered {
             // Get current value as integer
             let current_val = match current_data.value() {
@@ -89,11 +89,15 @@ impl GrayCounter {
                 Value::Low => 0,
                 _ => 0, // Unknown/error states become 0
             };
-            
+
             // Use the Gray incrementer to get the next value
             let next_val = GrayIncrementer::next_gray(current_val, self.width);
-            let next_value = if next_val > 0 { Value::High } else { Value::Low };
-            
+            let next_value = if next_val > 0 {
+                Value::High
+            } else {
+                Value::Low
+            };
+
             current_data.set_value(next_value);
             next_val
         } else {
@@ -109,7 +113,11 @@ impl GrayCounter {
     /// Set the counter to a specific value
     pub fn set_value(&self, data: &mut CounterData, value: u64) {
         let masked_value = value & self.width.get_mask();
-        let signal_value = if masked_value > 0 { Value::High } else { Value::Low };
+        let signal_value = if masked_value > 0 {
+            Value::High
+        } else {
+            Value::Low
+        };
         data.set_value(signal_value);
     }
 
@@ -181,10 +189,8 @@ mod tests {
 
     #[test]
     fn test_gray_counter_with_width_and_label() {
-        let counter = GrayCounter::with_width_and_label(
-            BusWidth::new(8),
-            "Test Counter".to_string()
-        );
+        let counter =
+            GrayCounter::with_width_and_label(BusWidth::new(8), "Test Counter".to_string());
         assert_eq!(counter.get_width(), BusWidth::new(8));
         assert_eq!(counter.get_label(), "Test Counter");
     }
@@ -192,10 +198,10 @@ mod tests {
     #[test]
     fn test_width_and_label_setters() {
         let mut counter = GrayCounter::new();
-        
+
         counter.set_width(BusWidth::new(16));
         assert_eq!(counter.get_width(), BusWidth::new(16));
-        
+
         counter.set_label("My Counter".to_string());
         assert_eq!(counter.get_label(), "My Counter");
     }
@@ -204,19 +210,19 @@ mod tests {
     fn test_counter_step() {
         let counter = GrayCounter::new();
         let mut data = CounterData::new(None, Value::Low);
-        
+
         // First step with rising edge should trigger
         let result = counter.step(&mut data, Value::High);
         assert_eq!(result, 1); // Next Gray code value
-        
+
         // Same high level should not trigger
         let result = counter.step(&mut data, Value::High);
         assert_eq!(result, 1); // Value unchanged
-        
+
         // Falling edge should not trigger
         let result = counter.step(&mut data, Value::Low);
         assert_eq!(result, 1); // Value unchanged
-        
+
         // Rising edge should trigger again
         let _result = counter.step(&mut data, Value::High);
         // Next value depends on Gray code sequence
@@ -226,13 +232,13 @@ mod tests {
     fn test_value_operations() {
         let counter = GrayCounter::with_width(BusWidth::new(4));
         let mut data = CounterData::new(None, Value::Low);
-        
+
         // Set a specific value
         counter.set_value(&mut data, 5);
         let _retrieved = counter.get_value(&data);
         // Note: This is simplified since we're using single-bit values
         // In a full implementation, this would work with multi-bit values
-        
+
         // Test valid value checking
         assert!(counter.is_valid_value(0));
         assert!(counter.is_valid_value(15)); // Max for 4-bit
@@ -243,7 +249,7 @@ mod tests {
     fn test_max_value() {
         let counter_4bit = GrayCounter::with_width(BusWidth::new(4));
         assert_eq!(counter_4bit.get_max_value(), 15);
-        
+
         let counter_8bit = GrayCounter::with_width(BusWidth::new(8));
         assert_eq!(counter_8bit.get_max_value(), 255);
     }
@@ -252,15 +258,15 @@ mod tests {
     fn test_sequence_generation() {
         let counter = GrayCounter::with_width(BusWidth::new(3));
         let sequence = counter.get_sequence();
-        
+
         assert_eq!(sequence.len(), 8); // 2^3
-        
+
         // Should be valid Gray code sequence
         for i in 0..sequence.len() {
             let current = sequence[i];
             let next = sequence[(i + 1) % sequence.len()];
             let diff = current ^ next;
-            
+
             // Should differ by exactly one bit
             assert_eq!(diff.count_ones(), 1);
         }
