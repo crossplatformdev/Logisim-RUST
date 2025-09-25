@@ -29,7 +29,7 @@ pub enum PinDirection {
 }
 
 /// Represents a connection point on a component
-/// 
+///
 /// Equivalent to Java's pin/port concept, this defines where signals
 /// can be connected to a component.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -101,7 +101,7 @@ impl Pin {
 }
 
 /// EndData represents connection information for a component pin
-/// 
+///
 /// This is equivalent to Java's `EndData` class and provides information
 /// about where and how a pin can be connected in a circuit.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -190,7 +190,7 @@ impl EndData {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::signal::{Value, BusWidth};
+    use crate::signal::{BusWidth, Value};
 
     #[test]
     fn test_pin_creation() {
@@ -221,7 +221,7 @@ mod tests {
     fn test_pin_signal_update() {
         let mut pin = Pin::new_input("A", BusWidth(1));
         let signal = Signal::new_single(Value::High);
-        
+
         assert!(pin.set_signal(signal.clone()).is_ok());
         assert_eq!(pin.get_signal(), &signal);
 

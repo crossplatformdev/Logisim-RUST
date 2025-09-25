@@ -13,10 +13,10 @@ use std::ops::Not;
 pub trait ComponentFactory: Send + Sync {
     /// Create a new component instance
     fn create_component(&self) -> Box<dyn Component>;
-    
+
     /// Get the name of this component type
     fn get_name(&self) -> String;
-    
+
     /// Get the display name of this component type
     fn get_display_name(&self) -> String {
         self.get_name()
@@ -135,6 +135,27 @@ impl Pin {
     pub fn get_signal(&self) -> &Signal {
         &self.signal
     }
+
+    /// Get the current signal (alias for get_signal)
+    pub fn signal(&self) -> &Signal {
+        &self.signal
+    }
+
+    /// Reset this pin to unknown state
+    pub fn reset(&mut self) {
+        self.signal = Signal::unknown(self.width);
+    }
+
+    /// Set the width of this pin
+    pub fn set_width(&mut self, width: BusWidth) {
+        self.width = width;
+        self.signal = Signal::unknown(width);
+    }
+
+    /// Get the width of this pin
+    pub fn width(&self) -> BusWidth {
+        self.width
+    }
 }
 
 /// Result of a component update
@@ -177,20 +198,38 @@ impl UpdateResult {
     pub fn set_delay(&mut self, delay: u64) {
         self.delay = delay;
     }
-    
+
     /// Get the outputs map
     pub fn get_outputs(&self) -> &HashMap<String, Signal> {
         &self.outputs
     }
-    
+
     /// Get the propagation delay
     pub fn get_delay(&self) -> u64 {
         self.delay
     }
-    
+
     /// Check if the component state changed
     pub fn has_state_changed(&self) -> bool {
         self.state_changed
+    }
+
+    /// Create result indicating no change occurred
+    pub fn no_change() -> Self {
+        UpdateResult {
+            outputs: HashMap::new(),
+            delay: 0,
+            state_changed: false,
+        }
+    }
+
+    /// Create result indicating change occurred  
+    pub fn changed() -> Self {
+        UpdateResult {
+            outputs: HashMap::new(),
+            delay: 0,
+            state_changed: true,
+        }
     }
 }
 

@@ -16,7 +16,7 @@ use super::{ComponentTool, CounterData};
 use crate::signal::{BusWidth, Value};
 
 /// Simple Gray counter that iterates over 4-bit Gray Code.
-/// 
+///
 /// This is equivalent to Java's SimpleGrayCounter class.
 /// It provides a fixed 4-bit Gray code counter with clock input.
 pub struct SimpleGrayCounter {
@@ -32,9 +32,7 @@ impl SimpleGrayCounter {
     pub const WIDTH: BusWidth = BusWidth::new(4);
 
     pub fn new() -> Self {
-        Self {
-            width: Self::WIDTH,
-        }
+        Self { width: Self::WIDTH }
     }
 
     /// Get the bit width of this counter
@@ -46,7 +44,7 @@ impl SimpleGrayCounter {
     /// Returns the new output value given the current state and clock input
     pub fn step(&self, current_data: &mut CounterData, clock: Value) -> Value {
         let triggered = current_data.update_clock(clock);
-        
+
         if triggered {
             // Get current value as integer
             let current_val = match current_data.value() {
@@ -54,12 +52,16 @@ impl SimpleGrayCounter {
                 Value::Low => 0,
                 _ => 0, // Unknown/error states become 0
             };
-            
+
             // For 4-bit counter, we need to track the actual count
             // This is a simplified implementation
             let next_val = if current_val == 0 { 1 } else { 0 };
-            let next_value = if next_val == 1 { Value::High } else { Value::Low };
-            
+            let next_value = if next_val == 1 {
+                Value::High
+            } else {
+                Value::Low
+            };
+
             current_data.set_value(next_value);
             next_value
         } else {
@@ -98,7 +100,10 @@ impl SimpleGrayCounter {
     /// Find position of a Gray code value in the sequence
     pub fn gray_to_position(gray_value: u8) -> Option<u8> {
         let sequence = Self::get_sequence();
-        sequence.iter().position(|&x| x == gray_value).map(|p| p as u8)
+        sequence
+            .iter()
+            .position(|&x| x == gray_value)
+            .map(|p| p as u8)
     }
 }
 
@@ -134,36 +139,40 @@ mod tests {
     fn test_gray_sequence() {
         let sequence = SimpleGrayCounter::get_sequence();
         assert_eq!(sequence.len(), 16);
-        
+
         // Verify it's a valid 4-bit Gray code sequence
         // Each consecutive pair should differ by exactly one bit
         for i in 0..sequence.len() {
             let current = sequence[i];
             let next = sequence[(i + 1) % sequence.len()];
             let diff = current ^ next;
-            
+
             // Count number of 1 bits in diff (should be exactly 1)
             let bit_count = diff.count_ones();
-            assert_eq!(bit_count, 1, "Values {} and {} differ by {} bits", current, next, bit_count);
+            assert_eq!(
+                bit_count, 1,
+                "Values {} and {} differ by {} bits",
+                current, next, bit_count
+            );
         }
     }
 
     #[test]
     fn test_position_conversions() {
         let sequence = SimpleGrayCounter::get_sequence();
-        
+
         // Test position to gray conversion
         for (pos, &expected_gray) in sequence.iter().enumerate() {
             let gray = SimpleGrayCounter::position_to_gray(pos as u8);
             assert_eq!(gray, expected_gray);
         }
-        
+
         // Test gray to position conversion
         for (expected_pos, &gray) in sequence.iter().enumerate() {
             let pos = SimpleGrayCounter::gray_to_position(gray);
             assert_eq!(pos, Some(expected_pos as u8));
         }
-        
+
         // Test invalid gray code
         assert_eq!(SimpleGrayCounter::gray_to_position(0xFF), None);
     }
@@ -172,19 +181,19 @@ mod tests {
     fn test_counter_step() {
         let counter = SimpleGrayCounter::new();
         let mut data = CounterData::new(None, Value::Low);
-        
+
         // First step with rising edge should trigger
         let result = counter.step(&mut data, Value::High);
         assert_eq!(result, Value::High);
-        
+
         // Same high level should not trigger
         let result = counter.step(&mut data, Value::High);
         assert_eq!(result, Value::High); // Value unchanged
-        
+
         // Falling edge should not trigger
         let result = counter.step(&mut data, Value::Low);
         assert_eq!(result, Value::High); // Value unchanged
-        
+
         // Rising edge should trigger again
         let result = counter.step(&mut data, Value::High);
         assert_eq!(result, Value::Low); // Toggled back
@@ -199,18 +208,22 @@ mod tests {
     #[test]
     fn test_sequence_properties() {
         let sequence = SimpleGrayCounter::get_sequence();
-        
+
         // Should start with 0
         assert_eq!(sequence[0], 0b0000);
-        
+
         // Should contain all 4-bit values exactly once
         let mut found = [false; 16];
         for &value in &sequence {
             assert!((value as usize) < 16, "Value {} out of range", value);
-            assert!(!found[value as usize], "Value {} appears multiple times", value);
+            assert!(
+                !found[value as usize],
+                "Value {} appears multiple times",
+                value
+            );
             found[value as usize] = true;
         }
-        
+
         // All values should be found
         for (i, &found_val) in found.iter().enumerate() {
             assert!(found_val, "Value {} not found in sequence", i);

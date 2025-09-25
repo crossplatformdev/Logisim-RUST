@@ -40,8 +40,13 @@ impl Bounds {
     pub fn create(x: i32, y: i32, width: i32, height: i32) -> Self {
         let w = width.max(0);
         let h = height.max(0);
-        
-        Self { x, y, width: w, height: h }
+
+        Self {
+            x,
+            y,
+            width: w,
+            height: h,
+        }
     }
 
     /// Create bounds from a location (1x1 bounds)

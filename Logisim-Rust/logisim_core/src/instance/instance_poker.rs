@@ -85,9 +85,9 @@ pub trait InstancePoker {
 mod tests {
     use super::*;
     use crate::data::Location;
-    
+
     struct MockPoker;
-    
+
     impl InstancePoker for MockPoker {
         fn mouse_pressed(&mut self, _state: &mut dyn InstanceState, _location: Location) -> bool {
             true // Simulate handling the event

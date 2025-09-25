@@ -7,7 +7,7 @@ use crate::data::BitWidth;
 use std::collections::HashMap;
 
 /// Port description for HDL entities
-/// 
+///
 /// Equivalent to Java HdlModel.PortDescription record
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortDescription {
@@ -65,7 +65,7 @@ pub enum HdlModelEvent {
 }
 
 /// Listener for HDL model changes
-/// 
+///
 /// Equivalent to Java HdlModelListener interface
 pub trait HdlModelListener: Send + Sync {
     /// Called when the content of the given model has been set
@@ -73,7 +73,7 @@ pub trait HdlModelListener: Send + Sync {
 }
 
 /// Base trait for HDL models
-/// 
+///
 /// Equivalent to Java HdlModel interface.
 /// Represents objects that contain mutable text representing code
 /// written in an HDL. Listeners may be attached to handle updates.
@@ -108,7 +108,7 @@ pub trait HdlModel: Send + Sync {
 }
 
 /// Basic HDL model implementation
-/// 
+///
 /// Provides a simple implementation of the HdlModel trait
 pub struct BasicHdlModel {
     name: String,
@@ -149,7 +149,7 @@ impl BasicHdlModel {
         // We need to work around the borrow checker here since we need mutable
         // references to listeners while having an immutable reference to self
         let mut temp_listeners = std::mem::take(&mut self.listeners);
-        
+
         for listener in &mut temp_listeners {
             listener.content_set(self);
         }
@@ -170,10 +170,10 @@ impl HdlModel for BasicHdlModel {
     }
 
     fn compare_model(&self, other: &dyn HdlModel) -> bool {
-        self.content == other.get_content() &&
-        self.name == other.get_name() &&
-        self.inputs == other.get_inputs() &&
-        self.outputs == other.get_outputs()
+        self.content == other.get_content()
+            && self.name == other.get_name()
+            && self.inputs == other.get_inputs()
+            && self.outputs == other.get_outputs()
     }
 
     fn compare_content(&self, value: &str) -> bool {
@@ -201,7 +201,7 @@ impl HdlModel for BasicHdlModel {
             if index < self.listeners.len() {
                 self.listeners.remove(index);
                 self.listener_ids.remove(&listener_id);
-                
+
                 // Update indices for remaining listeners
                 for (_, stored_index) in self.listener_ids.iter_mut() {
                     if *stored_index > index {
@@ -261,7 +261,7 @@ mod tests {
         let mut model = BasicHdlModel::new("test".to_string());
         assert!(model.set_content("entity test is end;".to_string()));
         assert_eq!(model.get_content(), "entity test is end;");
-        
+
         // Setting same content should return false
         assert!(!model.set_content("entity test is end;".to_string()));
     }
@@ -269,19 +269,21 @@ mod tests {
     #[test]
     fn test_port_management() {
         let mut model = BasicHdlModel::new("test".to_string());
-        
+
         let inputs = vec![
             PortDescription::new("clk".to_string(), "std_logic".to_string(), 1),
             PortDescription::new("data".to_string(), "std_logic_vector".to_string(), 8),
         ];
-        
-        let outputs = vec![
-            PortDescription::new("q".to_string(), "std_logic_vector".to_string(), 8),
-        ];
-        
+
+        let outputs = vec![PortDescription::new(
+            "q".to_string(),
+            "std_logic_vector".to_string(),
+            8,
+        )];
+
         model.set_inputs(inputs.clone());
         model.set_outputs(outputs.clone());
-        
+
         assert_eq!(model.get_inputs(), &inputs);
         assert_eq!(model.get_outputs(), &outputs);
     }
@@ -290,7 +292,7 @@ mod tests {
     fn test_content_comparison() {
         let model = BasicHdlModel::new("test".to_string());
         assert!(model.compare_content(""));
-        
+
         let mut model2 = BasicHdlModel::new("test".to_string());
         model2.set_content("different content".to_string());
         assert!(!model.compare_model(&model2));

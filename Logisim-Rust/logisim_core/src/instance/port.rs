@@ -41,7 +41,7 @@ impl PortType {
     pub fn from_str(s: &str) -> Result<Self, String> {
         match s.to_lowercase().as_str() {
             "input" => Ok(PortType::Input),
-            "output" => Ok(PortType::Output), 
+            "output" => Ok(PortType::Output),
             "inout" => Ok(PortType::InOut),
             _ => Err(format!("Unrecognized port type: {}", s)),
         }
@@ -62,7 +62,7 @@ impl PortType {
     pub fn default_exclusive(&self) -> bool {
         match self {
             PortType::Input | PortType::InOut => false, // SHARED
-            PortType::Output => true, // EXCLUSIVE
+            PortType::Output => true,                   // EXCLUSIVE
         }
     }
 }
@@ -110,11 +110,10 @@ impl PortWidth {
     pub fn resolve(&self, attrs: &AttributeSet) -> Result<BitWidth, String> {
         match self {
             PortWidth::Fixed(width) => Ok(*width),
-            PortWidth::Attribute(attr) => {
-                attrs.get_value(attr)
-                    .copied()
-                    .ok_or_else(|| format!("Width attribute {:?} not found", attr))
-            }
+            PortWidth::Attribute(attr) => attrs
+                .get_value(attr)
+                .copied()
+                .ok_or_else(|| format!("Width attribute {:?} not found", attr)),
         }
     }
 }
@@ -224,10 +223,7 @@ impl Port {
     ///
     /// The absolute location of this port.
     pub fn location(&self, component_loc: Location) -> Location {
-        Location::new(
-            component_loc.x + self.dx,
-            component_loc.y + self.dy,
-        )
+        Location::new(component_loc.x + self.dx, component_loc.y + self.dy)
     }
 
     /// Resolves the bit width of this port given an attribute set.
@@ -307,7 +303,9 @@ impl PortBuilder {
     /// Panics if width was not specified.
     pub fn build(self) -> Port {
         let width = self.width.expect("Port width must be specified");
-        let exclusive = self.exclusive.unwrap_or_else(|| self.port_type.default_exclusive());
+        let exclusive = self
+            .exclusive
+            .unwrap_or_else(|| self.port_type.default_exclusive());
 
         Port {
             dx: self.dx,
@@ -350,11 +348,7 @@ mod tests {
 
     #[test]
     fn test_port_creation() {
-        let port = Port::new(
-            -30, -10,
-            PortType::Input,
-            PortWidth::fixed_bits(1),
-        );
+        let port = Port::new(-30, -10, PortType::Input, PortWidth::fixed_bits(1));
 
         assert_eq!(port.dx(), -30);
         assert_eq!(port.dy(), -10);
@@ -379,11 +373,7 @@ mod tests {
 
     #[test]
     fn test_port_location() {
-        let port = Port::new(
-            10, -5,
-            PortType::Output,
-            PortWidth::fixed_bits(1),
-        );
+        let port = Port::new(10, -5, PortType::Output, PortWidth::fixed_bits(1));
 
         let component_loc = Location::new(100, 200);
         let port_loc = port.location(component_loc);
@@ -394,11 +384,7 @@ mod tests {
 
     #[test]
     fn test_port_resolve_width() {
-        let port = Port::new(
-            0, 0,
-            PortType::Input,
-            PortWidth::fixed_bits(16),
-        );
+        let port = Port::new(0, 0, PortType::Input, PortWidth::fixed_bits(16));
 
         let attrs = AttributeSet::new();
         let width = port.resolve_width(&attrs).unwrap();

@@ -201,9 +201,6 @@ impl ComponentFactory for MultiplexerFactory {
         "Multiplexer".to_string()
     }
 
-    fn get_description(&self) -> String {
-        "Data selector - routes one of several inputs to output".to_string()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -222,9 +219,6 @@ impl ComponentFactory for DemultiplexerFactory {
         "Demultiplexer".to_string()
     }
 
-    fn get_description(&self) -> String {
-        "Data router - routes input to one of several outputs".to_string()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -243,9 +237,6 @@ impl ComponentFactory for DecoderFactory {
         "Decoder".to_string()
     }
 
-    fn get_description(&self) -> String {
-        "Address decoder - activates one output based on binary input".to_string()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -264,9 +255,6 @@ impl ComponentFactory for PriorityEncoderFactory {
         "Priority Encoder".to_string()
     }
 
-    fn get_description(&self) -> String {
-        "Outputs index of highest priority active input".to_string()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -285,9 +273,6 @@ impl ComponentFactory for BitSelectorFactory {
         "Bit Selector".to_string()
     }
 
-    fn get_description(&self) -> String {
-        "Selects specific bits from a bus".to_string()
-    }
 }
 
 // Plexer-specific attributes and types
