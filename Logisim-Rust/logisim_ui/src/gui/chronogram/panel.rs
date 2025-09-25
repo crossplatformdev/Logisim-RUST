@@ -10,7 +10,10 @@ use crate::gui::chronogram::{
     waveform::{Waveform, WaveformColors},
 };
 use egui::{Color32, Pos2, Rect, ScrollArea, Ui, UiBuilder, Vec2};
-use logisim_core::{signal::{BusWidth, Timestamp}, Simulation};
+use logisim_core::{
+    signal::{BusWidth, Timestamp},
+    Simulation,
+};
 use std::collections::HashMap;
 
 /// Main chronogram panel containing all UI elements
