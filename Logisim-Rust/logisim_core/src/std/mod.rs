@@ -18,6 +18,8 @@
 //! The module is organized to mirror the Java package structure:
 //! - `base`: Basic utilities and text components (BaseLibrary)
 //! - `gates`: Logic gates and related components (GatesLibrary)
+//! - `ttl`: TTL integrated circuits (TtlLibrary)
+//! - `wiring`: Wiring and connection components (WiringLibrary)
 //!
 //! ## Migration Status
 //!
@@ -27,7 +29,11 @@
 pub mod base;
 pub mod bfh;
 pub mod gates;
+<<<<<<< HEAD
 pub mod io;
+=======
+pub mod ttl;    // TTL integrated circuits
+>>>>>>> origin/copilot/fix-8670ab67-e80b-4622-811f-2cfa65e1bade
 pub mod wiring;
 pub mod arith;
 
@@ -36,6 +42,10 @@ pub mod arith;
 pub use base::*;
 pub use bfh::*;
 pub use gates::*;
+<<<<<<< HEAD
 pub use io::*;
+=======
+pub use ttl::*;  // Export TTL components
+>>>>>>> origin/copilot/fix-8670ab67-e80b-4622-811f-2cfa65e1bade
 pub use wiring::*;
 pub use arith::*;
