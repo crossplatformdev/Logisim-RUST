@@ -1,5 +1,0 @@
-pub mod registry;
-pub mod extension_points;
-
-pub use registry::*;
-pub use extension_points::*;
