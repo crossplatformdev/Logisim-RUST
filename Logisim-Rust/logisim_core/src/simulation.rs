@@ -4,6 +4,7 @@
 //! and component management for the digital logic simulator.
 
 use crate::comp::{Component, ComponentId};
+use crate::component::{ClockEdge, UpdateResult};
 use crate::event::{EventQueue, EventType};
 use crate::netlist::{Netlist, NodeId};
 use crate::signal::{Signal, Timestamp, Value};

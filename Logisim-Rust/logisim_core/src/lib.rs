@@ -52,21 +52,21 @@ pub mod circ_format;
 pub mod circ_parser;
 pub mod circ_serializer;
 pub mod comp;
-// pub mod component; // Temporarily disable due to trait conflicts
-// pub mod components; // Temporarily disable due to component issues
-// pub mod contracts; // Temporarily disable due to conflicts
+pub mod component; // Temporarily disable due to trait conflicts
+pub mod components;
+pub mod contracts;
 pub mod data;
 pub mod event;
 pub mod file;
-// pub mod hdl; // Temporarily disable due to trait issues
-// pub mod instance; // Temporarily disable due to attribute issues
+pub mod hdl;
+pub mod instance;
 pub mod integrations;
 pub mod netlist;
-// pub mod prefs; // Temporarily disable due to issues
+pub mod prefs;
 pub mod signal;
 pub mod simulation;
-// pub mod std; // Temporarily disable problematic std components 
-// pub mod tools; // Temporarily disable due to attribute issues
+pub mod std;
+pub mod tools;
 pub mod util;
 
 // Re-export core types for convenience
@@ -78,15 +78,41 @@ pub use comp::{
     ComponentEvent, ComponentFactory, ComponentId, ComponentListener, ComponentUserEvent,
     DrawCommand, EndData, GraphicsContext, Pin, PinDirection,
 };
+pub use component::{
+    ClockEdge, Component as SimComponent, ComponentFactory as SimComponentFactory,
+    ComponentId as SimComponentId, Pin as SimPin, UpdateResult,
+};
+pub use components::gray::*;
+pub use contracts::{
+    BaseComponentListenerContract, BaseDocumentListenerContract, BaseKeyListenerContract,
+    BaseLayoutManagerContract, BaseListDataListenerContract, BaseMouseInputListenerContract,
+    BaseMouseListenerContract, BaseMouseMotionListenerContract, BaseWindowFocusListenerContract,
+    BaseWindowListenerContract, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
+};
 pub use data::{
     Attribute, AttributeSet, AttributeValue, BitWidth, Bounds, Direction, Location, StdAttr,
 };
 pub use event::{EventQueue, SimulatorEvent};
 pub use file::{LoadFailedException, Loader, LogisimFile};
+pub use hdl::{
+    BlifCircuitComponent, BlifContentComponent, BlifParser, HdlContentEditor, HdlFile, HdlFileType,
+    HdlLibrary, HdlModel, HdlModelListener, HdlStrings, PortDescription, VhdlContentComponent,
+    VhdlEntityComponent, VhdlParser,
+};
+pub use instance::{
+    Instance, InstanceComponent, InstanceData, InstanceFactory, InstanceState, Port, PortType,
+    PortWidth,
+};
 pub use integrations::{FpgaError, PluginError, TclError, VhdlError};
 pub use netlist::{NetId, Netlist, NodeId};
+pub use prefs::AppPreferences;
 pub use signal::{Bus, BusWidth, Signal, Timestamp, Value};
 pub use simulation::Simulation;
+pub use std::{base::*, gates::*, wiring::*};
+pub use tools::{
+    Action, BasicLibrary, Canvas, Circuit, CursorType, Library, Project, Selection, Tool,
+    ToolError, ToolResult,
+};
 pub use util::{
     Cache, CollectionUtil, FileUtil, LocaleManager, StringCache, StringGetter, StringUtil,
 };
