@@ -100,6 +100,58 @@ pub enum Value {
     HighZ,
 }
 
+/// Signal enum with Unknown, Zero, One, HiZ as requested in requirements
+/// This provides the core signal values for digital logic simulation
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum SignalState {
+    /// Unknown or uninitialized state
+    Unknown,
+    /// Logic low (0)
+    Zero,
+    /// Logic high (1)
+    One,
+    /// High impedance state (tri-state)
+    HiZ,
+}
+
+impl SignalState {
+    /// Convert to the internal Value representation
+    pub fn to_value(self) -> Value {
+        match self {
+            SignalState::Unknown => Value::Unknown,
+            SignalState::Zero => Value::Low,
+            SignalState::One => Value::High,
+            SignalState::HiZ => Value::HighZ,
+        }
+    }
+
+    /// Convert from the internal Value representation
+    pub fn from_value(value: Value) -> Self {
+        match value {
+            Value::Unknown => SignalState::Unknown,
+            Value::Low => SignalState::Zero,
+            Value::High => SignalState::One,
+            Value::HighZ => SignalState::HiZ,
+            Value::Error => SignalState::Unknown, // Map error to unknown
+        }
+    }
+
+    /// Logical AND operation
+    pub fn and(self, other: SignalState) -> SignalState {
+        SignalState::from_value(self.to_value().and(other.to_value()))
+    }
+
+    /// Logical OR operation  
+    pub fn or(self, other: SignalState) -> SignalState {
+        SignalState::from_value(self.to_value().or(other.to_value()))
+    }
+
+    /// Logical NOT operation
+    pub fn not(self) -> SignalState {
+        SignalState::from_value(self.to_value().not())
+    }
+}
+
 impl Value {
     /// Convert to boolean if possible
     pub fn to_bool(self) -> Option<bool> {
@@ -359,6 +411,42 @@ mod tests {
     }
 
     #[test]
+    fn test_signal_enum_basic() {
+        // Test SignalState enum variants
+        assert_eq!(SignalState::One.to_value(), Value::High);
+        assert_eq!(SignalState::Zero.to_value(), Value::Low);
+        assert_eq!(SignalState::Unknown.to_value(), Value::Unknown);
+        assert_eq!(SignalState::HiZ.to_value(), Value::HighZ);
+    }
+
+    #[test]
+    fn test_signal_conversion() {
+        // Test conversions between SignalState and Value
+        assert_eq!(SignalState::from_value(Value::High), SignalState::One);
+        assert_eq!(SignalState::from_value(Value::Low), SignalState::Zero);
+        assert_eq!(SignalState::from_value(Value::Unknown), SignalState::Unknown);
+        assert_eq!(SignalState::from_value(Value::HighZ), SignalState::HiZ);
+        assert_eq!(SignalState::from_value(Value::Error), SignalState::Unknown);
+    }
+
+    #[test]
+    fn test_signal_logic_operations() {
+        // Test SignalState enum logic operations
+        assert_eq!(SignalState::One.and(SignalState::One), SignalState::One);
+        assert_eq!(SignalState::One.and(SignalState::Zero), SignalState::Zero);
+        assert_eq!(SignalState::Zero.and(SignalState::One), SignalState::Zero);
+        assert_eq!(SignalState::Zero.and(SignalState::Zero), SignalState::Zero);
+
+        assert_eq!(SignalState::One.or(SignalState::One), SignalState::One);
+        assert_eq!(SignalState::One.or(SignalState::Zero), SignalState::One);
+        assert_eq!(SignalState::Zero.or(SignalState::One), SignalState::One);
+        assert_eq!(SignalState::Zero.or(SignalState::Zero), SignalState::Zero);
+
+        assert_eq!(SignalState::One.not(), SignalState::Zero);
+        assert_eq!(SignalState::Zero.not(), SignalState::One);
+    }
+
+    #[test]
     fn test_signal_creation() {
         let sig = Signal::new_single(Value::High);
         assert!(sig.is_single_bit());
@@ -370,7 +458,7 @@ mod tests {
     }
 
     #[test]
-    fn test_signal_conversion() {
+    fn test_signal_conversion_old() {
         let sig = Signal::from_u64(5, BusWidth(4)); // 0101
         assert_eq!(sig.get_bit(0), Some(Value::High)); // LSB
         assert_eq!(sig.get_bit(1), Some(Value::Low));
@@ -378,5 +466,32 @@ mod tests {
         assert_eq!(sig.get_bit(3), Some(Value::Low));
 
         assert_eq!(sig.to_u64(), Some(5));
+    }
+
+    #[test]
+    fn test_id_assignment() {
+        use crate::netlist::{NodeId, NetId};
+        use crate::comp::ComponentId;
+        
+        // Test strong-typed ID creation and display
+        let node_id = NodeId::new(42);
+        assert_eq!(node_id.as_u64(), 42);
+        assert_eq!(format!("{}", node_id), "N42");
+
+        let net_id = NetId::new(123);
+        assert_eq!(net_id.as_u64(), 123);
+        assert_eq!(format!("{}", net_id), "Net123");
+
+        let component_id = ComponentId::new(456);
+        assert_eq!(component_id.as_u64(), 456);
+        assert_eq!(format!("{}", component_id), "C456");
+
+        let bus_width = BusWidth::new(8);
+        assert_eq!(bus_width.as_u32(), 8);
+        assert_eq!(format!("{}", bus_width), "8");
+
+        let timestamp = Timestamp::new(1000);
+        assert_eq!(timestamp.as_u64(), 1000);
+        assert_eq!(format!("{}", timestamp), "1000");
     }
 }

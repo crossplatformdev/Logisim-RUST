@@ -55,6 +55,57 @@ Prepared structure for component implementations:
 - `netlist.rs`: Network connectivity management
 - `signal.rs`: Signal and value representations
 - `component.rs`: Component trait and implementations
+- `event.rs`: Event-driven simulation engine
+
+### Core Simulation Types and Traits
+
+#### Strong-Typed IDs
+The simulation kernel uses strong-typed identifiers to ensure type safety:
+
+- **`NodeId`**: Unique identifier for connection points in the netlist
+- **`NetId`**: Unique identifier for nets/wires connecting components  
+- **`ComponentId`**: Unique identifier for each component instance
+- **`BusWidth`**: Type-safe representation of signal bit width
+
+All IDs implement `Display` for debugging (e.g., `N42`, `Net123`, `C456`).
+
+#### Signal System
+The signal system provides two complementary representations:
+
+- **`Value` enum**: Internal representation with `High`, `Low`, `Unknown`, `Error`, `HighZ` variants
+- **`SignalState` enum**: Public API with intuitive names (`One`, `Zero`, `Unknown`, `HiZ`)
+- **`Signal` struct**: Complete signal with value and timestamp information
+- **`Timestamp`**: Time-ordered simulation events
+
+#### Component Framework
+Digital logic components implement these core traits:
+
+- **`Component`**: Base trait defining component interface
+  - `id()`: Get component identifier
+  - `name()`: Get component type name
+  - `pins()`: Access component pins
+  - `update()`: Process input changes
+  - `reset()`: Return to initial state
+
+- **`Propagator`**: Signal propagation behavior
+  - `propagate()`: Handle signal changes
+  - `get_dependent_components()`: Get notification targets
+
+- **`Pin`**: Connection points with direction and signal state
+  - Support for input, output, and bidirectional pins
+  - Type-safe signal width checking
+
+#### Event Queue System
+- **`EventQueue`**: Priority queue for time-ordered simulation events
+- **`SimulatorEvent`**: Individual simulation events (signal changes, clock ticks)
+- **`EventType`**: Different types of simulation events
+
+#### Component Skeletons
+Basic implementations provided for:
+
+- **`AndGate`**: 2-input AND gate with configurable inputs
+- **`ClockedLatch`**: Basic clocked storage element
+- Extensible architecture for additional components
 
 ## User Interface (`logisim_ui`)
 
