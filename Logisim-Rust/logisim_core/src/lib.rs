@@ -81,13 +81,11 @@ pub use comp::{
 pub use component::{
     Component as SimComponent, ComponentId as SimComponentId, Pin as SimPin,
 };
-pub use component::{Component, ComponentId, Pin, ComponentFactory};
-pub use component::{Component, ComponentId, Pin};
 pub use contracts::{
     BaseComponentListenerContract, BaseDocumentListenerContract, BaseKeyListenerContract,
     BaseLayoutManagerContract, BaseListDataListenerContract, BaseMouseInputListenerContract,
     BaseMouseListenerContract, BaseMouseMotionListenerContract, BaseWindowFocusListenerContract,
-    BaseWindowListenerContract, ComponentEvent, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
+    BaseWindowListenerContract, ComponentEvent as ContractComponentEvent, DocumentEvent, KeyEvent, MouseEvent, WindowEvent,
 };
 pub use components::gray::*;
 pub use std::{base::*, gates::*};

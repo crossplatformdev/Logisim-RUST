@@ -18,6 +18,8 @@
 //! The module is organized to mirror the Java package structure:
 //! - `base`: Basic utilities and text components (BaseLibrary)
 //! - `gates`: Logic gates and related components (GatesLibrary)
+//! - `ttl`: TTL integrated circuits (TtlLibrary)
+//! - `wiring`: Wiring and connection components (WiringLibrary)
 //!
 //! ## Migration Status
 //!
@@ -26,10 +28,12 @@
 
 pub mod base;
 pub mod gates;
+pub mod ttl;    // TTL integrated circuits
 pub mod wiring;
 
 
 // Re-export commonly used types
 pub use base::*;
 pub use gates::*;
+pub use ttl::*;  // Export TTL components
 pub use wiring::*;
