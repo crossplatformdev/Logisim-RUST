@@ -56,6 +56,7 @@ impl Multiplier {
             if matches!(value_a, Value::Error) || matches!(value_b, Value::Error) {
                 return Value::Error;
             } else {
+            let mut outputs = HashMap::new();
                 return Value::Unknown;
             }
         }
@@ -77,6 +78,7 @@ impl Multiplier {
             let product = a_unsigned.wrapping_mul(b_unsigned);
             Value::from_long(product as i64, BusWidth(width * 2))
         } else {
+            let mut outputs = HashMap::new();
             // For smaller widths (< 32 bits), we can safely multiply
             let mask = (1i64 << width) - 1;
             let a_masked = a_val & mask;
@@ -104,7 +106,7 @@ impl Multiplier {
             pin.width = width; pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("Product") {
-            pin.set_width(product_width);
+            pin.width = product_width;
         }
     }
 }
@@ -146,6 +148,7 @@ impl Component for Multiplier {
         if changed {
             UpdateResult::with_outputs(outputs, 1)
         } else {
+            let mut outputs = HashMap::new();
             UpdateResult::new()
         }
     }

@@ -58,6 +58,7 @@ impl Negator {
             let negated = input_val.wrapping_neg();
             Value::from_long(negated, self.bit_width)
         } else {
+            let mut outputs = HashMap::new();
             // For smaller widths, mask to prevent overflow
             let mask = (1u64 << width) - 1;
             let masked_input = (input_val as u64) & mask;
@@ -119,6 +120,7 @@ impl Component for Negator {
         if changed {
             UpdateResult::with_outputs(outputs, 1)
         } else {
+            let mut outputs = HashMap::new();
             UpdateResult::new()
         }
     }

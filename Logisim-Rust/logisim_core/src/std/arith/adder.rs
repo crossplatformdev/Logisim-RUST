@@ -52,7 +52,7 @@ impl Adder {
     
     /// Compute the sum with carry propagation
     /// Returns (sum, carry_out)
-    fn compute_sum(bit_width: BusWidth, value_a: &Value, value_b: &Value, carry_in: &Value) -> (Value, Value) {
+    pub fn compute_sum(bit_width: BusWidth, value_a: &Value, value_b: &Value, carry_in: &Value) -> (Value, Value) {
         let width = bit_width.0;
         
         // Handle special cases for carry_in
@@ -87,6 +87,7 @@ impl Adder {
                     if carry_out { Value::High } else { Value::Low }
                 )
             } else {
+            let mut outputs = HashMap::new();
                 // Standard addition for widths < 64
                 let sum = value_a.to_long_value() + value_b.to_long_value() + carry_in.to_long_value();
                 let carry_out = ((sum >> width) & 1) != 0;
@@ -97,6 +98,7 @@ impl Adder {
                 )
             }
         } else {
+            let mut outputs = HashMap::new();
             // Bit-by-bit computation for undefined values
             let width_usize = width as usize;
             let mut result_bits = vec![Value::Error; width_usize];
@@ -108,6 +110,7 @@ impl Adder {
                 } else if matches!(carry, Value::Unknown) {
                     result_bits[i] = Value::Unknown;
                 } else {
+            let mut outputs = HashMap::new();
                     let bit_a = value_a.get_bit(i);
                     let bit_b = value_b.get_bit(i);
                     
@@ -118,6 +121,7 @@ impl Adder {
                         result_bits[i] = Value::Unknown;
                         carry = Value::Unknown;
                     } else {
+            let mut outputs = HashMap::new();
                         // Full adder logic for this bit
                         let a_bit = matches!(bit_a, Value::High);
                         let b_bit = matches!(bit_b, Value::High);
@@ -210,6 +214,7 @@ impl Component for Adder {
         if changed {
             UpdateResult::with_outputs(outputs, 1)
         } else {
+            let mut outputs = HashMap::new();
             UpdateResult::new()
         }
     }

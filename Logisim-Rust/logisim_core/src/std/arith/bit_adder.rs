@@ -71,6 +71,7 @@ impl BitAdder {
             let error_val = if matches!(a, Value::Error) || matches!(b, Value::Error) || matches!(carry_in, Value::Error) {
                 Value::Error
             } else {
+            let mut outputs = HashMap::new();
                 Value::Unknown
             };
             return (error_val, error_val);
@@ -106,9 +107,9 @@ impl Component for BitAdder {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let a = self.pins.get("A").map(|p| *p.get_signal().value()).unwrap_or(&Value::Unknown);
-        let b = self.pins.get("B").map(|p| *p.get_signal().value()).unwrap_or(&Value::Unknown);
-        let carry_in = self.pins.get("CarryIn").map(|p| *p.get_signal().value()).unwrap_or(&Value::Low);
+        let a = self.pins.get("A").map(|p| *p.get_signal().value()).unwrap_or(Value::Unknown);
+        let b = self.pins.get("B").map(|p| *p.get_signal().value()).unwrap_or(Value::Unknown);
+        let carry_in = self.pins.get("CarryIn").map(|p| *p.get_signal().value()).unwrap_or(Value::Low);
         
         // Compute outputs
         let (sum, carry_out) = self.compute_outputs(a, b, carry_in);
@@ -133,6 +134,7 @@ impl Component for BitAdder {
         if changed {
             UpdateResult::with_outputs(outputs, 1)
         } else {
+            let mut outputs = HashMap::new();
             UpdateResult::new()
         }
     }
