@@ -11,7 +11,8 @@
 //!
 //! Rust port of `com.cburch.logisim.std.arith.Adder`
 
-use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
+
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -51,7 +52,7 @@ impl Adder {
     
     /// Compute the sum with carry propagation
     /// Returns (sum, carry_out)
-    fn compute_sum(bit_width: BusWidth, value_a: &Value, value_b: &Value, carry_in: &Value) -> (Value, Value) {
+    pub fn compute_sum(bit_width: BusWidth, value_a: &Value, value_b: &Value, carry_in: &Value) -> (Value, Value) {
         let width = bit_width.0;
         
         // Handle special cases for carry_in
@@ -86,6 +87,7 @@ impl Adder {
                     if carry_out { Value::High } else { Value::Low }
                 )
             } else {
+            let mut outputs = HashMap::new();
                 // Standard addition for widths < 64
                 let sum = value_a.to_long_value() + value_b.to_long_value() + carry_in.to_long_value();
                 let carry_out = ((sum >> width) & 1) != 0;
@@ -96,16 +98,19 @@ impl Adder {
                 )
             }
         } else {
+            let mut outputs = HashMap::new();
             // Bit-by-bit computation for undefined values
-            let mut result_bits = vec![Value::Error; width];
+            let width_usize = width as usize;
+            let mut result_bits = vec![Value::Error; width_usize];
             let mut carry = carry_in.clone();
             
-            for i in 0..width {
+            for i in 0..width_usize {
                 if matches!(carry, Value::Error) {
                     result_bits[i] = Value::Error;
                 } else if matches!(carry, Value::Unknown) {
                     result_bits[i] = Value::Unknown;
                 } else {
+            let mut outputs = HashMap::new();
                     let bit_a = value_a.get_bit(i);
                     let bit_b = value_b.get_bit(i);
                     
@@ -116,6 +121,7 @@ impl Adder {
                         result_bits[i] = Value::Unknown;
                         carry = Value::Unknown;
                     } else {
+            let mut outputs = HashMap::new();
                         // Full adder logic for this bit
                         let a_bit = matches!(bit_a, Value::High);
                         let b_bit = matches!(bit_b, Value::High);
@@ -143,13 +149,16 @@ impl Adder {
     pub fn set_bit_width(&mut self, width: BusWidth) {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("A") {
-            pin.set_width(width);
+            pin.width = width;
+            pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("B") {
-            pin.set_width(width);
+            pin.width = width;
+            pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("Sum") {
-            pin.set_width(width);
+            pin.width = width;
+            pin.signal = Signal::unknown(width);
         }
     }
 }
@@ -173,54 +182,51 @@ impl Component for Adder {
 
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let value_a = self.pins.get("A").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
-        let value_b = self.pins.get("B").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
-        let carry_in = self.pins.get("Carry_In").map(|p| p.signal().value()).unwrap_or(Value::Low);
+        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let carry_in = self.pins.get("Carry_In").map(|p| p.get_signal().value()).unwrap_or(&Value::Low);
         
         // Compute sum and carry out
         let (sum, carry_out) = Self::compute_sum(self.bit_width, &value_a, &value_b, &carry_in);
         
-        // Update output pins
+        // Update output pins and collect outputs
+        let mut outputs = HashMap::new();
         let mut changed = false;
+        
         if let Some(sum_pin) = self.pins.get_mut("Sum") {
-            if sum_pin.signal().value() != &sum {
-                let _ = sum_pin.set_signal(Signal::new(sum, _current_time));
+            if sum_pin.get_signal().value() != &sum {
+                let new_signal = Signal::new(sum, _current_time);
+                let _ = sum_pin.set_signal(new_signal.clone());
+                outputs.insert("Sum".to_string(), new_signal);
                 changed = true;
             }
         }
         
         if let Some(carry_pin) = self.pins.get_mut("Carry_Out") {
-            if carry_pin.signal().value() != &carry_out {
-                let _ = carry_pin.set_signal(Signal::new(carry_out, _current_time));
+            if carry_pin.get_signal().value() != &carry_out {
+                let new_signal = Signal::new(carry_out, _current_time);
+                let _ = carry_pin.set_signal(new_signal.clone());
+                outputs.insert("Carry_Out".to_string(), new_signal);
                 changed = true;
             }
         }
         
         if changed {
-            UpdateResult::changed()
+            UpdateResult::with_outputs(outputs, 1)
         } else {
-            UpdateResult::no_change()
+            let mut outputs = HashMap::new();
+            UpdateResult::new()
         }
     }
 
     fn reset(&mut self) {
         // Reset all pins to their default states
         for pin in self.pins.values_mut() {
-            pin.reset();
+            pin.signal = Signal::unknown(pin.width);
         }
     }
 }
 
-impl Propagator for Adder {
-    fn propagate(&mut self, current_time: Timestamp) {
-        // Calculate propagation delay based on bit width
-        let delay = (self.bit_width.0 + 2) * 1; // PER_DELAY = 1 from Java
-        let propagation_time = current_time + delay as u64;
-        
-        // Perform the update at the calculated time
-        self.update(propagation_time);
-    }
-}
 
 #[cfg(test)]
 mod tests {

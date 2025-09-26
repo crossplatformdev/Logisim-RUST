@@ -9,8 +9,9 @@
 
 //! FpToInt Implementation (Placeholder)
 
-use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
-use crate::signal::{BusWidth, Signal, Timestamp, Value};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
+
+use crate::signal::{BusWidth, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -37,18 +38,13 @@ impl Component for FpToInt {
     fn pins_mut(&mut self) -> &mut HashMap<String, Pin> { &mut self.pins }
     
     fn update(&mut self, _current_time: Timestamp) -> UpdateResult {
-        UpdateResult::NoChange // Placeholder
+        UpdateResult::new() // Placeholder
     }
     
     fn reset(&mut self) {
         for pin in self.pins.values_mut() {
-            pin.reset();
+            pin.signal = Signal::unknown(pin.width);
         }
     }
 }
 
-impl Propagator for FpToInt {
-    fn propagate(&mut self, current_time: Timestamp) {
-        self.update(current_time + 5);
-    }
-}

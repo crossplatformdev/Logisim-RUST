@@ -11,7 +11,8 @@
 //!
 //! Rust port of `com.cburch.logisim.std.arith.Subtractor`
 
-use crate::comp::{Component, ComponentId, Pin, Propagator, UpdateResult};
+use crate::comp::{Component, ComponentId, Pin, UpdateResult};
+
 use crate::signal::{BusWidth, Signal, Timestamp, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -87,13 +88,13 @@ impl Subtractor {
     pub fn set_bit_width(&mut self, width: BusWidth) {
         self.bit_width = width;
         if let Some(pin) = self.pins.get_mut("A") {
-            pin.set_width(width);
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("B") {
-            pin.set_width(width);
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
         if let Some(pin) = self.pins.get_mut("Difference") {
-            pin.set_width(width);
+            pin.width = width; pin.signal = Signal::unknown(width);
         }
     }
 }
@@ -117,9 +118,9 @@ impl Component for Subtractor {
 
     fn update(&mut self, current_time: Timestamp) -> UpdateResult {
         // Get input values
-        let value_a = self.pins.get("A").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
-        let value_b = self.pins.get("B").map(|p| p.signal().value()).unwrap_or(Value::Unknown);
-        let borrow_in = self.pins.get("Borrow_In").map(|p| p.signal().value()).unwrap_or(Value::Low);
+        let value_a = self.pins.get("A").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let value_b = self.pins.get("B").map(|p| p.get_signal().value()).unwrap_or(&Value::Unknown);
+        let borrow_in = self.pins.get("Borrow_In").map(|p| p.get_signal().value()).unwrap_or(&Value::Low);
         
         // Compute difference and borrow out
         let (difference, borrow_out) = Self::compute_difference(
@@ -132,44 +133,36 @@ impl Component for Subtractor {
         // Update output pins
         let mut changed = false;
         if let Some(diff_pin) = self.pins.get_mut("Difference") {
-            if diff_pin.signal().value() != difference {
+            if *diff_pin.get_signal().value() != difference {
                 diff_pin.set_signal(Signal::new(difference, current_time));
                 changed = true;
             }
         }
         
         if let Some(borrow_pin) = self.pins.get_mut("Borrow_Out") {
-            if borrow_pin.signal().value() != borrow_out {
+            if *borrow_pin.get_signal().value() != borrow_out {
                 borrow_pin.set_signal(Signal::new(borrow_out, current_time));
                 changed = true;
             }
         }
         
         if changed {
-            UpdateResult::Changed
+            UpdateResult::with_outputs(outputs, 1)
         } else {
-            UpdateResult::NoChange
+            let mut outputs = HashMap::new();
+            UpdateResult::with_outputs(outputs, 1)
         }
+    }
     }
 
     fn reset(&mut self) {
         // Reset all pins to their default states
         for pin in self.pins.values_mut() {
-            pin.reset();
+            pin.signal = Signal::unknown(pin.width);
         }
     }
 }
 
-impl Propagator for Subtractor {
-    fn propagate(&mut self, current_time: Timestamp) {
-        // Calculate propagation delay based on bit width (slightly more than adder)
-        let delay = (self.bit_width.0 + 4) * 1; // From Java: (data.getWidth() + 4) * Adder.PER_DELAY
-        let propagation_time = current_time + delay as u64;
-        
-        // Perform the update at the calculated time
-        self.update(propagation_time);
-    }
-}
 
 #[cfg(test)]
 mod tests {
