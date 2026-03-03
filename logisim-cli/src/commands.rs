@@ -17,6 +17,7 @@ struct Opts {
     circuit: Option<String>,
     steps: usize,
     terse: bool,
+    format_json: bool,
 }
 
 fn parse_opts(args: &[String]) -> Result<Opts, String> {
@@ -25,6 +26,7 @@ fn parse_opts(args: &[String]) -> Result<Opts, String> {
         circuit: None,
         steps: 10,
         terse: false,
+        format_json: false,
     };
 
     let mut i = 0;
@@ -44,6 +46,17 @@ fn parse_opts(args: &[String]) -> Result<Opts, String> {
             }
             "--terse" => {
                 opts.terse = true;
+            }
+            "--format" => {
+                i += 1;
+                let fmt = args.get(i).ok_or("--format requires an argument")?;
+                match fmt.as_str() {
+                    "json" => opts.format_json = true,
+                    "text" => opts.format_json = false,
+                    other => {
+                        return Err(format!("Unknown format '{}'; use 'text' or 'json'", other))
+                    }
+                }
             }
             arg if !arg.starts_with('-') => {
                 opts.file = Some(arg.to_string());
@@ -84,52 +97,34 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
 
     let mut sim = Simulator::new(project.clone());
 
-    if !opts.terse {
-        println!(
-            "Simulating circuit '{}' for {} steps",
-            circuit_name, opts.steps
-        );
-        println!("{}", "-".repeat(50));
-    }
-
-    // Print header.
+    // Build pin label maps.
     let circuit = &project.circuits[&circuit_name];
     let mut input_pins: Vec<_> = circuit.input_pins().iter().map(|c| c.id).collect();
     let mut output_pins: Vec<_> = circuit.output_pins().iter().map(|c| c.id).collect();
     input_pins.sort();
     output_pins.sort();
 
-    if !opts.terse {
-        let in_labels: Vec<String> = input_pins
-            .iter()
-            .map(|&id| {
-                circuit
-                    .get_component(id)
-                    .map(|c| {
-                        if c.label.is_empty() {
-                            format!("{}", id)
-                        } else {
-                            c.label.clone()
-                        }
-                    })
-                    .unwrap_or_else(|| format!("{}", id))
+    let get_label = |id: logisim_core::component::ComponentId| {
+        circuit
+            .get_component(id)
+            .map(|c| {
+                if c.label.is_empty() {
+                    format!("{}", id)
+                } else {
+                    c.label.clone()
+                }
             })
-            .collect();
-        let out_labels: Vec<String> = output_pins
-            .iter()
-            .map(|&id| {
-                circuit
-                    .get_component(id)
-                    .map(|c| {
-                        if c.label.is_empty() {
-                            format!("{}", id)
-                        } else {
-                            c.label.clone()
-                        }
-                    })
-                    .unwrap_or_else(|| format!("{}", id))
-            })
-            .collect();
+            .unwrap_or_else(|| format!("{}", id))
+    };
+    let in_labels: Vec<String> = input_pins.iter().map(|&id| get_label(id)).collect();
+    let out_labels: Vec<String> = output_pins.iter().map(|&id| get_label(id)).collect();
+
+    if !opts.terse && !opts.format_json {
+        println!(
+            "Simulating circuit '{}' for {} steps",
+            circuit_name, opts.steps
+        );
+        println!("{}", "-".repeat(50));
         println!("Inputs:  {}", in_labels.join(", "));
         println!("Outputs: {}", out_labels.join(", "));
         println!("{}", "-".repeat(50));
@@ -142,27 +137,44 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
     }
 
     // Run simulation steps.
+    let mut json_steps: Vec<String> = Vec::new();
     for step in 0..opts.steps {
         sim.tick(&circuit_name)
             .map_err(|e| format!("Simulation error at step {}: {}", step, e))?;
 
-        if !opts.terse {
-            let in_vals: Vec<String> = input_pins
-                .iter()
-                .map(|&id| {
-                    sim.read_pin(&circuit_name, id)
-                        .map(|b| b.to_hex_string())
-                        .unwrap_or_else(|| "?".to_string())
-                })
-                .collect();
-            let out_vals: Vec<String> = output_pins
-                .iter()
-                .map(|&id| {
-                    sim.read_pin(&circuit_name, id)
-                        .map(|b| b.to_hex_string())
-                        .unwrap_or_else(|| "?".to_string())
-                })
-                .collect();
+        let in_vals: Vec<String> = input_pins
+            .iter()
+            .map(|&id| {
+                sim.read_pin(&circuit_name, id)
+                    .map(|b| b.to_hex_string())
+                    .unwrap_or_else(|| "?".to_string())
+            })
+            .collect();
+        let out_vals: Vec<String> = output_pins
+            .iter()
+            .map(|&id| {
+                sim.read_pin(&circuit_name, id)
+                    .map(|b| b.to_hex_string())
+                    .unwrap_or_else(|| "?".to_string())
+            })
+            .collect();
+
+        if opts.format_json {
+            let mut kv: Vec<String> = vec![format!(r#""step": {}"#, step)];
+            kv.extend(
+                in_labels
+                    .iter()
+                    .zip(in_vals.iter())
+                    .map(|(k, v)| format!(r#""{}": "{}""#, k, v)),
+            );
+            kv.extend(
+                out_labels
+                    .iter()
+                    .zip(out_vals.iter())
+                    .map(|(k, v)| format!(r#""{}": "{}""#, k, v)),
+            );
+            json_steps.push(format!("  {{{}}}", kv.join(", ")));
+        } else if !opts.terse {
             println!(
                 "{:4} | {} | {}",
                 step,
@@ -170,16 +182,14 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
                 out_vals.join(" | ")
             );
         } else {
-            let out_vals: Vec<String> = output_pins
-                .iter()
-                .map(|&id| {
-                    sim.read_pin(&circuit_name, id)
-                        .map(|b| b.to_hex_string())
-                        .unwrap_or_else(|| "?".to_string())
-                })
-                .collect();
             println!("{}", out_vals.join(" "));
         }
+    }
+
+    if opts.format_json {
+        println!("[");
+        println!("{}", json_steps.join(",\n"));
+        println!("]");
     }
 
     Ok(())
@@ -272,10 +282,14 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
         .map(|s| s.as_str())
         .chain(out_labels.iter().map(|s| s.as_str()))
         .collect();
-    println!("{}", header.join(" | "));
-    println!("{}", "-".repeat(header.join(" | ").len() + 4));
+
+    if !opts.format_json {
+        println!("{}", header.join(" | "));
+        println!("{}", "-".repeat(header.join(" | ").len() + 4));
+    }
 
     // Enumerate all input combinations.
+    let mut json_rows: Vec<String> = Vec::new();
     for row in 0..num_rows {
         let mut sim = Simulator::new(project.clone());
 
@@ -313,19 +327,40 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
                         if let Some(v) = b.to_u64() {
                             v.to_string()
                         } else {
-                            "?".to_string()
+                            "null".to_string()
                         }
                     })
-                    .unwrap_or_else(|| "?".to_string())
+                    .unwrap_or_else(|| "null".to_string())
             })
             .collect();
 
-        let row_vals: Vec<&str> = in_vals
-            .iter()
-            .map(|s| s.as_str())
-            .chain(out_vals.iter().map(|s| s.as_str()))
-            .collect();
-        println!("{}", row_vals.join(" | "));
+        if opts.format_json {
+            let mut kv: Vec<String> = in_labels
+                .iter()
+                .zip(in_vals.iter())
+                .map(|(k, v)| format!(r#""{}": {}"#, k, v))
+                .collect();
+            kv.extend(
+                out_labels
+                    .iter()
+                    .zip(out_vals.iter())
+                    .map(|(k, v)| format!(r#""{}": {}"#, k, v)),
+            );
+            json_rows.push(format!("  {{{}}}", kv.join(", ")));
+        } else {
+            let row_vals: Vec<&str> = in_vals
+                .iter()
+                .map(|s| s.as_str())
+                .chain(out_vals.iter().map(|s| s.as_str()))
+                .collect();
+            println!("{}", row_vals.join(" | "));
+        }
+    }
+
+    if opts.format_json {
+        println!("[");
+        println!("{}", json_rows.join(",\n"));
+        println!("]");
     }
 
     Ok(())
@@ -490,5 +525,36 @@ mod tests {
         assert_eq!(opts.steps, 5);
         assert!(opts.terse);
         assert_eq!(opts.file, Some("file.circ".to_string()));
+    }
+
+    #[test]
+    fn test_parse_opts_format_json() {
+        let args: Vec<String> = vec![
+            "--format".to_string(),
+            "json".to_string(),
+            "f.circ".to_string(),
+        ];
+        let opts = parse_opts(&args).unwrap();
+        assert!(opts.format_json);
+    }
+
+    #[test]
+    fn test_run_truth_table_json() {
+        let path = write_temp_circ(AND_CIRC);
+        let args: Vec<String> = vec!["--format".to_string(), "json".to_string(), path];
+        assert!(run_truth_table(&args).is_ok());
+    }
+
+    #[test]
+    fn test_run_simulate_json() {
+        let path = write_temp_circ(AND_CIRC);
+        let args: Vec<String> = vec![
+            "--steps".to_string(),
+            "2".to_string(),
+            "--format".to_string(),
+            "json".to_string(),
+            path,
+        ];
+        assert!(run_simulate(&args).is_ok());
     }
 }

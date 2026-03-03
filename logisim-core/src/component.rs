@@ -112,6 +112,16 @@ pub enum ComponentKind {
     TristateBuffer {
         width: BitWidth,
     },
+    /// Transistor (n-type or p-type).  A gate signal enables/disables data flow.
+    Transistor {
+        width: BitWidth,
+        /// If true, gate=0 enables the transistor (p-type); otherwise gate=1 enables (n-type).
+        p_type: bool,
+    },
+    /// Transmission gate: bidirectional switch controlled by complementary gate signals.
+    TransmissionGate {
+        width: BitWidth,
+    },
     /// Bit extender: zero-extends an input bus to a wider output width.
     BitExtender {
         input_width: BitWidth,
@@ -306,6 +316,8 @@ impl ComponentKind {
             | ComponentKind::Probe { .. }
             | ComponentKind::PullResistor { .. }
             | ComponentKind::TristateBuffer { .. }
+            | ComponentKind::Transistor { .. }
+            | ComponentKind::TransmissionGate { .. }
             | ComponentKind::BitExtender { .. } => "wiring",
 
             ComponentKind::AndGate { .. }
@@ -373,6 +385,14 @@ impl ComponentKind {
             ComponentKind::Probe { .. } => "Probe".to_string(),
             ComponentKind::PullResistor { .. } => "Pull Resistor".to_string(),
             ComponentKind::TristateBuffer { .. } => "Tristate Buffer".to_string(),
+            ComponentKind::Transistor { p_type, .. } => {
+                if *p_type {
+                    "Transistor P".to_string()
+                } else {
+                    "Transistor".to_string()
+                }
+            }
+            ComponentKind::TransmissionGate { .. } => "Transmission Gate".to_string(),
             ComponentKind::BitExtender { .. } => "Bit Extender".to_string(),
             ComponentKind::AndGate { .. } => "AND Gate".to_string(),
             ComponentKind::OrGate { .. } => "OR Gate".to_string(),
@@ -480,6 +500,23 @@ impl ComponentKind {
                     Port::input("in", *width, (0, 0)),
                     Port::input("enable", BitWidth::ONE, (1, 0)),
                     Port::output("out", *width, (2, 0)),
+                ]
+            }
+
+            ComponentKind::Transistor { width, .. } => {
+                vec![
+                    Port::input("gate", BitWidth::ONE, (0, 0)),
+                    Port::input("source", *width, (0, 1)),
+                    Port::output("drain", *width, (0, 2)),
+                ]
+            }
+
+            ComponentKind::TransmissionGate { width } => {
+                vec![
+                    Port::input("gate", BitWidth::ONE, (0, 0)),
+                    Port::input("gate_n", BitWidth::ONE, (0, 1)),
+                    Port::input("source", *width, (0, 2)),
+                    Port::output("drain", *width, (0, 3)),
                 ]
             }
 

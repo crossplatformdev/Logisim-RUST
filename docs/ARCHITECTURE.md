@@ -122,7 +122,7 @@ round-trip gaps:
 
 | Library | Components |
 |---------|-----------|
-| **Wiring** | Pin, Clock, Constant, Power, Ground, Splitter, Tunnel, Probe, Pull Resistor, Tristate Buffer |
+| **Wiring** | Pin, Clock, Constant, Power, Ground, Splitter, Tunnel, Probe, Pull Resistor, Tristate Buffer, Transistor, Transmission Gate |
 | **Gates** | AND, OR, NAND, NOR, XOR, XNOR, NOT, Buffer, Controlled Buffer |
 | **Plexers** | Multiplexer, Demultiplexer, Decoder, Priority Encoder, Bit Selector |
 | **Arithmetic** | Adder, Subtractor, Multiplier, Divider, Negator, Comparator, Shift Register, Bit Adder, Bit Finder |

@@ -48,8 +48,8 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Pull Resistor | ✅ | ✅ | ✅ | |
 | Tristate Buffer | ✅ | ✅ | ✅ | Parser + writer |
 | Bit Extender | ✅ | ✅ | ✅ | Zero-extend; parser + writer + simulation |
-| Transistor | missing | — | — | |
-| Transmission Gate | missing | — | — | |
+| Transistor | ✅ | ✅ | ✅ | N-type and P-type; parser + writer + simulation |
+| Transmission Gate | ✅ | ✅ | ✅ | Parser + writer + simulation |
 
 ### 2b. Gates (lib `"1"`)
 
@@ -138,10 +138,10 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Write `<circuit>` elements | ✅ | ✅ | ✅ | |
 | Write `<wire>` elements | ✅ | ✅ | ✅ | |
 | Write `<comp>` with lib/name | ✅ | ✅ | ✅ | |
-| Round-trip fidelity (parse → write → parse) | partial | ✅ | partial | Transistor, TTL missing; TristateBuffer now correctly uses name "Tristate Buffer" (wiring lib) |
-| Project-level metadata (`<project>`, `<lib>` declarations) | partial | — | partial | Read-only; not written back |
+| Round-trip fidelity (parse → write → parse) | partial | ✅ | partial | TTL missing; all standard components including Transistor, TransmissionGate round-trip correctly |
+| Project-level metadata (`<project>`, `<lib>` declarations) | ✅ | ✅ | ✅ | `<lib>` declarations and `<main name="..."/>` written and parsed |
 | Circuit appearance data (`<appear>`) | missing | — | — | Custom component shapes not stored |
-| `main` circuit attribute | partial | — | partial | Parsed but not enforced |
+| `main` circuit attribute | ✅ | ✅ | ✅ | `<main name="..."/>` parsed and written |
 | `.circ` file version attribute | partial | — | partial | Parsed; not validated for compatibility |
 
 ---
@@ -239,7 +239,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 |---------|-------------|--------|------------|-------|
 | Load `.circ` file | ✅ | ✅ | ✅ | |
 | Simulate truth table (`simulate` subcommand) | ✅ | ✅ | ✅ | |
-| JSON output (`--format json`) | missing | — | — | No `--format` flag in CLI option parser |
+| JSON output (`--format json`) | ✅ | ✅ | ✅ | `--format json` added to simulate and truth-table commands |
 | REPL / interactive mode | missing | — | — | |
 
 ---
@@ -249,20 +249,20 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Category | Implemented | Partial | Missing |
 |----------|-------------|---------|---------|
 | Simulation semantics | 10 | 0 | 0 |
-| Wiring components | 10 | 0 | 2 |
+| Wiring components | 12 | 0 | 0 |
 | Gate components | 11 | 0 | 0 |
 | Plexer components | 5 | 0 | 0 |
 | Arithmetic components | 9 | 0 | 0 |
 | Memory components | 9 | 0 | 0 |
 | I/O components | 7 | 0 | 2 |
 | TTL libraries | 0 | 0 | 1 |
-| File format | 8 | 4 | 2 |
+| File format | 10 | 2 | 2 |
 | GUI / editor | 12 | 1 | 9 |
 | Undo / Redo | 8 | 0 | 1 |
 | Chronogram | 0 | 0 | 3 |
 | HDL export | 0 | 0 | 3 |
 | FPGA / board | 0 | 0 | 4 |
 | Localization | 1 | 0 | 1 |
-| CLI | 2 | 0 | 2 |
+| CLI | 3 | 0 | 1 |
 
 _Last updated: 2026-03-03_

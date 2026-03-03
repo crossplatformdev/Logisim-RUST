@@ -30,6 +30,11 @@ pub fn write_circ<W: Write>(project: &Project, writer: &mut W) -> Result<()> {
     writeln!(writer, "  <lib desc=\"#Memory\" name=\"4\"/>")?;
     writeln!(writer, "  <lib desc=\"#I/O\" name=\"5\"/>")?;
 
+    // Main circuit declaration.
+    if let Some(main) = &project.main_circuit {
+        writeln!(writer, r#"  <main name="{}"/>"#, escape(main))?;
+    }
+
     // Options
     writeln!(writer, "  <options>")?;
     for (k, v) in &project.options {
@@ -215,7 +220,9 @@ fn write_kind_attrs<W: Write>(kind: &ComponentKind, writer: &mut W) -> Result<()
         ComponentKind::NotGate { width }
         | ComponentKind::Buffer { width }
         | ComponentKind::ControlledBuffer { width }
-        | ComponentKind::TristateBuffer { width } => {
+        | ComponentKind::TristateBuffer { width }
+        | ComponentKind::Transistor { width, .. }
+        | ComponentKind::TransmissionGate { width } => {
             if width.get() != 1 {
                 writeln!(writer, r#"      <a name="width" val="{}"/>"#, width.get())?;
             }
@@ -588,5 +595,59 @@ mod tests {
         assert_eq!(circuit2.components.len(), 1);
         let comp = circuit2.components.values().next().unwrap();
         assert!(matches!(comp.kind, ComponentKind::ControlledBuffer { .. }));
+    }
+
+    #[test]
+    fn test_transistor_roundtrip() {
+        let mut project = Project::new("test");
+        let mut circuit = Circuit::new("main");
+        circuit.add_component(
+            ComponentKind::Transistor {
+                width: BitWidth::ONE,
+                p_type: false,
+            },
+            10,
+            10,
+        );
+        project.add_circuit(circuit);
+
+        let mut buf = Vec::new();
+        write_circ(&project, &mut buf).unwrap();
+        let xml = String::from_utf8(buf).unwrap();
+
+        assert!(
+            xml.contains(r#"lib="0""#),
+            "Transistor must use wiring lib 0"
+        );
+        assert!(xml.contains(r#"name="Transistor""#));
+
+        let project2 = parse_circ(xml.as_bytes()).unwrap();
+        let circuit2 = &project2.circuits["main"];
+        assert_eq!(circuit2.components.len(), 1);
+        let comp = circuit2.components.values().next().unwrap();
+        assert!(matches!(
+            comp.kind,
+            ComponentKind::Transistor { p_type: false, .. }
+        ));
+    }
+
+    #[test]
+    fn test_main_circuit_written_and_parsed() {
+        let mut project = Project::new("test");
+        project.add_circuit(Circuit::new("sub"));
+        project.add_circuit(Circuit::new("top"));
+        project.main_circuit = Some("top".to_string());
+
+        let mut buf = Vec::new();
+        write_circ(&project, &mut buf).unwrap();
+        let xml = String::from_utf8(buf).unwrap();
+
+        assert!(
+            xml.contains(r#"<main name="top"/>"#),
+            "Must write <main name=...>"
+        );
+
+        let project2 = parse_circ(xml.as_bytes()).unwrap();
+        assert_eq!(project2.main_circuit.as_deref(), Some("top"));
     }
 }

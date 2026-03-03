@@ -69,14 +69,16 @@ Options:
   --circuit <name>    Select which circuit to operate on (default: main)
   --steps <n>         Number of simulation steps (default: 10)
   --terse             Terse output (values only)
+  --format <fmt>      Output format: 'text' (default) or 'json'
   --help              Show this help message
   --version           Show version
 
 Examples:
   {} simulate --steps 5 my_circuit.circ
   {} truth-table --circuit main my_circuit.circ
+  {} truth-table --format json my_circuit.circ
   {} info my_circuit.circ
 ",
-        prog, prog, prog, prog
+        prog, prog, prog, prog, prog
     );
 }

@@ -51,9 +51,22 @@ pub fn parse_circ<R: BufRead>(reader: R) -> Result<Project> {
                 }
             }
             Ok(Event::Empty(ref e)) => {
-                if e.name().as_ref() == b"lib" {
-                    let (lib_name, lib_desc) = parse_lib(e)?;
-                    lib_map.insert(lib_name, lib_desc);
+                match e.name().as_ref() {
+                    b"lib" => {
+                        let (lib_name, lib_desc) = parse_lib(e)?;
+                        lib_map.insert(lib_name, lib_desc);
+                    }
+                    b"main" => {
+                        // <main name="circuitname"/> — the top-level circuit
+                        for attr in e.attributes() {
+                            let attr = attr?;
+                            if attr.key.as_ref() == b"name" {
+                                let v = attr.unescape_value()?;
+                                project.main_circuit = Some(v.into_owned());
+                            }
+                        }
+                    }
+                    _ => {}
                 }
             }
             Ok(Event::Eof) => break,
@@ -296,6 +309,17 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
                 })
             }
             "Tristate Buffer" => Ok(ComponentKind::TristateBuffer {
+                width: get_width("width"),
+            }),
+            "Transistor" => Ok(ComponentKind::Transistor {
+                width: get_width("width"),
+                p_type: false,
+            }),
+            "Transistor P" => Ok(ComponentKind::Transistor {
+                width: get_width("width"),
+                p_type: true,
+            }),
+            "Transmission Gate" => Ok(ComponentKind::TransmissionGate {
                 width: get_width("width"),
             }),
             "Bit Extender" => Ok(ComponentKind::BitExtender {

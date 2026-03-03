@@ -217,6 +217,11 @@ impl Bus {
         self.bits.len()
     }
 
+    /// Returns true if all bits are `HighZ`.
+    pub fn is_high_z(&self) -> bool {
+        self.bits.iter().all(|b| *b == Value::HighZ)
+    }
+
     /// Get a single bit.
     pub fn get(&self, index: usize) -> Value {
         self.bits.get(index).copied().unwrap_or(Value::Unknown)

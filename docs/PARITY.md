@@ -47,8 +47,8 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Pull Resistor | ✅ | |
 | Tristate Buffer | ✅ | |
 | Bit Extender | ✅ | Zero-extend; parser + writer + simulation |
-| Transistor | ❌ | Missing |
-| Transmission Gate | ❌ | Missing |
+| Transistor | ✅ | N-type and P-type; parser + writer + simulation |
+| Transmission Gate | ✅ | Parser + writer + simulation |
 
 ### 2b. Gates (#1)
 
@@ -137,6 +137,7 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Round-trip multi-circuit projects | ✅ | |
 | Round-trip subcircuit references | ✅ | |
 | Library declarations in header | ✅ | |
+| Main circuit (`<main name="..."/>`) | ✅ | Written and parsed |
 | Appearance data (`<appear>`) | ❌ | Not read/written |
 | Description / metadata attributes | 🟡 | Partially preserved |
 
@@ -232,7 +233,7 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 |---------|--------|-------|
 | Load `.circ` file | ✅ | |
 | Simulate truth table | ✅ | `simulate` subcommand |
-| JSON output | ❌ | `--format json` not implemented; no such CLI flag |
+| JSON output | ✅ | `--format json` for both `simulate` and `truth-table` commands |
 | REPL / interactive mode | ❌ | Not yet implemented |
 
 ---

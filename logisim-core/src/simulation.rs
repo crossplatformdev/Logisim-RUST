@@ -422,7 +422,37 @@ fn evaluate_component(
             out.insert("out".to_string(), result);
         }
 
-        // ── Gates ─────────────────────────────────────────────────────────────
+        ComponentKind::Transistor { width, p_type } => {
+            let gate = get1("gate");
+            let src = get("source", width.get());
+            // n-type: gate=1 conducts; p-type: gate=0 conducts.
+            let conducts = if *p_type {
+                gate == Value::False
+            } else {
+                gate == Value::True
+            };
+            let result = if conducts {
+                src
+            } else {
+                Bus::high_z(width.get() as usize)
+            };
+            out.insert("drain".to_string(), result);
+        }
+
+        ComponentKind::TransmissionGate { width } => {
+            let gate = get1("gate");
+            let gate_n = get1("gate_n");
+            let src = get("source", width.get());
+            // Conducts when gate=1 and gate_n=0 (complementary enables).
+            let conducts = gate == Value::True && gate_n == Value::False;
+            let result = if conducts {
+                src
+            } else {
+                Bus::high_z(width.get() as usize)
+            };
+            out.insert("drain".to_string(), result);
+        }
+
         ComponentKind::AndGate {
             inputs: n,
             width,
@@ -1418,6 +1448,56 @@ mod tests {
         let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
         assert_eq!(result["out"].to_u64(), Some(0b0000_1011));
         assert_eq!(result["out"].width(), 8);
+    }
+
+    #[test]
+    fn test_transistor_n_type_conducts_when_gate_high() {
+        let kind = ComponentKind::Transistor {
+            width: BitWidth::ONE,
+            p_type: false,
+        };
+        // gate=1 → conducts; drain = source
+        let inputs: HashMap<String, Bus> = [
+            ("gate".to_string(), Bus::from_u64(1, 1)),
+            ("source".to_string(), Bus::from_u64(1, 1)),
+        ]
+        .into();
+        let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
+        assert_eq!(result["drain"].to_u64(), Some(1));
+
+        // gate=0 → high-Z
+        let inputs_off: HashMap<String, Bus> = [
+            ("gate".to_string(), Bus::from_u64(0, 1)),
+            ("source".to_string(), Bus::from_u64(1, 1)),
+        ]
+        .into();
+        let result_off = evaluate_component(&kind, ComponentId(1), &inputs_off, None, 0);
+        assert!(result_off["drain"].is_high_z());
+    }
+
+    #[test]
+    fn test_transistor_p_type_conducts_when_gate_low() {
+        let kind = ComponentKind::Transistor {
+            width: BitWidth::ONE,
+            p_type: true,
+        };
+        // gate=0 → conducts; drain = source
+        let inputs: HashMap<String, Bus> = [
+            ("gate".to_string(), Bus::from_u64(0, 1)),
+            ("source".to_string(), Bus::from_u64(1, 1)),
+        ]
+        .into();
+        let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
+        assert_eq!(result["drain"].to_u64(), Some(1));
+
+        // gate=1 → high-Z
+        let inputs_off: HashMap<String, Bus> = [
+            ("gate".to_string(), Bus::from_u64(1, 1)),
+            ("source".to_string(), Bus::from_u64(1, 1)),
+        ]
+        .into();
+        let result_off = evaluate_component(&kind, ComponentId(1), &inputs_off, None, 0);
+        assert!(result_off["drain"].is_high_z());
     }
 
     #[test]
