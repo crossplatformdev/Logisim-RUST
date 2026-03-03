@@ -122,18 +122,72 @@ impl LogisimApp {
                 self.state.tool = Tool::Select;
                 self.state.wire_start = None;
             }
+            // Ctrl+Z / Cmd+Z → Undo
+            if i.consume_key(Modifiers::COMMAND, egui::Key::Z) {
+                self.undo();
+            }
+            // Ctrl+Y or Ctrl+Shift+Z / Cmd+Shift+Z → Redo
+            if i.consume_key(Modifiers::COMMAND, egui::Key::Y)
+                || i.consume_key(Modifiers::COMMAND | Modifiers::SHIFT, egui::Key::Z)
+            {
+                self.redo();
+            }
         });
+    }
+
+    fn undo(&mut self) {
+        if self.state.history.undo(&mut self.state.project) {
+            self.state.modified = true;
+            self.state.sync_simulator();
+            self.state.status = "Undo".to_string();
+        }
+    }
+
+    fn redo(&mut self) {
+        if self.state.history.redo(&mut self.state.project) {
+            self.state.modified = true;
+            self.state.sync_simulator();
+            self.state.status = "Redo".to_string();
+        }
     }
 
     fn delete_selected(&mut self) {
         let name = self.state.active_circuit.clone();
+        if let Some(circuit) = self.state.project.circuits.get(&name) {
+            let to_remove: Vec<_> = self
+                .state
+                .selected
+                .iter()
+                .filter_map(|id| circuit.components.get(id).map(|c| (*id, c.clone())))
+                .collect();
+            if to_remove.is_empty() {
+                return;
+            }
+            let actions: Vec<_> = to_remove
+                .iter()
+                .map(
+                    |(id, comp)| logisim_core::history::UndoAction::RemoveComponent {
+                        circuit_name: name.clone(),
+                        id: *id,
+                        component: comp.clone(),
+                    },
+                )
+                .collect();
+            if actions.len() == 1 {
+                self.state.history.push(actions.into_iter().next().unwrap());
+            } else {
+                self.state
+                    .history
+                    .push(logisim_core::history::UndoAction::Batch(actions));
+            }
+        }
         if let Some(circuit) = self.state.project.circuits.get_mut(&name) {
             for id in self.state.selected.drain(..) {
                 circuit.remove_component(id);
             }
-            self.state.modified = true;
-            self.state.sync_simulator();
         }
+        self.state.modified = true;
+        self.state.sync_simulator();
     }
 
     fn new_project(&mut self) {
@@ -165,6 +219,7 @@ impl LogisimApp {
                         self.state.active_circuit = main;
                         self.state.file_path = Some(path);
                         self.state.modified = false;
+                        self.state.history.clear();
                         self.state.sync_simulator();
                         self.state.status = "File opened successfully.".to_string();
                     }
@@ -272,6 +327,23 @@ impl eframe::App for LogisimApp {
                 });
 
                 ui.menu_button("Edit", |ui| {
+                    let can_undo = self.state.history.can_undo();
+                    let can_redo = self.state.history.can_redo();
+                    if ui
+                        .add_enabled(can_undo, egui::Button::new("Undo      Ctrl+Z"))
+                        .clicked()
+                    {
+                        self.undo();
+                        ui.close_menu();
+                    }
+                    if ui
+                        .add_enabled(can_redo, egui::Button::new("Redo      Ctrl+Y"))
+                        .clicked()
+                    {
+                        self.redo();
+                        ui.close_menu();
+                    }
+                    ui.separator();
                     if ui.button("Delete    Del").clicked() {
                         self.delete_selected();
                         ui.close_menu();

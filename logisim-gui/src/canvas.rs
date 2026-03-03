@@ -4,18 +4,24 @@ use crate::state::{AppState, Tool};
 use egui::{Color32, Painter, Pos2, Rect, Sense, Stroke, Vec2};
 use logisim_core::{
     circuit::Wire,
-    component::{Component, ComponentKind},
+    component::{Component, ComponentId, ComponentKind},
+    history::UndoAction,
     value::{Bus, Value},
 };
 
 const GRID: f32 = 10.0;
+/// Hit-test tolerance in grid units for component selection and dragging.
+const HIT_TOLERANCE: i32 = 2;
 
 /// The circuit editing canvas widget.
-pub struct CircuitCanvas {}
+pub struct CircuitCanvas {
+    /// Component currently being dragged (id, grid-pos at drag start).
+    dragging: Option<(ComponentId, i32, i32)>,
+}
 
 impl CircuitCanvas {
     pub fn new() -> Self {
-        CircuitCanvas {}
+        CircuitCanvas { dragging: None }
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, state: &mut AppState) {
@@ -70,7 +76,76 @@ impl CircuitCanvas {
             }
         }
 
-        // ── Handle pointer events ─────────────────────────────────────────
+        // ── Component drag-to-move (Select tool, primary button) ──────────
+        if state.tool == crate::state::Tool::Select {
+            if response.drag_started_by(egui::PointerButton::Primary) {
+                if let Some(pos) = response.interact_pointer_pos() {
+                    let (gx, gy) = state.screen_to_grid(pos, origin);
+                    let active = state.active_circuit.clone();
+                    let hit = state
+                        .project
+                        .circuits
+                        .get(&active)
+                        .and_then(|c| {
+                            c.components.iter().find(|(_, comp)| {
+                                (comp.x - gx).abs() <= HIT_TOLERANCE
+                                    && (comp.y - gy).abs() <= HIT_TOLERANCE
+                            })
+                        })
+                        .map(|(id, comp)| (*id, comp.x, comp.y));
+                    if let Some((id, ox, oy)) = hit {
+                        self.dragging = Some((id, ox, oy));
+                        state.selected = vec![id];
+                    }
+                }
+            }
+
+            if response.dragged_by(egui::PointerButton::Primary) {
+                if let Some((id, ox, oy)) = self.dragging {
+                    if let Some(cursor) = response.hover_pos() {
+                        let (gx, gy) = state.screen_to_grid(cursor, origin);
+                        let active = state.active_circuit.clone();
+                        if let Some(circuit) = state.project.circuits.get_mut(&active) {
+                            if let Some(comp) = circuit.components.get_mut(&id) {
+                                comp.x = gx;
+                                comp.y = gy;
+                            }
+                        }
+                        // Keep old_x/old_y from drag start for history.
+                        self.dragging = Some((id, ox, oy));
+                    }
+                }
+            }
+
+            if response.drag_stopped_by(egui::PointerButton::Primary) {
+                if let Some((id, old_x, old_y)) = self.dragging.take() {
+                    let active = state.active_circuit.clone();
+                    if let Some(circuit) = state.project.circuits.get(&active) {
+                        if let Some(comp) = circuit.components.get(&id) {
+                            let new_x = comp.x;
+                            let new_y = comp.y;
+                            if new_x != old_x || new_y != old_y {
+                                state.history.push(UndoAction::MoveComponent {
+                                    circuit_name: active,
+                                    id,
+                                    old_x,
+                                    old_y,
+                                    new_x,
+                                    new_y,
+                                });
+                                state.modified = true;
+                                state.sync_simulator();
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Cancel any drag if we switched tools.
+            self.dragging = None;
+        }
+
+        // ── Handle pointer click events ───────────────────────────────────
         if response.clicked() {
             if let Some(pos) = response.interact_pointer_pos() {
                 self.handle_click(pos, origin, state);
@@ -99,7 +174,13 @@ impl CircuitCanvas {
         match &state.tool.clone() {
             Tool::Place(kind) => {
                 if let Some(circuit) = state.project.circuits.get_mut(&active) {
-                    circuit.add_component(kind.clone(), gx, gy);
+                    let id = circuit.add_component(kind.clone(), gx, gy);
+                    let comp = circuit.components[&id].clone();
+                    state.history.push(UndoAction::AddComponent {
+                        circuit_name: active,
+                        id,
+                        component: comp,
+                    });
                     state.modified = true;
                     state.sync_simulator();
                 }
@@ -112,13 +193,30 @@ impl CircuitCanvas {
                     }
                     Some((sx, sy)) => {
                         // Draw L-shaped wire: horizontal then vertical.
+                        let mut wire_actions = Vec::new();
                         if let Some(circuit) = state.project.circuits.get_mut(&active) {
                             if sx != gx {
                                 circuit.add_wire(sx, sy, gx, sy);
+                                wire_actions.push(UndoAction::AddWire {
+                                    circuit_name: active.clone(),
+                                    wire: Wire::new(sx, sy, gx, sy),
+                                });
                             }
                             if sy != gy {
                                 circuit.add_wire(gx, sy, gx, gy);
+                                wire_actions.push(UndoAction::AddWire {
+                                    circuit_name: active.clone(),
+                                    wire: Wire::new(gx, sy, gx, gy),
+                                });
                             }
+                        }
+                        if !wire_actions.is_empty() {
+                            let action = if wire_actions.len() == 1 {
+                                wire_actions.remove(0)
+                            } else {
+                                UndoAction::Batch(wire_actions)
+                            };
+                            state.history.push(action);
                             state.modified = true;
                             state.sync_simulator();
                         }

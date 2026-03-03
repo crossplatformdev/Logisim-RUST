@@ -2,6 +2,7 @@
 
 use logisim_core::{
     component::{ComponentId, ComponentKind},
+    history::UndoHistory,
     project::Project,
     simulation::Simulator,
 };
@@ -55,6 +56,8 @@ pub struct AppState {
     pub status: String,
     /// Pending single-step request.
     pub step_requested: bool,
+    /// Undo/redo history.
+    pub history: UndoHistory,
 }
 
 impl AppState {
@@ -77,6 +80,7 @@ impl AppState {
             wire_start: None,
             status: "Ready".to_string(),
             step_requested: false,
+            history: UndoHistory::default(),
         }
     }
 
