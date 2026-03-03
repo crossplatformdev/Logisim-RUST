@@ -4,7 +4,7 @@
 //! digital circuit simulator, including:
 //!
 //! - Circuit data model (components, wires, ports)
-//! - Complete standard component library (gates, flip-flops, memory, arithmetic, I/O, plexers)
+//! - Extensive standard component library (gates, flip-flops, memory, arithmetic, I/O, plexers)
 //! - Simulation engine (signal propagation, clock management, short-circuit detection)
 //! - Project and subcircuit management
 

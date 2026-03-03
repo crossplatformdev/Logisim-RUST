@@ -1517,6 +1517,7 @@ dependencies = [
  "log",
  "logisim-core",
  "logisim-file",
+ "serde_json",
 ]
 
 [[package]]

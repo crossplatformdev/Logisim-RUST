@@ -243,7 +243,7 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Category | Implemented | Partial | Missing |
 |----------|-------------|---------|---------|
 | Simulation semantics | 10 | 0 | 0 |
-| Wiring components | 10 | 0 | 2 |
+| Wiring components | 12 | 0 | 0 |
 | Gate components | 11 | 0 | 0 |
 | Plexer components | 5 | 0 | 0 |
 | Arithmetic components | 9 | 0 | 0 |

@@ -227,7 +227,7 @@ Tests are co-located with the code (`#[cfg(test)]` modules).
 | File writer | `writer.rs` | Round-trip (write → parse), wire, component attributes |
 | CLI commands | `commands.rs` | All three commands with a real `.circ` file |
 
-Total: **66 unit tests** across all crates, all passing.
+Run `cargo test --workspace` to execute the full test suite across all crates.
 
 ---
 

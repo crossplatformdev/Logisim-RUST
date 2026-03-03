@@ -93,9 +93,19 @@ Commands:
   info          Display project structure information
 
 Options:
-  --circuit <name>    Select circuit (default: main/first)
-  --steps <n>         Simulation steps (default: 10)
-  --terse             Minimal output
+  --circuit <name>        Select circuit (default: main/first)
+  --steps <n>             Simulation steps (default: 10)
+  --terse                 Minimal output
+  --format <text|json>    Output format: plain text (default) or JSON array
+```
+
+**JSON output example** (`--format json`):
+
+```json
+[
+  { "step": 0, "A": "0", "B": "0", "Out": "0" },
+  { "step": 1, "A": "1", "B": "1", "Out": "1" }
+]
 ```
 
 ---

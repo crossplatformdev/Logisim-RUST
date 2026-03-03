@@ -11,6 +11,7 @@ logisim-core = { workspace = true }
 logisim-file = { workspace = true }
 log = { workspace = true }
 env_logger = { workspace = true }
+serde_json = { workspace = true }
 
 [[bin]]
 name = "logisim-cli"

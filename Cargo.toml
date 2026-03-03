@@ -18,6 +18,7 @@ repository = "https://github.com/crossplatformdev/Logisim-RUST"
 logisim-core = { path = "logisim-core" }
 logisim-file = { path = "logisim-file" }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 quick-xml = { version = "0.36", features = ["serialize"] }
 thiserror = "2.0"
 log = "0.4"

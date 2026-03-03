@@ -137,7 +137,7 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
     }
 
     // Run simulation steps.
-    let mut json_steps: Vec<String> = Vec::new();
+    let mut json_steps: Vec<serde_json::Value> = Vec::new();
     for step in 0..opts.steps {
         sim.tick(&circuit_name)
             .map_err(|e| format!("Simulation error at step {}: {}", step, e))?;
@@ -160,20 +160,15 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
             .collect();
 
         if opts.format_json {
-            let mut kv: Vec<String> = vec![format!(r#""step": {}"#, step)];
-            kv.extend(
-                in_labels
-                    .iter()
-                    .zip(in_vals.iter())
-                    .map(|(k, v)| format!(r#""{}": "{}""#, k, v)),
-            );
-            kv.extend(
-                out_labels
-                    .iter()
-                    .zip(out_vals.iter())
-                    .map(|(k, v)| format!(r#""{}": "{}""#, k, v)),
-            );
-            json_steps.push(format!("  {{{}}}", kv.join(", ")));
+            let mut obj = serde_json::Map::new();
+            obj.insert("step".to_string(), serde_json::Value::Number(step.into()));
+            for (k, v) in in_labels.iter().zip(in_vals.iter()) {
+                obj.insert(k.clone(), serde_json::Value::String(v.clone()));
+            }
+            for (k, v) in out_labels.iter().zip(out_vals.iter()) {
+                obj.insert(k.clone(), serde_json::Value::String(v.clone()));
+            }
+            json_steps.push(serde_json::Value::Object(obj));
         } else if !opts.terse {
             println!(
                 "{:4} | {} | {}",
@@ -187,9 +182,11 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
     }
 
     if opts.format_json {
-        println!("[");
-        println!("{}", json_steps.join(",\n"));
-        println!("]");
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::Value::Array(json_steps))
+                .unwrap_or_else(|_| "[]".to_string())
+        );
     }
 
     Ok(())
@@ -289,7 +286,7 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
     }
 
     // Enumerate all input combinations.
-    let mut json_rows: Vec<String> = Vec::new();
+    let mut json_rows: Vec<serde_json::Value> = Vec::new();
     for row in 0..num_rows {
         let mut sim = Simulator::new(project.clone());
 
@@ -335,18 +332,25 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
             .collect();
 
         if opts.format_json {
-            let mut kv: Vec<String> = in_labels
-                .iter()
-                .zip(in_vals.iter())
-                .map(|(k, v)| format!(r#""{}": {}"#, k, v))
-                .collect();
-            kv.extend(
-                out_labels
-                    .iter()
-                    .zip(out_vals.iter())
-                    .map(|(k, v)| format!(r#""{}": {}"#, k, v)),
-            );
-            json_rows.push(format!("  {{{}}}", kv.join(", ")));
+            let mut obj = serde_json::Map::new();
+            for (k, v) in in_labels.iter().zip(in_vals.iter()) {
+                let num: serde_json::Value = v
+                    .parse::<u64>()
+                    .map(|n| serde_json::Value::Number(n.into()))
+                    .unwrap_or(serde_json::Value::Null);
+                obj.insert(k.clone(), num);
+            }
+            for (k, v) in out_labels.iter().zip(out_vals.iter()) {
+                let num: serde_json::Value = if v == "null" {
+                    serde_json::Value::Null
+                } else {
+                    v.parse::<u64>()
+                        .map(|n| serde_json::Value::Number(n.into()))
+                        .unwrap_or(serde_json::Value::Null)
+                };
+                obj.insert(k.clone(), num);
+            }
+            json_rows.push(serde_json::Value::Object(obj));
         } else {
             let row_vals: Vec<&str> = in_vals
                 .iter()
@@ -358,9 +362,11 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
     }
 
     if opts.format_json {
-        println!("[");
-        println!("{}", json_rows.join(",\n"));
-        println!("]");
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::Value::Array(json_rows))
+                .unwrap_or_else(|_| "[]".to_string())
+        );
     }
 
     Ok(())
