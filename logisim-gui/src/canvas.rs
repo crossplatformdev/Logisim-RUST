@@ -159,7 +159,53 @@ impl CircuitCanvas {
         // ── Handle pointer click events ───────────────────────────────────
         if response.clicked() {
             if let Some(pos) = response.interact_pointer_pos() {
-                self.on_click(pos, origin, state);
+                let ctrl = ui.input(|i| i.modifiers.ctrl);
+                self.on_click(pos, origin, state, ctrl);
+            }
+        }
+
+        // ── Keyboard shortcuts ────────────────────────────────────────────
+        if response.hovered() || response.has_focus() {
+            // Ctrl+A: select all components.
+            if ui.input(|i| i.key_pressed(egui::Key::A) && i.modifiers.ctrl) {
+                let active = &state.active_circuit.clone();
+                if let Some(circuit) = state.project.circuits.get(active) {
+                    state.selected = circuit.components.keys().copied().collect();
+                }
+            }
+            // Delete / Backspace: remove selected components.
+            if ui.input(|i| i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace))
+            {
+                let active = state.active_circuit.clone();
+                if !state.selected.is_empty() {
+                    let ids = std::mem::take(&mut state.selected);
+                    let mut actions = Vec::new();
+                    for id in ids {
+                        if let Some(circuit) = state.project.circuits.get_mut(&active) {
+                            if let Some(comp) = circuit.components.remove(&id) {
+                                actions.push(UndoAction::RemoveComponent {
+                                    circuit_name: active.clone(),
+                                    id,
+                                    component: comp,
+                                });
+                            }
+                        }
+                    }
+                    if !actions.is_empty() {
+                        let action = if actions.len() == 1 {
+                            actions.remove(0)
+                        } else {
+                            UndoAction::Batch(actions)
+                        };
+                        state.history.push(action);
+                        state.modified = true;
+                        state.sync_simulator();
+                    }
+                }
+            }
+            // Escape: cancel wire drawing.
+            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                state.wire_start = None;
             }
         }
 
@@ -273,11 +319,18 @@ impl CircuitCanvas {
     }
 
     /// Handle a click at screen position `pos` relative to canvas `origin`.
-    pub(crate) fn on_click(&mut self, pos: Pos2, origin: Pos2, state: &mut AppState) {
-        self.handle_click(pos, origin, state);
+    /// `ctrl_held` indicates whether Ctrl was held at click time (additive selection).
+    pub(crate) fn on_click(
+        &mut self,
+        pos: Pos2,
+        origin: Pos2,
+        state: &mut AppState,
+        ctrl_held: bool,
+    ) {
+        self.handle_click(pos, origin, state, ctrl_held);
     }
 
-    fn handle_click(&mut self, pos: Pos2, origin: Pos2, state: &mut AppState) {
+    fn handle_click(&mut self, pos: Pos2, origin: Pos2, state: &mut AppState, ctrl_held: bool) {
         let (gx, gy) = state.screen_to_grid(pos, origin);
         let active = state.active_circuit.clone();
 
@@ -352,8 +405,17 @@ impl CircuitCanvas {
                     .map(|(id, _)| *id);
 
                 if let Some(id) = hit {
-                    state.selected = vec![id];
-                } else {
+                    if ctrl_held {
+                        // Ctrl+click: toggle this component in the selection.
+                        if let Some(pos) = state.selected.iter().position(|&x| x == id) {
+                            state.selected.remove(pos);
+                        } else {
+                            state.selected.push(id);
+                        }
+                    } else {
+                        state.selected = vec![id];
+                    }
+                } else if !ctrl_held {
                     state.selected.clear();
                 }
             }

@@ -26,6 +26,8 @@ const ORIGIN: Pos2 = Pos2::new(0.0, 0.0);
 pub enum SyntheticEvent {
     /// Left-click at the given grid coordinates on the canvas.
     ClickAtGrid { gx: i32, gy: i32 },
+    /// Ctrl+left-click at the given grid coordinates (additive selection toggle).
+    CtrlClickAtGrid { gx: i32, gy: i32 },
     /// Begin a component drag from the given grid coordinates.
     DragStartAtGrid { gx: i32, gy: i32 },
     /// Continue a drag to a new grid coordinate.
@@ -98,7 +100,12 @@ impl GuiHarness {
         match event {
             SyntheticEvent::ClickAtGrid { gx, gy } => {
                 let pos = self.grid_to_screen(gx, gy);
-                self.canvas.on_click(pos, ORIGIN, &mut self.state);
+                self.canvas.on_click(pos, ORIGIN, &mut self.state, false);
+            }
+
+            SyntheticEvent::CtrlClickAtGrid { gx, gy } => {
+                let pos = self.grid_to_screen(gx, gy);
+                self.canvas.on_click(pos, ORIGIN, &mut self.state, true);
             }
 
             SyntheticEvent::DragStartAtGrid { gx, gy } => {
@@ -657,5 +664,39 @@ mod tests {
             1,
             "rubber-band must select only the covered component"
         );
+    }
+
+    // ── Test: Ctrl+click additive selection ──────────────────────────────────────
+
+    #[test]
+    fn test_ctrl_click_additive_selection() {
+        let mut h = GuiHarness::new();
+
+        // Place two input pins at different positions.
+        h.dispatch(SyntheticEvent::SetTool(Tool::Place(ComponentKind::Pin {
+            is_output: false,
+            width: BitWidth::ONE,
+        })));
+        h.dispatch(SyntheticEvent::ClickAtGrid { gx: 3, gy: 3 });
+        h.dispatch(SyntheticEvent::ClickAtGrid { gx: 10, gy: 10 });
+        assert_eq!(h.component_count(), 2);
+
+        h.dispatch(SyntheticEvent::SetTool(Tool::Select));
+
+        // Normal click selects only (3,3).
+        h.dispatch(SyntheticEvent::ClickAtGrid { gx: 3, gy: 3 });
+        assert_eq!(h.state.selected.len(), 1, "single click selects one");
+
+        // Ctrl+click on (10,10) adds it to the selection.
+        h.dispatch(SyntheticEvent::CtrlClickAtGrid { gx: 10, gy: 10 });
+        assert_eq!(h.state.selected.len(), 2, "ctrl+click adds to selection");
+
+        // Ctrl+click on (3,3) again removes it.
+        h.dispatch(SyntheticEvent::CtrlClickAtGrid { gx: 3, gy: 3 });
+        assert_eq!(h.state.selected.len(), 1, "ctrl+click toggles off");
+
+        // Normal click on empty canvas clears selection.
+        h.dispatch(SyntheticEvent::ClickAtGrid { gx: 50, gy: 50 });
+        assert_eq!(h.state.selected.len(), 0, "click on empty clears selection");
     }
 }

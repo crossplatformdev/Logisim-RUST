@@ -164,6 +164,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Wire drawing (click-to-start + click-to-finish, L-shaped preview) | partial | — | partial | No click-drag; no T-junction auto-connect; segments stored without auto-junctions |
 | Wire junction dots (T/X-junction) | ✅ | — | ✅ | Filled circles at points where 3+ wire endpoints meet |
 | Rubber-band selection | ✅ | ✅ | ✅ | Drag in empty canvas area selects all covered components |
+| Ctrl+click additive selection | ✅ | ✅ | ✅ | Ctrl+click toggles component in/out of selection; Ctrl+A selects all |
 | Component drag-to-move | ✅ | — | ✅ | Commits MoveComponent undo action |
 | Delete selected (Delete key) | ✅ | — | ✅ | |
 | Poke tool (toggle input pins) | ✅ | — | ✅ | |
@@ -265,7 +266,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | I/O components | 7 | 0 | 2 |
 | TTL libraries | 6 | 0 | 1 |
 | File format | 11 | 1 | 1 |
-| GUI / editor | 17 | 1 | 9 |
+| GUI / editor | 18 | 1 | 9 |
 | Undo / Redo | 8 | 0 | 1 |
 | Chronogram | 0 | 0 | 3 |
 | HDL export | 0 | 0 | 3 |
@@ -273,4 +274,4 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Localization | 1 | 0 | 1 |
 | CLI | 3 | 0 | 1 |
 
-_Last updated: 2026-03-03 (attribute panel added, GUI implemented count 17)_
+_Last updated: 2026-03-03 (Ctrl+click additive selection added, GUI implemented count 18)_

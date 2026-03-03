@@ -160,7 +160,7 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Component drag-to-move | ✅ | Drag with Select tool |
 | Component deletion | ✅ | Delete key |
 | Select All | ✅ | Ctrl+A via menu |
-| Multi-select | 🟡 | Rubber-band box selection implemented; Ctrl+click additive selection not yet implemented |
+| Multi-select | ✅ | Rubber-band box selection; Ctrl+click additive toggle; Ctrl+A select all |
 | Undo / Redo | ✅ | Ctrl+Z / Ctrl+Y; 200-step history |
 | Copy / Paste | ❌ | Not yet implemented |
 | Canvas pan | ✅ | Middle mouse / Alt+right-drag |
