@@ -103,8 +103,14 @@ Options:
 
 ```json
 [
-  { "step": 0, "A": "0", "B": "0", "Out": "0" },
-  { "step": 1, "A": "1", "B": "1", "Out": "1" }
+  {
+    "inputs": { "A": 0, "B": 0 },
+    "outputs": { "Out": 0 }
+  },
+  {
+    "inputs": { "A": 1, "B": 1 },
+    "outputs": { "Out": 1 }
+  }
 ]
 ```
 

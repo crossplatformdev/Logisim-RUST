@@ -143,6 +143,17 @@ impl Simulator {
             .insert(component_id, value);
     }
 
+    /// Reset the simulation state for a circuit (clears net values, component
+    /// state, and user inputs) so that a fresh propagation pass starts from a
+    /// known HighZ baseline.  Used by truth-table enumeration to reuse a single
+    /// `Simulator` across rows without accumulated state.
+    pub fn reset_circuit_state(&mut self, circuit_name: &str) {
+        if let Some(s) = self.states.get_mut(circuit_name) {
+            *s = SimulationState::new();
+        }
+        self.user_inputs.remove(circuit_name);
+    }
+
     /// Advance the simulation by one clock tick.
     ///
     /// This toggles the internal clock signal and propagates all values until

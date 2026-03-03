@@ -67,7 +67,7 @@ pub struct GuiHarness {
     pub state: AppState,
     canvas: CircuitCanvas,
     /// Screen position of the most recent drag point (for `DragEnd`).
-    drag_pos: Option<Pos2>,
+    pub drag_pos: Option<Pos2>,
 }
 
 impl GuiHarness {

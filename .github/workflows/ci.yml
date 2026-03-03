@@ -199,6 +199,7 @@ jobs:
           path: ${{ matrix.artifact }}
 
       - name: Create GitHub Release
+        if: runner.os == 'Linux'
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ matrix.artifact }}

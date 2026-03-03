@@ -295,8 +295,9 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
 
     // Enumerate all input combinations.
     let mut json_rows: Vec<serde_json::Value> = Vec::new();
+    let mut sim = Simulator::new(project.clone());
     for row in 0..num_rows {
-        let mut sim = Simulator::new(project.clone());
+        sim.reset_circuit_state(&circuit_name);
 
         // Set input values.
         let mut bit_offset = 0u32;
