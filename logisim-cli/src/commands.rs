@@ -226,8 +226,8 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
         .iter()
         .map(|c| {
             (c.id, {
-                if let ComponentKind::Pin { width, .. } = c.kind {
-                    width
+                if let ComponentKind::Pin { width, .. } = &c.kind {
+                    *width
                 } else {
                     BitWidth::ONE
                 }

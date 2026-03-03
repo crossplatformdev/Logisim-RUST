@@ -1,14 +1,11 @@
 //! Attribute panel: shows the properties of the currently selected component,
 //! matching the upstream Logisim-Evolution attribute table (AttrTable).
 
-use crate::state::AppState;
+use crate::state::{AppState, BASE_GRID_PX};
 use egui::Ui;
 use logisim_core::component::{ComponentKind, Facing};
 use logisim_core::history::UndoAction;
 use logisim_core::value::BitWidth;
-
-/// Grid-to-pixel conversion factor (10 px per grid unit at zoom 1×).
-const GRID_PX: i32 = 10;
 
 /// Renders the attribute table for the currently selected component(s).
 ///
@@ -67,8 +64,8 @@ pub fn show_attr_panel(ui: &mut Ui, state: &mut AppState) {
         .show(ui, |ui| {
             // ── Common attributes ────────────────────────────────────────────
             attr_row(ui, "Type", component_type_name(&comp_kind));
-            attr_row(ui, "X", &(comp_x * GRID_PX).to_string());
-            attr_row(ui, "Y", &(comp_y * GRID_PX).to_string());
+            attr_row(ui, "X", &(comp_x * BASE_GRID_PX as i32).to_string());
+            attr_row(ui, "Y", &(comp_y * BASE_GRID_PX as i32).to_string());
 
             // Editable label field — matches upstream Logisim-Evolution behaviour.
             // Use egui's temporary per-id memory so intermediate typed text is not
@@ -128,9 +125,15 @@ pub fn show_attr_panel(ui: &mut Ui, state: &mut AppState) {
 
             // ── Extra XML attributes ──────────────────────────────────────────
             // Re-borrow after potential mutation above.
+            // Skip keys that are already shown as first-class editable fields
+            // above (label, facing) to avoid stale duplicate rows.
             if let Some(c) = state.project.circuits.get(&circuit_name) {
                 if let Some(comp) = c.components.get(&comp_id) {
-                    let mut sorted_attrs: Vec<_> = comp.attributes.iter().collect();
+                    let mut sorted_attrs: Vec<_> = comp
+                        .attributes
+                        .iter()
+                        .filter(|(k, _)| k.as_str() != "label" && k.as_str() != "facing")
+                        .collect();
                     sorted_attrs.sort_by_key(|(k, _)| k.as_str());
                     for (k, v) in sorted_attrs {
                         attr_row(ui, k, v);
