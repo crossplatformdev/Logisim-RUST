@@ -2,10 +2,11 @@
 
 ## Overview
 
-Logisim-RUST is a complete Rust rewrite of [Logisim-Evolution](https://github.com/logisim-evolution/logisim-evolution),
+Logisim-RUST is a Rust rewrite of [Logisim-Evolution v4.1.0](https://github.com/logisim-evolution/logisim-evolution/releases/tag/v4.1.0),
 a digital logic circuit simulator originally written in Java.  This document
 describes the architecture, design decisions, and any intentional deviations
-from the original.
+from the original.  The target is full parity with Logisim-Evolution v4.1.0;
+see the deviations table below for known gaps.
 
 ---
 
@@ -113,7 +114,10 @@ A headless CLI for scripting and automated verification.
 
 ## Component library coverage
 
-All standard Logisim-Evolution libraries are fully implemented:
+Most standard Logisim-Evolution libraries are implemented.  The table below
+lists supported component categories; a small number of components (e.g. the
+*Controlled Buffer* in the gates library) were added to the parser in this
+release to close known round-trip gaps:
 
 | Library | Components |
 |---------|-----------|
@@ -129,13 +133,14 @@ All standard Logisim-Evolution libraries are fully implemented:
 
 ## File format compatibility
 
-The `.circ` file format is fully compatible with Logisim-Evolution:
+The `.circ` file format is broadly compatible with Logisim-Evolution v4.1.0:
 
-* Files written by Logisim-RUST can be opened by the original Java application.
-* Files written by the original Java application can be opened by Logisim-RUST.
+* Files written by Logisim-RUST can be opened by the original Java application in most practical cases.
+* Files written by the original Java application can be opened by Logisim-RUST in most cases.
+* A small number of elements may not yet round-trip correctly; see the deviations table for details.
 
 Library numbers (`name="0"` → `#Wiring`, `name="1"` → `#Gates`, etc.) are
-handled transparently.
+handled transparently where supported.
 
 ---
 
@@ -169,7 +174,7 @@ produce `E`; high-Z is transparent.
 | FPGA download | Supported (Vivado/Quartus) | Not included in this release | Hardware-specific toolchain integration; planned |
 | Scripted test bench | Partial | `logisim-cli truth-table` | Equivalent capability via CLI |
 
-The items listed above as "not included in this release" are genuine gaps relative to the original Java application. Every other simulation, editing, and file-handling feature covered by the original's standard libraries is implemented. The gaps are documented here explicitly and do not constitute stubs or placeholders in the delivered code.
+The items listed above as "not included in this release" are genuine gaps relative to Logisim-Evolution v4.1.0.  They represent major user-visible subsystems that are either missing or only partially implemented.  While some internal scaffolding may exist for future integration, no complete, user-facing implementation of these subsystems is present in the current version.  This table documents known deviations and does not claim parity for the listed items.
 
 ---
 

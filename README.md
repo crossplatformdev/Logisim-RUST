@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/crossplatformdev/Logisim-RUST/actions/workflows/ci.yml/badge.svg)](https://github.com/crossplatformdev/Logisim-RUST/actions/workflows/ci.yml)
 
-A complete, production-grade **Rust rewrite** of [Logisim-Evolution](https://github.com/logisim-evolution/logisim-evolution) — the digital logic circuit simulator for education and design.
+A **Rust rewrite in progress** targeting [Logisim-Evolution v4.1.0](https://github.com/logisim-evolution/logisim-evolution/releases/tag/v4.1.0) — the digital logic circuit simulator for education and design.
 
 ---
 
@@ -10,7 +10,7 @@ A complete, production-grade **Rust rewrite** of [Logisim-Evolution](https://git
 
 - **Complete circuit simulation** — combinational and sequential logic
 - **Full component library** — all Logisim-Evolution standard components (gates, flip-flops, RAM, arithmetic units, I/O, plexers, …)
-- **`.circ` file format** — read and write Logisim-Evolution `.circ` files (fully compatible with the original Java application)
+- **`.circ` file format** — read and write Logisim-Evolution `.circ` files (broadly compatible with Logisim-Evolution v4.1.0; a small number of components may not yet round-trip)
 - **Interactive GUI** — circuit editor with component palette, wire drawing, zoom/pan, simulation controls
 - **Command-line interface** — headless simulation, truth-table generation, project info
 - **Multi-valued logic** — 5-state logic (0/1/X/E/Z) matching the original
@@ -102,8 +102,9 @@ Options:
 
 ## Compatibility
 
-Files produced by Logisim-RUST are compatible with Logisim-Evolution 3.x.
-Files produced by Logisim-Evolution can be opened by Logisim-RUST.
+Files produced by Logisim-RUST are broadly compatible with Logisim-Evolution v4.1.0.
+Files produced by Logisim-Evolution v4.1.0 can be opened by Logisim-RUST in most cases.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for known compatibility gaps.
 
 ---
 

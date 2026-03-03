@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [ "main", "master", "copilot/**" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main", "master" ]
 
@@ -194,8 +195,12 @@ jobs:
           path: ${{ matrix.artifact }}
 
       - name: Create GitHub Release
+        if: matrix.os == 'ubuntu-latest'
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ matrix.artifact }}
+          files: |
+            logisim-linux-x86_64.tar.gz
+            logisim-windows-x86_64.zip
+            logisim-macos-x86_64.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

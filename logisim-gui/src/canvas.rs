@@ -11,19 +11,11 @@ use logisim_core::{
 const GRID: f32 = 10.0;
 
 /// The circuit editing canvas widget.
-pub struct CircuitCanvas {
-    /// Is the middle mouse button being dragged (pan)?
-    _panning: bool,
-    /// Last drag position for pan.
-    _last_drag: Option<Pos2>,
-}
+pub struct CircuitCanvas {}
 
 impl CircuitCanvas {
     pub fn new() -> Self {
-        CircuitCanvas {
-            _panning: false,
-            _last_drag: None,
-        }
+        CircuitCanvas {}
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, state: &mut AppState) {
@@ -51,24 +43,14 @@ impl CircuitCanvas {
             draw_grid(&painter, response.rect, state.pan, state.zoom);
         }
 
-        // ── Draw wires ────────────────────────────────────────────────────
+        // ── Draw wires and components ─────────────────────────────────────
         let active = state.active_circuit.clone();
         if let Some(circuit) = state.project.circuits.get(&active) {
             for wire in &circuit.wires {
                 draw_wire(&painter, wire, origin, state, Color32::from_rgb(0, 0, 192));
             }
-        }
-
-        // ── Draw components ───────────────────────────────────────────────
-        let comp_ids: Vec<_> = state
-            .project
-            .circuits
-            .get(&active)
-            .map(|c| c.components.keys().copied().collect())
-            .unwrap_or_default();
-
-        for id in &comp_ids {
-            if let Some(circuit) = state.project.circuits.get(&active) {
+            let comp_ids: Vec<_> = circuit.components.keys().copied().collect();
+            for id in &comp_ids {
                 if let Some(comp) = circuit.get_component(*id) {
                     let selected = state.selected.contains(id);
                     draw_component(&painter, comp, origin, state, selected);

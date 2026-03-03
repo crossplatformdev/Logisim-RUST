@@ -342,6 +342,9 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
             "Buffer" => Ok(ComponentKind::Buffer {
                 width: get_width("width"),
             }),
+            "Controlled Buffer" | "Tristate Buffer" => Ok(ComponentKind::TristateBuffer {
+                width: get_width("width"),
+            }),
             _ => Err(FileError::UnknownComponent {
                 lib: lib.to_string(),
                 name: name.to_string(),

@@ -104,8 +104,6 @@ impl LogisimApp {
             if i.consume_key(Modifiers::COMMAND, egui::Key::N) {
                 self.new_project();
             }
-            // Ctrl+Z → Undo (placeholder — history not yet implemented)
-            // Ctrl+Y → Redo
             // Delete → Delete selected
             if i.consume_key(Modifiers::NONE, egui::Key::Delete) {
                 self.delete_selected();
