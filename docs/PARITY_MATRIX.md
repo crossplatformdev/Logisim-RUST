@@ -156,11 +156,11 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Grid display | ✅ | — | ✅ | Toggleable |
 | Component placement with ghost preview | ✅ | — | ✅ | |
 | Wire drawing (click-drag, T-junction) | ✅ | — | ✅ | |
-| Rubber-band selection | ✅ | — | ✅ | |
+| Rubber-band selection | missing | — | — | Not yet implemented; only click-to-select supported |
 | Component drag-to-move | ✅ | — | ✅ | Commits MoveComponent undo action |
 | Delete selected (Delete key) | ✅ | — | ✅ | |
 | Poke tool (toggle input pins) | ✅ | — | ✅ | |
-| Wire value overlay (colour by logic value) | ✅ | — | ✅ | |
+| Wire value overlay (colour by logic value) | missing | — | — | Not yet implemented; wires always drawn in fixed blue |
 | Component labels rendered | ✅ | — | ✅ | |
 | Multi-circuit navigation (circuit list) | ✅ | — | ✅ | |
 | Add new circuit | ✅ | — | ✅ | |
@@ -239,7 +239,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 |---------|-------------|--------|------------|-------|
 | Load `.circ` file | ✅ | ✅ | ✅ | |
 | Simulate truth table (`simulate` subcommand) | ✅ | ✅ | ✅ | |
-| JSON output (`--format json`) | ✅ | ✅ | ✅ | |
+| JSON output (`--format json`) | missing | — | — | No `--format` flag in CLI option parser |
 | REPL / interactive mode | missing | — | — | |
 
 ---
@@ -254,15 +254,15 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Plexer components | 5 | 0 | 0 |
 | Arithmetic components | 9 | 0 | 0 |
 | Memory components | 9 | 0 | 0 |
-| I/O components | 9 | 0 | 0 |
+| I/O components | 7 | 0 | 2 |
 | TTL libraries | 0 | 0 | 1 |
 | File format | 8 | 4 | 2 |
-| GUI / editor | 14 | 1 | 7 |
+| GUI / editor | 12 | 1 | 9 |
 | Undo / Redo | 8 | 0 | 1 |
 | Chronogram | 0 | 0 | 3 |
 | HDL export | 0 | 0 | 3 |
 | FPGA / board | 0 | 0 | 4 |
 | Localization | 1 | 0 | 1 |
-| CLI | 3 | 0 | 1 |
+| CLI | 2 | 0 | 2 |
 
 _Last updated: 2026-03-03_

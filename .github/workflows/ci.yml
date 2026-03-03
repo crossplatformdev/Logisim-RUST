@@ -173,7 +173,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mkdir dist
-          cp target/${{ matrix.target }}/release/logisim dist/ 2>/dev/null || true
+          cp target/${{ matrix.target }}/release/logisim dist/
           cp target/${{ matrix.target }}/release/logisim-cli dist/
           cp README.md dist/
           tar -czf ${{ matrix.artifact }} -C dist .
@@ -183,7 +183,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path dist
-          Copy-Item target/${{ matrix.target }}/release/logisim.exe dist/ -ErrorAction SilentlyContinue
+          Copy-Item target/${{ matrix.target }}/release/logisim.exe dist/
           Copy-Item target/${{ matrix.target }}/release/logisim-cli.exe dist/
           Copy-Item README.md dist/
           Compress-Archive -Path dist/* -DestinationPath ${{ matrix.artifact }}

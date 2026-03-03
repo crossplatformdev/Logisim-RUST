@@ -9,8 +9,8 @@ A **Rust rewrite in progress** targeting [Logisim-Evolution v4.1.0](https://gith
 ## Features
 
 - **Complete circuit simulation** — combinational and sequential logic
-- **Full component library** — all Logisim-Evolution standard components (gates, flip-flops, RAM, arithmetic units, I/O, plexers, …)
-- **`.circ` file format** — read and write Logisim-Evolution `.circ` files (broadly compatible with Logisim-Evolution v4.1.0; a small number of components may not yet round-trip)
+- **Extensive component library** — most Logisim-Evolution standard components (gates, flip-flops, RAM, arithmetic units, I/O, plexers, …); see [`docs/PARITY_MATRIX.md`](docs/PARITY_MATRIX.md) for remaining gaps
+- **`.circ` file format** — read and write Logisim-Evolution `.circ` files (broad compatibility with Logisim-Evolution v4.1.0; a small number of components may not yet round-trip — see parity docs)
 - **Interactive GUI** — circuit editor with component palette, wire drawing, zoom/pan, simulation controls
 - **Command-line interface** — headless simulation, truth-table generation, project info
 - **Multi-valued logic** — 5-state logic (0/1/X/E/Z) matching the original

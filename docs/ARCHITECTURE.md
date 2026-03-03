@@ -167,7 +167,7 @@ produce `E`; high-Z is transparent.
 |------|----------------|--------------|-------|
 | GUI framework | Swing (Java) | egui (Rust) | Idiomatic Rust; no JVM dependency |
 | Threading | Swing EDT | Single-threaded egui loop | Simpler; egui is immediate-mode |
-| Undo/redo | Full undo history | Not included in this release | Architectural addition; planned |
+| Undo/redo | Full undo history | Implemented (`logisim-core/src/history.rs`) | `UndoHistory` with 200-step bounded VecDeque; Ctrl+Z / Ctrl+Y wired up |
 | VHDL/Verilog export | Supported | Not included in this release | Export engines are separate subsystems; planned |
 | Circuit appearance editor | Full custom shapes | Standard component shapes | Appearance editor is a separate subsystem; planned |
 | Chronogram | Full timing diagram | Not included in this release | Separate display subsystem; planned |
@@ -226,7 +226,7 @@ Tests are co-located with the code (`#[cfg(test)]` modules).
 | File writer | `writer.rs` | Round-trip (write → parse), wire, component attributes |
 | CLI commands | `commands.rs` | All three commands with a real `.circ` file |
 
-Total: **57 unit tests** across all crates, all passing.
+Total: **66 unit tests** across all crates, all passing.
 
 ---
 

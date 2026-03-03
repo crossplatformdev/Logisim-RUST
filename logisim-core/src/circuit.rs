@@ -53,10 +53,16 @@ pub struct Wire {
 }
 
 impl Wire {
+    /// Create a wire segment, normalising endpoint order so that
+    /// `(x1,y1)→(x2,y2)` and `(x2,y2)→(x1,y1)` produce the same `Wire`.
+    /// The smaller endpoint (lexicographic on `(x, y)`) is always `from`.
     pub fn new(x1: i32, y1: i32, x2: i32, y2: i32) -> Self {
-        Wire {
-            from: WireEnd::new(x1, y1),
-            to: WireEnd::new(x2, y2),
+        let a = WireEnd::new(x1, y1);
+        let b = WireEnd::new(x2, y2);
+        if (a.x, a.y) <= (b.x, b.y) {
+            Wire { from: a, to: b }
+        } else {
+            Wire { from: b, to: a }
         }
     }
 
@@ -123,6 +129,14 @@ impl Circuit {
         }
     }
 
+    /// Allocate the next available component ID, bumping the internal counter.
+    /// Used by the file parser to assign IDs while keeping `next_id` monotonic.
+    pub fn alloc_id(&mut self) -> ComponentId {
+        let id = ComponentId(self.next_id);
+        self.next_id += 1;
+        id
+    }
+
     /// Add a component and return its newly assigned ID.
     pub fn add_component(&mut self, kind: ComponentKind, x: i32, y: i32) -> ComponentId {
         let id = ComponentId(self.next_id);
@@ -142,6 +156,16 @@ impl Circuit {
         let id = self.add_component(kind, x, y);
         self.components.get_mut(&id).unwrap().label = label.into();
         id
+    }
+
+    /// Insert a component with a pre-assigned ID (e.g. during undo/redo or file
+    /// parsing), ensuring the circuit's `next_id` counter is bumped past the
+    /// inserted ID so future `add_component` calls never reuse it.
+    pub fn insert_component_with_id(&mut self, id: ComponentId, component: Component) {
+        if id.0 >= self.next_id {
+            self.next_id = id.0 + 1;
+        }
+        self.components.insert(id, component);
     }
 
     /// Remove a component by ID.  Returns `true` if it existed.

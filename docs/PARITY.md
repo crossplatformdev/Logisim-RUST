@@ -232,7 +232,7 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 |---------|--------|-------|
 | Load `.circ` file | ✅ | |
 | Simulate truth table | ✅ | `simulate` subcommand |
-| JSON output | ✅ | `--format json` |
+| JSON output | ❌ | `--format json` not implemented; no such CLI flag |
 | REPL / interactive mode | ❌ | Not yet implemented |
 
 ---

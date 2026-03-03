@@ -119,15 +119,13 @@ fn parse_circuit<R: BufRead>(
     let mut circuit = Circuit::new(&name);
 
     let mut buf = Vec::new();
-    let mut next_id = 1u64;
 
     loop {
         match xml.read_event_into(&mut buf) {
             Ok(Event::Start(ref e)) => match e.name().as_ref() {
                 b"comp" => {
-                    let comp = parse_component(e, xml, lib_map, next_id)?;
-                    next_id += 1;
-                    let id = comp.id;
+                    let id = circuit.alloc_id();
+                    let comp = parse_component(e, xml, lib_map, id.0)?;
                     circuit.components.insert(id, comp);
                 }
                 b"a" => {
@@ -137,9 +135,8 @@ fn parse_circuit<R: BufRead>(
             },
             Ok(Event::Empty(ref e)) => match e.name().as_ref() {
                 b"comp" => {
-                    let comp = parse_component_empty(e, lib_map, next_id)?;
-                    next_id += 1;
-                    let id = comp.id;
+                    let id = circuit.alloc_id();
+                    let comp = parse_component_empty(e, lib_map, id.0)?;
                     circuit.components.insert(id, comp);
                 }
                 b"wire" => {
@@ -563,9 +560,11 @@ fn parse_integer(s: &str) -> Option<u64> {
     }
 }
 
-/// Get a UTF-8 string value from an XML attribute.
+/// Get a UTF-8 string value from an XML attribute, unescaping XML entities
+/// (e.g. `&amp;` → `&`, `&quot;` → `"`) so round-trips are lossless.
 fn attr_value(attr: &quick_xml::events::attributes::Attribute) -> Result<String> {
-    Ok(std::str::from_utf8(attr.value.as_ref())?.to_string())
+    let unescaped = attr.unescape_value()?;
+    Ok(unescaped.into_owned())
 }
 
 /// Get a named attribute from an XML element.

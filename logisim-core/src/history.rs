@@ -102,7 +102,7 @@ impl UndoAction {
                 component,
             } => {
                 if let Some(circuit) = project.circuits.get_mut(circuit_name) {
-                    circuit.components.insert(*id, component.clone());
+                    circuit.insert_component_with_id(*id, component.clone());
                 }
             }
             UndoAction::RemoveComponent {

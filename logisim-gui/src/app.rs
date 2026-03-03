@@ -220,6 +220,12 @@ impl LogisimApp {
                         self.state.file_path = Some(path);
                         self.state.modified = false;
                         self.state.history.clear();
+                        // Reset editor state so stale selections/tool from the
+                        // previous project don't bleed into the new one.
+                        self.state.selected.clear();
+                        self.state.wire_start = None;
+                        self.state.tool = crate::state::Tool::Select;
+                        self.state.running = false;
                         self.state.sync_simulator();
                         self.state.status = "File opened successfully.".to_string();
                     }
