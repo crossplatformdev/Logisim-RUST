@@ -521,7 +521,61 @@ fn evaluate_component(
             }
         }
 
-        // ── Plexers ───────────────────────────────────────────────────────────
+        ComponentKind::OddParityGate { inputs, width } => {
+            let mut parity_count: u64 = 0;
+            for i in 0..*inputs {
+                let v = get(&format!("in{}", i), width.get());
+                // If any bit is unknown/error, output unknown
+                if v.to_u64().is_none() {
+                    out.insert("out".to_string(), Bus::unknown(1));
+                    return out;
+                }
+                let val = v.to_u64().unwrap_or(0);
+                parity_count ^= val.count_ones() as u64 & 1;
+            }
+            out.insert("out".to_string(), Bus::from_u64(parity_count & 1, 1));
+        }
+
+        ComponentKind::EvenParityGate { inputs, width } => {
+            let mut parity_count: u64 = 0;
+            for i in 0..*inputs {
+                let v = get(&format!("in{}", i), width.get());
+                if v.to_u64().is_none() {
+                    out.insert("out".to_string(), Bus::unknown(1));
+                    return out;
+                }
+                let val = v.to_u64().unwrap_or(0);
+                parity_count ^= val.count_ones() as u64 & 1;
+            }
+            // even parity: output 1 when even number of 1-bits
+            out.insert("out".to_string(), Bus::from_u64(1 - (parity_count & 1), 1));
+        }
+
+        ComponentKind::BitExtender {
+            input_width,
+            output_width,
+        } => {
+            let v = get("in", input_width.get());
+            let out_bits = output_width.get() as usize;
+            let in_bits = input_width.get() as usize;
+            // Zero-extend: upper bits are 0
+            if let Some(val) = v.to_u64() {
+                // Mask to input width then zero-extend
+                let mask = if in_bits >= 64 {
+                    u64::MAX
+                } else {
+                    (1u64 << in_bits) - 1
+                };
+                out.insert("out".to_string(), Bus::from_u64(val & mask, out_bits));
+            } else {
+                // Propagate unknown for the input bits, zero for the extension
+                let mut result = Bus::unknown(out_bits);
+                for i in in_bits..out_bits {
+                    result.set(i, Value::False);
+                }
+                out.insert("out".to_string(), result);
+            }
+        }
         ComponentKind::Multiplexer {
             select_bits,
             data_width,
@@ -1248,5 +1302,68 @@ mod tests {
         assert_eq!(result["out1"].to_u64(), Some(0));
         assert_eq!(result["out2"].to_u64(), Some(1));
         assert_eq!(result["out3"].to_u64(), Some(0));
+    }
+
+    #[test]
+    fn test_odd_parity_gate_two_inputs() {
+        // 0b11 (2 ones) → even count → odd parity = 0
+        let inputs: HashMap<String, Bus> = [
+            ("in0".to_string(), Bus::from_u64(0b1, 1)),
+            ("in1".to_string(), Bus::from_u64(0b1, 1)),
+        ]
+        .into();
+        let kind = ComponentKind::OddParityGate {
+            inputs: 2,
+            width: BitWidth::ONE,
+        };
+        let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
+        assert_eq!(result["out"].to_u64(), Some(0)); // even number of 1s
+
+        // 0b1 and 0b0 → odd count → odd parity = 1
+        let inputs2: HashMap<String, Bus> = [
+            ("in0".to_string(), Bus::from_u64(0b1, 1)),
+            ("in1".to_string(), Bus::from_u64(0b0, 1)),
+        ]
+        .into();
+        let result2 = evaluate_component(&kind, ComponentId(1), &inputs2, None, 0);
+        assert_eq!(result2["out"].to_u64(), Some(1));
+    }
+
+    #[test]
+    fn test_even_parity_gate() {
+        // 0b1 and 0b1 → 2 ones (even) → even parity = 1
+        let inputs: HashMap<String, Bus> = [
+            ("in0".to_string(), Bus::from_u64(0b1, 1)),
+            ("in1".to_string(), Bus::from_u64(0b1, 1)),
+        ]
+        .into();
+        let kind = ComponentKind::EvenParityGate {
+            inputs: 2,
+            width: BitWidth::ONE,
+        };
+        let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
+        assert_eq!(result["out"].to_u64(), Some(1));
+
+        // 0b1 and 0b0 → 1 one (odd) → even parity = 0
+        let inputs2: HashMap<String, Bus> = [
+            ("in0".to_string(), Bus::from_u64(1, 1)),
+            ("in1".to_string(), Bus::from_u64(0, 1)),
+        ]
+        .into();
+        let result2 = evaluate_component(&kind, ComponentId(1), &inputs2, None, 0);
+        assert_eq!(result2["out"].to_u64(), Some(0));
+    }
+
+    #[test]
+    fn test_bit_extender_zero_extend() {
+        // 4-bit 0b1011 zero-extended to 8 bits = 0b00001011
+        let inputs: HashMap<String, Bus> = [("in".to_string(), Bus::from_u64(0b1011, 4))].into();
+        let kind = ComponentKind::BitExtender {
+            input_width: BitWidth::FOUR,
+            output_width: BitWidth::EIGHT,
+        };
+        let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
+        assert_eq!(result["out"].to_u64(), Some(0b0000_1011));
+        assert_eq!(result["out"].width(), 8);
     }
 }

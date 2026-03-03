@@ -112,6 +112,11 @@ pub enum ComponentKind {
     TristateBuffer {
         width: BitWidth,
     },
+    /// Bit extender: zero-extends an input bus to a wider output width.
+    BitExtender {
+        input_width: BitWidth,
+        output_width: BitWidth,
+    },
 
     // ── Basic Gates ───────────────────────────────────────────────────────────
     AndGate {
@@ -149,6 +154,16 @@ pub enum ComponentKind {
         width: BitWidth,
     },
     ControlledBuffer {
+        width: BitWidth,
+    },
+    /// Odd-parity gate: output is 1 when an odd number of input bits are 1.
+    OddParityGate {
+        inputs: u8,
+        width: BitWidth,
+    },
+    /// Even-parity gate: output is 1 when an even number of input bits are 1.
+    EvenParityGate {
+        inputs: u8,
         width: BitWidth,
     },
 
@@ -290,7 +305,8 @@ impl ComponentKind {
             | ComponentKind::Tunnel { .. }
             | ComponentKind::Probe { .. }
             | ComponentKind::PullResistor { .. }
-            | ComponentKind::TristateBuffer { .. } => "wiring",
+            | ComponentKind::TristateBuffer { .. }
+            | ComponentKind::BitExtender { .. } => "wiring",
 
             ComponentKind::AndGate { .. }
             | ComponentKind::OrGate { .. }
@@ -300,7 +316,9 @@ impl ComponentKind {
             | ComponentKind::XnorGate { .. }
             | ComponentKind::NotGate { .. }
             | ComponentKind::Buffer { .. }
-            | ComponentKind::ControlledBuffer { .. } => "gates",
+            | ComponentKind::ControlledBuffer { .. }
+            | ComponentKind::OddParityGate { .. }
+            | ComponentKind::EvenParityGate { .. } => "gates",
 
             ComponentKind::Multiplexer { .. }
             | ComponentKind::Demultiplexer { .. }
@@ -355,6 +373,7 @@ impl ComponentKind {
             ComponentKind::Probe { .. } => "Probe".to_string(),
             ComponentKind::PullResistor { .. } => "Pull Resistor".to_string(),
             ComponentKind::TristateBuffer { .. } => "Controlled Buffer".to_string(),
+            ComponentKind::BitExtender { .. } => "Bit Extender".to_string(),
             ComponentKind::AndGate { .. } => "AND Gate".to_string(),
             ComponentKind::OrGate { .. } => "OR Gate".to_string(),
             ComponentKind::NandGate { .. } => "NAND Gate".to_string(),
@@ -364,6 +383,8 @@ impl ComponentKind {
             ComponentKind::NotGate { .. } => "NOT Gate".to_string(),
             ComponentKind::Buffer { .. } => "Buffer".to_string(),
             ComponentKind::ControlledBuffer { .. } => "Controlled Buffer".to_string(),
+            ComponentKind::OddParityGate { .. } => "Odd Parity".to_string(),
+            ComponentKind::EvenParityGate { .. } => "Even Parity".to_string(),
             ComponentKind::Multiplexer { .. } => "Multiplexer".to_string(),
             ComponentKind::Demultiplexer { .. } => "Demultiplexer".to_string(),
             ComponentKind::Decoder { .. } => "Decoder".to_string(),
@@ -494,6 +515,25 @@ impl ComponentKind {
                     Port::input("in", *width, (0, 0)),
                     Port::input("enable", BitWidth::ONE, (1, 0)),
                     Port::output("out", *width, (2, 0)),
+                ]
+            }
+
+            ComponentKind::OddParityGate { inputs, width }
+            | ComponentKind::EvenParityGate { inputs, width } => {
+                let mut ports: Vec<Port> = (0..*inputs)
+                    .map(|i| Port::input(format!("in{}", i), *width, (0, i as i32)))
+                    .collect();
+                ports.push(Port::output("out", BitWidth::ONE, (0, *inputs as i32)));
+                ports
+            }
+
+            ComponentKind::BitExtender {
+                input_width,
+                output_width,
+            } => {
+                vec![
+                    Port::input("in", *input_width, (0, 0)),
+                    Port::output("out", *output_width, (0, 1)),
                 ]
             }
 

@@ -301,6 +301,10 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
             "Controlled Buffer" | "Tristate Buffer" => Ok(ComponentKind::TristateBuffer {
                 width: get_width("width"),
             }),
+            "Bit Extender" => Ok(ComponentKind::BitExtender {
+                input_width: get_width("in_width"),
+                output_width: get_width("out_width"),
+            }),
             _ => Err(FileError::UnknownComponent {
                 lib: lib.to_string(),
                 name: name.to_string(),
@@ -342,7 +346,15 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
             "Buffer" => Ok(ComponentKind::Buffer {
                 width: get_width("width"),
             }),
-            "Controlled Buffer" | "Tristate Buffer" => Ok(ComponentKind::TristateBuffer {
+            "Controlled Buffer" | "Tristate Buffer" => Ok(ComponentKind::ControlledBuffer {
+                width: get_width("width"),
+            }),
+            "Odd Parity" => Ok(ComponentKind::OddParityGate {
+                inputs: get_u8("inputs", 2),
+                width: get_width("width"),
+            }),
+            "Even Parity" => Ok(ComponentKind::EvenParityGate {
+                inputs: get_u8("inputs", 2),
                 width: get_width("width"),
             }),
             _ => Err(FileError::UnknownComponent {

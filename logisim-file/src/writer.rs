@@ -221,6 +221,32 @@ fn write_kind_attrs<W: Write>(kind: &ComponentKind, writer: &mut W) -> Result<()
             }
         }
 
+        ComponentKind::OddParityGate { inputs, width }
+        | ComponentKind::EvenParityGate { inputs, width } => {
+            if *inputs != 2 {
+                writeln!(writer, r#"      <a name="inputs" val="{}"/>"#, inputs)?;
+            }
+            if width.get() != 1 {
+                writeln!(writer, r#"      <a name="width" val="{}"/>"#, width.get())?;
+            }
+        }
+
+        ComponentKind::BitExtender {
+            input_width,
+            output_width,
+        } => {
+            writeln!(
+                writer,
+                r#"      <a name="in_width" val="{}"/>"#,
+                input_width.get()
+            )?;
+            writeln!(
+                writer,
+                r#"      <a name="out_width" val="{}"/>"#,
+                output_width.get()
+            )?;
+        }
+
         ComponentKind::Multiplexer {
             select_bits,
             data_width,

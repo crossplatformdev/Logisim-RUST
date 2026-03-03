@@ -46,7 +46,7 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Probe | ✅ | |
 | Pull Resistor | ✅ | |
 | Tristate Buffer | ✅ | |
-| Bit Extender | ❌ | Missing |
+| Bit Extender | ✅ | Zero-extend; parser + writer + simulation |
 | Transistor | ❌ | Missing |
 | Transmission Gate | ❌ | Missing |
 
@@ -63,7 +63,7 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | NOT Gate | ✅ | |
 | Buffer | ✅ | |
 | Controlled Buffer | ✅ | Parser + writer round-trip |
-| Odd / Even Parity | ❌ | Missing |
+| Odd / Even Parity | ✅ | Parser + writer + simulation |
 
 ### 2c. Plexers (#2)
 
@@ -242,8 +242,8 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Category | Implemented | Partial | Missing |
 |----------|-------------|---------|---------|
 | Simulation semantics | 10 | 0 | 0 |
-| Wiring components | 8 | 0 | 3 |
-| Gate components | 9 | 0 | 1 |
+| Wiring components | 10 | 0 | 2 |
+| Gate components | 11 | 0 | 0 |
 | Plexer components | 5 | 0 | 0 |
 | Arithmetic components | 9 | 0 | 0 |
 | Memory components | 9 | 0 | 0 |
