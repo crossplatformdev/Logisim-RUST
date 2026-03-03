@@ -181,10 +181,15 @@ fn parse_circuit<R: BufRead>(
 
 /// Consume all events until the matching end tag for `element_name`, returning
 /// the captured inner XML as a string (not including the outer open/close tags).
+///
+/// `depth` starts at 1 because the outer opening tag (`<element_name>`) was already
+/// consumed by the caller before invoking this function. The loop decrements depth on
+/// every end tag and stops when depth reaches 0 at the matching end tag.
 fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Result<String> {
     let end_tag = element_name.as_bytes().to_vec();
     let mut buf = Vec::new();
     let mut captured = String::new();
+    // depth=1 because the opening <element_name> tag was already consumed by the caller.
     let mut depth = 1usize;
 
     loop {
@@ -202,7 +207,7 @@ fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Resul
                     captured.push(' ');
                     captured.push_str(&key);
                     captured.push_str("=\"");
-                    captured.push_str(&val.replace('"', "&quot;"));
+                    captured.push_str(&xml_escape_attr(&val));
                     captured.push('"');
                 }
                 captured.push('>');
@@ -231,14 +236,15 @@ fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Resul
                     captured.push(' ');
                     captured.push_str(&key);
                     captured.push_str("=\"");
-                    captured.push_str(&val.replace('"', "&quot;"));
+                    captured.push_str(&xml_escape_attr(&val));
                     captured.push('"');
                 }
                 captured.push_str("/>");
             }
             Ok(Event::Text(ref e)) => {
                 let text = e.unescape().map(|v| v.into_owned()).unwrap_or_default();
-                captured.push_str(&text);
+                // Re-escape text content so the round-trip stays valid XML.
+                captured.push_str(&xml_escape_text(&text));
             }
             Ok(Event::Eof) => break,
             Err(e) => return Err(FileError::Xml(e)),
@@ -248,6 +254,22 @@ fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Resul
     }
 
     Ok(captured)
+}
+
+/// Escape a string for use in an XML attribute value (double-quoted).
+fn xml_escape_attr(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+/// Escape a string for use as XML text content.
+fn xml_escape_text(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 // ── Component parsing ─────────────────────────────────────────────────────────
