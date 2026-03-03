@@ -141,6 +141,10 @@ fn parse_circuit<R: BufRead>(
                     let comp = parse_component(e, xml, lib_map, id.0)?;
                     circuit.components.insert(id, comp);
                 }
+                b"appear" => {
+                    // Capture raw appearance XML for round-trip fidelity.
+                    circuit.appearance_xml = Some(capture_element(xml, "appear")?);
+                }
                 b"a" => {
                     // circuit-level attribute (ignored as inner text element)
                 }
@@ -173,6 +177,77 @@ fn parse_circuit<R: BufRead>(
     }
 
     Ok(circuit)
+}
+
+/// Consume all events until the matching end tag for `element_name`, returning
+/// the captured inner XML as a string (not including the outer open/close tags).
+fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Result<String> {
+    let end_tag = element_name.as_bytes().to_vec();
+    let mut buf = Vec::new();
+    let mut captured = String::new();
+    let mut depth = 1usize;
+
+    loop {
+        match xml.read_event_into(&mut buf) {
+            Ok(Event::Start(ref e)) => {
+                let tag = String::from_utf8_lossy(e.name().as_ref()).into_owned();
+                captured.push('<');
+                captured.push_str(&tag);
+                for attr in e.attributes().flatten() {
+                    let key = String::from_utf8_lossy(attr.key.as_ref()).into_owned();
+                    let val = attr
+                        .unescape_value()
+                        .map(|v| v.into_owned())
+                        .unwrap_or_default();
+                    captured.push(' ');
+                    captured.push_str(&key);
+                    captured.push_str("=\"");
+                    captured.push_str(&val.replace('"', "&quot;"));
+                    captured.push('"');
+                }
+                captured.push('>');
+                depth += 1;
+            }
+            Ok(Event::End(ref e)) => {
+                depth -= 1;
+                if depth == 0 && e.name().as_ref() == end_tag.as_slice() {
+                    break;
+                }
+                let tag = String::from_utf8_lossy(e.name().as_ref()).into_owned();
+                captured.push_str("</");
+                captured.push_str(&tag);
+                captured.push('>');
+            }
+            Ok(Event::Empty(ref e)) => {
+                let tag = String::from_utf8_lossy(e.name().as_ref()).into_owned();
+                captured.push('<');
+                captured.push_str(&tag);
+                for attr in e.attributes().flatten() {
+                    let key = String::from_utf8_lossy(attr.key.as_ref()).into_owned();
+                    let val = attr
+                        .unescape_value()
+                        .map(|v| v.into_owned())
+                        .unwrap_or_default();
+                    captured.push(' ');
+                    captured.push_str(&key);
+                    captured.push_str("=\"");
+                    captured.push_str(&val.replace('"', "&quot;"));
+                    captured.push('"');
+                }
+                captured.push_str("/>");
+            }
+            Ok(Event::Text(ref e)) => {
+                let text = e.unescape().map(|v| v.into_owned()).unwrap_or_default();
+                captured.push_str(&text);
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(FileError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(captured)
 }
 
 // ── Component parsing ─────────────────────────────────────────────────────────
@@ -508,6 +583,20 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
                 rows: get_u8("rows", 8),
                 cols: get_u8("cols", 32),
             }),
+            _ => Err(FileError::UnknownComponent {
+                lib: lib.to_string(),
+                name: name.to_string(),
+            }),
+        },
+
+        // TTL 74xx library
+        "ttl" | "#ttl" => match name {
+            "7400" => Ok(ComponentKind::Ttl7400),
+            "7402" => Ok(ComponentKind::Ttl7402),
+            "7404" => Ok(ComponentKind::Ttl7404),
+            "7408" => Ok(ComponentKind::Ttl7408),
+            "7432" => Ok(ComponentKind::Ttl7432),
+            "7486" => Ok(ComponentKind::Ttl7486),
             _ => Err(FileError::UnknownComponent {
                 lib: lib.to_string(),
                 name: name.to_string(),

@@ -286,6 +286,20 @@ pub enum ComponentKind {
     Subcircuit {
         circuit_name: String,
     },
+
+    // ── TTL 74xx library ─────────────────────────────────────────────────────
+    /// 7400 — Quad 2-Input NAND gate package.
+    Ttl7400,
+    /// 7402 — Quad 2-Input NOR gate package.
+    Ttl7402,
+    /// 7404 — Hex Inverter package.
+    Ttl7404,
+    /// 7408 — Quad 2-Input AND gate package.
+    Ttl7408,
+    /// 7432 — Quad 2-Input OR gate package.
+    Ttl7432,
+    /// 7486 — Quad 2-Input XOR gate package.
+    Ttl7486,
 }
 
 /// Pull-up or pull-down direction for a pull resistor.
@@ -369,6 +383,13 @@ impl ComponentKind {
             | ComponentKind::Tty { .. } => "io",
 
             ComponentKind::Subcircuit { .. } => "user",
+
+            ComponentKind::Ttl7400
+            | ComponentKind::Ttl7402
+            | ComponentKind::Ttl7404
+            | ComponentKind::Ttl7408
+            | ComponentKind::Ttl7432
+            | ComponentKind::Ttl7486 => "ttl",
         }
     }
 
@@ -438,6 +459,12 @@ impl ComponentKind {
             ComponentKind::Keyboard => "Keyboard".to_string(),
             ComponentKind::Tty { .. } => "TTY".to_string(),
             ComponentKind::Subcircuit { circuit_name } => circuit_name.clone(),
+            ComponentKind::Ttl7400 => "7400".to_string(),
+            ComponentKind::Ttl7402 => "7402".to_string(),
+            ComponentKind::Ttl7404 => "7404".to_string(),
+            ComponentKind::Ttl7408 => "7408".to_string(),
+            ComponentKind::Ttl7432 => "7432".to_string(),
+            ComponentKind::Ttl7486 => "7486".to_string(),
         }
     }
 
@@ -931,6 +958,46 @@ impl ComponentKind {
 
             // Subcircuit ports are defined dynamically based on the referenced circuit
             ComponentKind::Subcircuit { .. } => vec![],
+
+            // ── TTL 74xx ──────────────────────────────────────────────────────
+            // Each TTL package exposes all individual gate I/O pins.
+            // Layout: 4 × 2-input gates (A1, B1→Y1 ... A4, B4→Y4)
+            ComponentKind::Ttl7400
+            | ComponentKind::Ttl7408
+            | ComponentKind::Ttl7432
+            | ComponentKind::Ttl7486 => {
+                let mut ports = Vec::new();
+                for i in 1..=4u8 {
+                    let y_offset = (i as i32 - 1) * 30;
+                    ports.push(Port::input(format!("A{i}"), BitWidth::ONE, (0, y_offset)));
+                    ports.push(Port::input(format!("B{i}"), BitWidth::ONE, (10, y_offset)));
+                    ports.push(Port::output(format!("Y{i}"), BitWidth::ONE, (30, y_offset)));
+                }
+                ports
+            }
+
+            // 7402: quad 2-input NOR; inputs/outputs same layout
+            ComponentKind::Ttl7402 => {
+                let mut ports = Vec::new();
+                for i in 1..=4u8 {
+                    let y_offset = (i as i32 - 1) * 30;
+                    ports.push(Port::input(format!("A{i}"), BitWidth::ONE, (0, y_offset)));
+                    ports.push(Port::input(format!("B{i}"), BitWidth::ONE, (10, y_offset)));
+                    ports.push(Port::output(format!("Y{i}"), BitWidth::ONE, (30, y_offset)));
+                }
+                ports
+            }
+
+            // 7404: hex inverter (6 × NOT), single input per gate
+            ComponentKind::Ttl7404 => {
+                let mut ports = Vec::new();
+                for i in 1..=6u8 {
+                    let y_offset = (i as i32 - 1) * 20;
+                    ports.push(Port::input(format!("A{i}"), BitWidth::ONE, (0, y_offset)));
+                    ports.push(Port::output(format!("Y{i}"), BitWidth::ONE, (20, y_offset)));
+                }
+                ports
+            }
         }
     }
 }

@@ -115,6 +115,9 @@ pub struct Circuit {
     next_id: u64,
     /// Circuit-level attributes (appearance, description, etc.).
     pub attributes: HashMap<String, String>,
+    /// Raw XML content of the `<appear>` block, preserved for round-trip
+    /// fidelity.  `None` if the circuit has no appearance data.
+    pub appearance_xml: Option<String>,
 }
 
 impl Circuit {
@@ -126,6 +129,7 @@ impl Circuit {
             wires: Vec::new(),
             next_id: 1,
             attributes: HashMap::new(),
+            appearance_xml: None,
         }
     }
 

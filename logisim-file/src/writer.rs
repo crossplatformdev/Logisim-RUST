@@ -29,6 +29,7 @@ pub fn write_circ<W: Write>(project: &Project, writer: &mut W) -> Result<()> {
     writeln!(writer, "  <lib desc=\"#Arithmetic\" name=\"3\"/>")?;
     writeln!(writer, "  <lib desc=\"#Memory\" name=\"4\"/>")?;
     writeln!(writer, "  <lib desc=\"#I/O\" name=\"5\"/>")?;
+    writeln!(writer, "  <lib desc=\"#TTL\" name=\"6\"/>")?;
 
     // Main circuit declaration.
     if let Some(main) = &project.main_circuit {
@@ -93,6 +94,11 @@ fn write_circuit<W: Write>(circuit: &Circuit, writer: &mut W) -> Result<()> {
         write_wire(wire, writer)?;
     }
 
+    // Appearance data (preserved for round-trip fidelity)
+    if let Some(appear) = &circuit.appearance_xml {
+        writeln!(writer, "    <appear>{}</appear>", appear)?;
+    }
+
     writeln!(writer, "  </circuit>")?;
     Ok(())
 }
@@ -144,6 +150,7 @@ fn lib_number(kind: &ComponentKind) -> &'static str {
         "arithmetic" => "3",
         "memory" => "4",
         "io" => "5",
+        "ttl" => "6",
         _ => "0",
     }
 }
@@ -402,7 +409,13 @@ fn write_kind_attrs<W: Write>(kind: &ComponentKind, writer: &mut W) -> Result<()
         | ComponentKind::HexDisplay
         | ComponentKind::Button
         | ComponentKind::Keyboard
-        | ComponentKind::Subcircuit { .. } => {}
+        | ComponentKind::Subcircuit { .. }
+        | ComponentKind::Ttl7400
+        | ComponentKind::Ttl7402
+        | ComponentKind::Ttl7404
+        | ComponentKind::Ttl7408
+        | ComponentKind::Ttl7432
+        | ComponentKind::Ttl7486 => {}
     }
     Ok(())
 }
@@ -649,5 +662,95 @@ mod tests {
 
         let project2 = parse_circ(xml.as_bytes()).unwrap();
         assert_eq!(project2.main_circuit.as_deref(), Some("top"));
+    }
+
+    #[test]
+    fn test_appearance_roundtrip() {
+        // Build a .circ file that has an <appear> block.
+        // Note: uses r##"..."## to avoid the "# in desc="#Wiring" ending the raw string.
+        let circ_xml = r##"<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project version="1.0">
+  <lib desc="#Wiring" name="0"/>
+  <main name="main"/>
+  <options/>
+  <mappings/>
+  <toolbar/>
+  <circuit name="main">
+    <a name="circuit" val="main"/>
+    <appear><line x1="0" y1="0" x2="10" y2="0"/></appear>
+  </circuit>
+</project>"##;
+
+        let project = parse_circ(circ_xml.as_bytes()).unwrap();
+        let circuit = project.circuits.get("main").unwrap();
+
+        // Appearance data must be captured.
+        assert!(
+            circuit.appearance_xml.is_some(),
+            "appearance_xml should be captured"
+        );
+        let appear = circuit.appearance_xml.as_ref().unwrap();
+        assert!(appear.contains("line"), "Should contain line element");
+
+        // Round-trip: write back and re-parse.
+        let mut buf = Vec::new();
+        write_circ(&project, &mut buf).unwrap();
+        let written = String::from_utf8(buf.clone()).unwrap();
+        assert!(
+            written.contains("<appear>"),
+            "Written XML must contain <appear>"
+        );
+        assert!(
+            written.contains("</appear>"),
+            "Written XML must close </appear>"
+        );
+
+        let project2 = parse_circ(buf.as_slice()).unwrap();
+        let circuit2 = project2.circuits.get("main").unwrap();
+        assert_eq!(
+            circuit2.appearance_xml, circuit.appearance_xml,
+            "Appearance data must be identical after round-trip"
+        );
+    }
+
+    #[test]
+    fn test_ttl_roundtrip() {
+        use logisim_core::component::ComponentKind;
+        use logisim_core::project::Project;
+
+        let mut project = Project::new("ttl_test");
+        let mut circuit = logisim_core::circuit::Circuit::new("main");
+        circuit.add_component(ComponentKind::Ttl7408, 100, 100);
+        circuit.add_component(ComponentKind::Ttl7400, 200, 100);
+        circuit.add_component(ComponentKind::Ttl7404, 300, 100);
+        project.add_circuit(circuit);
+
+        let mut buf = Vec::new();
+        write_circ(&project, &mut buf).unwrap();
+        let xml = String::from_utf8(buf.clone()).unwrap();
+
+        // TTL lib declaration must appear
+        assert!(xml.contains("desc=\"#TTL\""), "must declare #TTL library");
+        assert!(xml.contains(r#"name="7408""#), "must write 7408");
+        assert!(xml.contains(r#"name="7400""#), "must write 7400");
+        assert!(xml.contains(r#"name="7404""#), "must write 7404");
+
+        // Round-trip
+        let project2 = parse_circ(buf.as_slice()).unwrap();
+        let circuit2 = project2.circuits.get("main").unwrap();
+        // All three TTL components must parse back correctly
+        let kinds: Vec<_> = circuit2.components.values().map(|c| &c.kind).collect();
+        assert!(
+            kinds.iter().any(|k| matches!(k, ComponentKind::Ttl7408)),
+            "Ttl7408 must survive round-trip"
+        );
+        assert!(
+            kinds.iter().any(|k| matches!(k, ComponentKind::Ttl7400)),
+            "Ttl7400 must survive round-trip"
+        );
+        assert!(
+            kinds.iter().any(|k| matches!(k, ComponentKind::Ttl7404)),
+            "Ttl7404 must survive round-trip"
+        );
     }
 }

@@ -123,7 +123,13 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 
 | Library | Implemented | Tested | Compatible | Notes |
 |---------|-------------|--------|------------|-------|
-| 74xx TTL series | missing | — | — | Upstream ships 74xx component library |
+| 7400 (Quad NAND) | ✅ | ✅ | ✅ | Parser + writer + simulation |
+| 7402 (Quad NOR) | ✅ | ✅ | ✅ | Parser + writer + simulation |
+| 7404 (Hex Inverter) | ✅ | ✅ | ✅ | Parser + writer + simulation |
+| 7408 (Quad AND) | ✅ | ✅ | ✅ | Parser + writer + simulation |
+| 7432 (Quad OR) | ✅ | ✅ | ✅ | Parser + writer + simulation |
+| 7486 (Quad XOR) | ✅ | ✅ | ✅ | Parser + writer + simulation |
+| Remaining 74xx series | missing | — | — | ~100 additional 74xx ICs not yet implemented |
 
 ---
 
@@ -133,14 +139,14 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 |---------|-------------|--------|------------|-------|
 | Parse `<circuit>` elements | ✅ | ✅ | ✅ | |
 | Parse `<wire>` elements | ✅ | ✅ | ✅ | |
-| Parse `<comp>` with lib/name | ✅ | ✅ | ✅ | All libs 0–5 |
+| Parse `<comp>` with lib/name | ✅ | ✅ | ✅ | All libs 0–6 (including TTL) |
 | Parse component attributes (loc, facing, width, label) | ✅ | ✅ | ✅ | |
 | Write `<circuit>` elements | ✅ | ✅ | ✅ | |
 | Write `<wire>` elements | ✅ | ✅ | ✅ | |
 | Write `<comp>` with lib/name | ✅ | ✅ | ✅ | |
-| Round-trip fidelity (parse → write → parse) | partial | ✅ | partial | TTL missing; all standard components including Transistor, TransmissionGate round-trip correctly |
+| Round-trip fidelity (parse → write → parse) | partial | ✅ | partial | Remaining 74xx TTL ICs not yet supported; all other standard components round-trip correctly |
 | Project-level metadata (`<project>`, `<lib>` declarations) | ✅ | ✅ | ✅ | `<lib>` declarations and `<main name="..."/>` written and parsed |
-| Circuit appearance data (`<appear>`) | missing | — | — | Custom component shapes not stored |
+| Circuit appearance data (`<appear>`) | ✅ | ✅ | ✅ | Appearance XML preserved and round-tripped; custom shape rendering not implemented |
 | `main` circuit attribute | ✅ | ✅ | ✅ | `<main name="..."/>` parsed and written |
 | `.circ` file version attribute | partial | — | partial | Parsed; not validated for compatibility |
 
@@ -255,8 +261,8 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Arithmetic components | 9 | 0 | 0 |
 | Memory components | 9 | 0 | 0 |
 | I/O components | 7 | 0 | 2 |
-| TTL libraries | 0 | 0 | 1 |
-| File format | 10 | 2 | 2 |
+| TTL libraries | 6 | 0 | 1 |
+| File format | 11 | 1 | 1 |
 | GUI / editor | 12 | 1 | 9 |
 | Undo / Redo | 8 | 0 | 1 |
 | Chronogram | 0 | 0 | 3 |

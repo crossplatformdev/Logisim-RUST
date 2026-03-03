@@ -890,6 +890,85 @@ fn evaluate_component(
             }
         }
 
+        // ── TTL 74xx ─────────────────────────────────────────────────────────
+        ComponentKind::Ttl7408 => {
+            // Quad 2-input AND
+            for i in 1..=4u8 {
+                let a = get1(&format!("A{i}"));
+                let b = get1(&format!("B{i}"));
+                let y = match (a, b) {
+                    (Value::True, Value::True) => Value::True,
+                    (Value::False, _) | (_, Value::False) => Value::False,
+                    _ => Value::Unknown,
+                };
+                out.insert(format!("Y{i}"), Bus::from_value(y, 1));
+            }
+        }
+        ComponentKind::Ttl7400 => {
+            // Quad 2-input NAND
+            for i in 1..=4u8 {
+                let a = get1(&format!("A{i}"));
+                let b = get1(&format!("B{i}"));
+                let y = match (a, b) {
+                    (Value::True, Value::True) => Value::False,
+                    (Value::False, _) | (_, Value::False) => Value::True,
+                    _ => Value::Unknown,
+                };
+                out.insert(format!("Y{i}"), Bus::from_value(y, 1));
+            }
+        }
+        ComponentKind::Ttl7432 => {
+            // Quad 2-input OR
+            for i in 1..=4u8 {
+                let a = get1(&format!("A{i}"));
+                let b = get1(&format!("B{i}"));
+                let y = match (a, b) {
+                    (Value::False, Value::False) => Value::False,
+                    (Value::True, _) | (_, Value::True) => Value::True,
+                    _ => Value::Unknown,
+                };
+                out.insert(format!("Y{i}"), Bus::from_value(y, 1));
+            }
+        }
+        ComponentKind::Ttl7402 => {
+            // Quad 2-input NOR
+            for i in 1..=4u8 {
+                let a = get1(&format!("A{i}"));
+                let b = get1(&format!("B{i}"));
+                let y = match (a, b) {
+                    (Value::False, Value::False) => Value::True,
+                    (Value::True, _) | (_, Value::True) => Value::False,
+                    _ => Value::Unknown,
+                };
+                out.insert(format!("Y{i}"), Bus::from_value(y, 1));
+            }
+        }
+        ComponentKind::Ttl7404 => {
+            // Hex Inverter
+            for i in 1..=6u8 {
+                let a = get1(&format!("A{i}"));
+                let y = match a {
+                    Value::True => Value::False,
+                    Value::False => Value::True,
+                    _ => Value::Unknown,
+                };
+                out.insert(format!("Y{i}"), Bus::from_value(y, 1));
+            }
+        }
+        ComponentKind::Ttl7486 => {
+            // Quad 2-input XOR
+            for i in 1..=4u8 {
+                let a = get1(&format!("A{i}"));
+                let b = get1(&format!("B{i}"));
+                let y = match (a, b) {
+                    (Value::True, Value::True) | (Value::False, Value::False) => Value::False,
+                    (Value::True, Value::False) | (Value::False, Value::True) => Value::True,
+                    _ => Value::Unknown,
+                };
+                out.insert(format!("Y{i}"), Bus::from_value(y, 1));
+            }
+        }
+
         _ => {} // other display/IO components handled externally
     }
 
@@ -1533,5 +1612,89 @@ mod tests {
         let outputs = evaluate_component(&kind, ComponentId(1), &inputs, Some(&ns), 0);
         assert_eq!(outputs["out"].to_u64(), Some(0)); // last stage
         assert_eq!(outputs["q0"].to_u64(), Some(5));
+    }
+
+    // ── TTL 74xx ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_ttl_7408_quad_and() {
+        // 7408: quad 2-input AND gate.  Y = A AND B for each gate.
+        let kind = ComponentKind::Ttl7408;
+        let inputs: HashMap<String, Bus> = [
+            ("A1".to_string(), Bus::from_u64(1, 1)),
+            ("B1".to_string(), Bus::from_u64(1, 1)),
+            ("A2".to_string(), Bus::from_u64(1, 1)),
+            ("B2".to_string(), Bus::from_u64(0, 1)),
+            ("A3".to_string(), Bus::from_u64(0, 1)),
+            ("B3".to_string(), Bus::from_u64(1, 1)),
+            ("A4".to_string(), Bus::from_u64(0, 1)),
+            ("B4".to_string(), Bus::from_u64(0, 1)),
+        ]
+        .into();
+        let out = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
+        assert_eq!(out["Y1"].to_u64(), Some(1), "1 AND 1 = 1");
+        assert_eq!(out["Y2"].to_u64(), Some(0), "1 AND 0 = 0");
+        assert_eq!(out["Y3"].to_u64(), Some(0), "0 AND 1 = 0");
+        assert_eq!(out["Y4"].to_u64(), Some(0), "0 AND 0 = 0");
+    }
+
+    #[test]
+    fn test_ttl_7400_quad_nand() {
+        // 7400: quad 2-input NAND gate.  Y = NOT(A AND B).
+        let kind = ComponentKind::Ttl7400;
+        let inputs: HashMap<String, Bus> = [
+            ("A1".to_string(), Bus::from_u64(1, 1)),
+            ("B1".to_string(), Bus::from_u64(1, 1)),
+            ("A2".to_string(), Bus::from_u64(1, 1)),
+            ("B2".to_string(), Bus::from_u64(0, 1)),
+        ]
+        .into();
+        let out = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
+        assert_eq!(out["Y1"].to_u64(), Some(0), "NAND(1,1) = 0");
+        assert_eq!(out["Y2"].to_u64(), Some(1), "NAND(1,0) = 1");
+    }
+
+    #[test]
+    fn test_ttl_7404_hex_inverter() {
+        // 7404: hex inverter.  Yi = NOT(Ai).
+        let kind = ComponentKind::Ttl7404;
+        let inputs: HashMap<String, Bus> = [
+            ("A1".to_string(), Bus::from_u64(1, 1)),
+            ("A2".to_string(), Bus::from_u64(0, 1)),
+            ("A3".to_string(), Bus::from_u64(1, 1)),
+            ("A4".to_string(), Bus::from_u64(0, 1)),
+            ("A5".to_string(), Bus::from_u64(1, 1)),
+            ("A6".to_string(), Bus::from_u64(0, 1)),
+        ]
+        .into();
+        let out = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
+        assert_eq!(out["Y1"].to_u64(), Some(0));
+        assert_eq!(out["Y2"].to_u64(), Some(1));
+        assert_eq!(out["Y3"].to_u64(), Some(0));
+        assert_eq!(out["Y4"].to_u64(), Some(1));
+        assert_eq!(out["Y5"].to_u64(), Some(0));
+        assert_eq!(out["Y6"].to_u64(), Some(1));
+    }
+
+    #[test]
+    fn test_ttl_7486_quad_xor() {
+        // 7486: quad 2-input XOR gate.  Y = A XOR B.
+        let kind = ComponentKind::Ttl7486;
+        let inputs: HashMap<String, Bus> = [
+            ("A1".to_string(), Bus::from_u64(0, 1)),
+            ("B1".to_string(), Bus::from_u64(0, 1)),
+            ("A2".to_string(), Bus::from_u64(0, 1)),
+            ("B2".to_string(), Bus::from_u64(1, 1)),
+            ("A3".to_string(), Bus::from_u64(1, 1)),
+            ("B3".to_string(), Bus::from_u64(0, 1)),
+            ("A4".to_string(), Bus::from_u64(1, 1)),
+            ("B4".to_string(), Bus::from_u64(1, 1)),
+        ]
+        .into();
+        let out = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
+        assert_eq!(out["Y1"].to_u64(), Some(0), "0 XOR 0 = 0");
+        assert_eq!(out["Y2"].to_u64(), Some(1), "0 XOR 1 = 1");
+        assert_eq!(out["Y3"].to_u64(), Some(1), "1 XOR 0 = 1");
+        assert_eq!(out["Y4"].to_u64(), Some(0), "1 XOR 1 = 0");
     }
 }
