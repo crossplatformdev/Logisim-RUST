@@ -6,6 +6,8 @@ mod app;
 mod canvas;
 mod component_panel;
 mod dialogs;
+#[cfg(test)]
+mod harness;
 mod state;
 mod toolbar;
 

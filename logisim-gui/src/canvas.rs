@@ -80,65 +80,18 @@ impl CircuitCanvas {
         if state.tool == crate::state::Tool::Select {
             if response.drag_started_by(egui::PointerButton::Primary) {
                 if let Some(pos) = response.interact_pointer_pos() {
-                    let (gx, gy) = state.screen_to_grid(pos, origin);
-                    let active = state.active_circuit.clone();
-                    let hit = state
-                        .project
-                        .circuits
-                        .get(&active)
-                        .and_then(|c| {
-                            c.components.iter().find(|(_, comp)| {
-                                (comp.x - gx).abs() <= HIT_TOLERANCE
-                                    && (comp.y - gy).abs() <= HIT_TOLERANCE
-                            })
-                        })
-                        .map(|(id, comp)| (*id, comp.x, comp.y));
-                    if let Some((id, ox, oy)) = hit {
-                        self.dragging = Some((id, ox, oy));
-                        state.selected = vec![id];
-                    }
+                    self.on_drag_start(pos, origin, state);
                 }
             }
 
             if response.dragged_by(egui::PointerButton::Primary) {
-                if let Some((id, ox, oy)) = self.dragging {
-                    if let Some(cursor) = response.hover_pos() {
-                        let (gx, gy) = state.screen_to_grid(cursor, origin);
-                        let active = state.active_circuit.clone();
-                        if let Some(circuit) = state.project.circuits.get_mut(&active) {
-                            if let Some(comp) = circuit.components.get_mut(&id) {
-                                comp.x = gx;
-                                comp.y = gy;
-                            }
-                        }
-                        // Keep old_x/old_y from drag start for history.
-                        self.dragging = Some((id, ox, oy));
-                    }
+                if let Some(cursor) = response.hover_pos() {
+                    self.on_drag_move(cursor, origin, state);
                 }
             }
 
             if response.drag_stopped_by(egui::PointerButton::Primary) {
-                if let Some((id, old_x, old_y)) = self.dragging.take() {
-                    let active = state.active_circuit.clone();
-                    if let Some(circuit) = state.project.circuits.get(&active) {
-                        if let Some(comp) = circuit.components.get(&id) {
-                            let new_x = comp.x;
-                            let new_y = comp.y;
-                            if new_x != old_x || new_y != old_y {
-                                state.history.push(UndoAction::MoveComponent {
-                                    circuit_name: active,
-                                    id,
-                                    old_x,
-                                    old_y,
-                                    new_x,
-                                    new_y,
-                                });
-                                state.modified = true;
-                                state.sync_simulator();
-                            }
-                        }
-                    }
-                }
+                self.on_drag_end(state);
             }
         } else {
             // Cancel any drag if we switched tools.
@@ -148,7 +101,7 @@ impl CircuitCanvas {
         // ── Handle pointer click events ───────────────────────────────────
         if response.clicked() {
             if let Some(pos) = response.interact_pointer_pos() {
-                self.handle_click(pos, origin, state);
+                self.on_click(pos, origin, state);
             }
         }
 
@@ -165,6 +118,77 @@ impl CircuitCanvas {
                 draw_component_ghost(&painter, &ghost, origin, state);
             }
         }
+    }
+
+    // ── Extracted interaction methods (also called by the GUI harness) ────
+
+    /// Initiate a component drag from `pos` (screen coords) with the given
+    /// `origin` (top-left corner of the canvas rect).
+    pub(crate) fn on_drag_start(&mut self, pos: Pos2, origin: Pos2, state: &mut AppState) {
+        if state.tool != crate::state::Tool::Select {
+            return;
+        }
+        let (gx, gy) = state.screen_to_grid(pos, origin);
+        let active = state.active_circuit.clone();
+        let hit = state
+            .project
+            .circuits
+            .get(&active)
+            .and_then(|c| {
+                c.components.iter().find(|(_, comp)| {
+                    (comp.x - gx).abs() <= HIT_TOLERANCE && (comp.y - gy).abs() <= HIT_TOLERANCE
+                })
+            })
+            .map(|(id, comp)| (*id, comp.x, comp.y));
+        if let Some((id, ox, oy)) = hit {
+            self.dragging = Some((id, ox, oy));
+            state.selected = vec![id];
+        }
+    }
+
+    /// Update a drag in progress: move the component to the new cursor `pos`.
+    pub(crate) fn on_drag_move(&mut self, pos: Pos2, origin: Pos2, state: &mut AppState) {
+        if let Some((id, ox, oy)) = self.dragging {
+            let (gx, gy) = state.screen_to_grid(pos, origin);
+            let active = state.active_circuit.clone();
+            if let Some(circuit) = state.project.circuits.get_mut(&active) {
+                if let Some(comp) = circuit.components.get_mut(&id) {
+                    comp.x = gx;
+                    comp.y = gy;
+                }
+            }
+            self.dragging = Some((id, ox, oy));
+        }
+    }
+
+    /// Finish the drag, commit a `MoveComponent` undo action if position changed.
+    pub(crate) fn on_drag_end(&mut self, state: &mut AppState) {
+        if let Some((id, old_x, old_y)) = self.dragging.take() {
+            let active = state.active_circuit.clone();
+            if let Some(circuit) = state.project.circuits.get(&active) {
+                if let Some(comp) = circuit.components.get(&id) {
+                    let new_x = comp.x;
+                    let new_y = comp.y;
+                    if new_x != old_x || new_y != old_y {
+                        state.history.push(UndoAction::MoveComponent {
+                            circuit_name: active,
+                            id,
+                            old_x,
+                            old_y,
+                            new_x,
+                            new_y,
+                        });
+                        state.modified = true;
+                        state.sync_simulator();
+                    }
+                }
+            }
+        }
+    }
+
+    /// Handle a click at screen position `pos` relative to canvas `origin`.
+    pub(crate) fn on_click(&mut self, pos: Pos2, origin: Pos2, state: &mut AppState) {
+        self.handle_click(pos, origin, state);
     }
 
     fn handle_click(&mut self, pos: Pos2, origin: Pos2, state: &mut AppState) {
