@@ -54,3 +54,47 @@ A subsystem is done when:
 - At least one test exercises the new behavior.
 - `docs/PARITY_MATRIX.md` shows the item as **implemented** and **tested**.
 - `cargo fmt`, `cargo clippy`, and `cargo test` all pass.
+
+## Workstream ownership
+
+| Workstream | Crate(s) / Path(s) | Instruction file |
+|------------|-------------------|-----------------|
+| Simulation semantics | `logisim-core/src/simulation.rs` | `core.instructions.md` |
+| Component library | `logisim-core/src/component.rs` | `core.instructions.md` |
+| File format (parse/write) | `logisim-file/src/` | `file-format.instructions.md` |
+| GUI / canvas / editor | `logisim-gui/src/` | `gui.instructions.md` |
+| CI / release pipeline | `.github/workflows/` | `ci.instructions.md` |
+| Resources / localization | `assets/`, `logisim-gui/src/locale.rs` | `resources.instructions.md` |
+| Parity tracking | `docs/PARITY_MATRIX.md`, `docs/PARITY.md` | `parity.instructions.md` |
+
+## Handoff rules
+
+- Before starting work in a crate owned by another workstream, read that workstream's
+  instruction file.
+- If a change in workstream A requires a matching change in workstream B, make both changes
+  in the same commit with a combined prefix (e.g. `core+file: …`).
+- After finishing a subsystem, update `docs/PARITY_MATRIX.md` immediately — do not defer this
+  to a cleanup commit.
+
+## Escalation rules
+
+- If progress in your workstream is blocked because a required API in another crate does not
+  exist, **add the API first** (with a minimal but correct implementation) rather than
+  creating a workaround that bypasses the correct abstraction.
+- If a parity requirement conflicts with Rust safety or memory model constraints, document the
+  exact conflict in a code comment and implement the closest safe equivalent.
+- Never mark a feature `implemented` in the parity matrix to unblock yourself.  If the
+  feature is not done, it is `partial` or `missing`.
+
+## Commit message prefix conventions
+
+| Prefix | Scope |
+|--------|-------|
+| `core:` | Simulation semantics, component logic |
+| `file:` | Parser, writer, round-trip |
+| `gui:` | Canvas, toolbar, dialogs, harness |
+| `cli:` | CLI commands and output |
+| `ci:` | Workflow YAML, release scripts |
+| `docs:` | Parity matrix, architecture, README |
+| `assets:` | Icons, localization files, board definitions |
+| `test:` | Test-only changes (no production code) |
