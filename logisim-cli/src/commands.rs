@@ -361,6 +361,7 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
                 outputs.insert(k.clone(), num);
             }
             let mut obj = serde_json::Map::new();
+            obj.insert("step".to_string(), serde_json::Value::Number(row.into()));
             obj.insert("inputs".to_string(), serde_json::Value::Object(inputs));
             obj.insert("outputs".to_string(), serde_json::Value::Object(outputs));
             json_rows.push(serde_json::Value::Object(obj));

@@ -203,7 +203,7 @@ fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Resul
                     let val = attr
                         .unescape_value()
                         .map(|v| v.into_owned())
-                        .unwrap_or_default();
+                        .map_err(FileError::Xml)?;
                     captured.push(' ');
                     captured.push_str(&key);
                     captured.push_str("=\"");
@@ -233,7 +233,7 @@ fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Resul
                     let val = attr
                         .unescape_value()
                         .map(|v| v.into_owned())
-                        .unwrap_or_default();
+                        .map_err(FileError::Xml)?;
                     captured.push(' ');
                     captured.push_str(&key);
                     captured.push_str("=\"");
@@ -243,7 +243,10 @@ fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Resul
                 captured.push_str("/>");
             }
             Ok(Event::Text(ref e)) => {
-                let text = e.unescape().map(|v| v.into_owned()).unwrap_or_default();
+                let text = e
+                    .unescape()
+                    .map(|v| v.into_owned())
+                    .map_err(FileError::Xml)?;
                 // Re-escape text content so the round-trip stays valid XML.
                 captured.push_str(&xml_escape_text(&text));
             }
@@ -614,8 +617,8 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
             }),
         },
 
-        // TTL 74xx library
-        "ttl" | "#ttl" => match name {
+        // TTL 74xx library (name "ttl"/"#ttl" or numeric fallback "6")
+        "ttl" | "#ttl" | "6" => match name {
             "7400" => Ok(ComponentKind::Ttl7400),
             "7402" => Ok(ComponentKind::Ttl7402),
             "7404" => Ok(ComponentKind::Ttl7404),
