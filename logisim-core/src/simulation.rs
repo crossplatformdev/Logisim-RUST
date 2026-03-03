@@ -259,15 +259,18 @@ impl Simulator {
                             let pos = comp.port_position(port_name);
                             if let Some((x, y)) = pos {
                                 let net = canonical(x, y);
-                                let old = state
+                                let width_usize = port.width.get() as usize;
+                                // Start from HighZ (transparent) so the first driver wins cleanly.
+                                let existing = state
                                     .net_values
                                     .get(&net)
                                     .cloned()
-                                    .unwrap_or_else(|| Bus::unknown(port.width.get() as usize));
-                                if old != *bus {
+                                    .unwrap_or_else(|| Bus::high_z(width_usize));
+                                let resolved = existing.resolve(bus);
+                                if existing != resolved {
                                     changed = true;
                                 }
-                                state.set_net_value(net, bus.clone());
+                                state.set_net_value(net, resolved);
                             }
                         }
                     }
@@ -373,7 +376,7 @@ fn evaluate_component(
             let result = if en == Value::True {
                 v
             } else {
-                Bus::unknown(width.get() as usize)
+                Bus::high_z(width.get() as usize)
             };
             out.insert("out".to_string(), result);
         }
@@ -528,7 +531,8 @@ fn evaluate_component(
             let sel = get("sel", *group_bits as u32);
             let data = get("in", data_width.get());
             let idx = sel.to_u64().unwrap_or(0) as usize;
-            out.insert("out".to_string(), Bus::from_u64(data.get(idx) as u64, 1));
+            let selected = data.get(idx);
+            out.insert("out".to_string(), Bus::from_value(selected, 1));
         }
 
         // ── Arithmetic ────────────────────────────────────────────────────────
@@ -779,7 +783,19 @@ fn compute_next_state(
                         (Value::True, Value::True) => !q,
                         _ => Value::Unknown,
                     };
-                    ns.q = Bus::from_u64(new_q as u64, width.get() as usize);
+                    let width_usize = width.get() as usize;
+                    ns.q = match new_q {
+                        Value::False => Bus::from_u64(0, width_usize),
+                        Value::True => {
+                            // All-ones mask for the given bit-width (safe for width == 64).
+                            let mask = 1u64
+                                .checked_shl(width.get())
+                                .map(|v| v - 1)
+                                .unwrap_or(u64::MAX);
+                            Bus::from_u64(mask, width_usize)
+                        }
+                        _ => Bus::unknown(width_usize),
+                    };
                 }
             }
             Some(ns)

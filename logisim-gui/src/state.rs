@@ -61,6 +61,8 @@ pub struct AppState {
     pub status: String,
     /// Clipboard (copied components).
     pub clipboard: Vec<logisim_core::component::Component>,
+    /// Pending single-step request.
+    pub step_requested: bool,
 }
 
 impl AppState {
@@ -83,6 +85,7 @@ impl AppState {
             wire_start: None,
             status: "Ready".to_string(),
             clipboard: Vec::new(),
+            step_requested: false,
         }
     }
 

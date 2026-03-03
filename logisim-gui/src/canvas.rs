@@ -197,8 +197,7 @@ impl CircuitCanvas {
                 if let Some((id, width)) = hit {
                     let cur = state
                         .simulator
-                        .state(&active)
-                        .and_then(|s| s.net_values.values().next().cloned())
+                        .read_pin(&active, id)
                         .unwrap_or_else(|| Bus::from_u64(0, width.get() as usize));
                     let next = if cur.get(0) == Value::True {
                         Bus::from_u64(0, width.get() as usize)
@@ -527,7 +526,6 @@ fn draw_component(
 }
 
 fn draw_component_ghost(painter: &Painter, comp: &Component, origin: Pos2, state: &AppState) {
-    let mut ghost = comp.clone();
     // Draw with transparency.
     let pos = state.grid_to_screen(comp.x, comp.y, origin);
     let g = state.grid_px();

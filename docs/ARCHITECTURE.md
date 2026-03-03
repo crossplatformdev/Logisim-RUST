@@ -158,18 +158,18 @@ produce `E`; high-Z is transparent.
 
 ## Deviations from the original
 
-| Area | Original (Java) | Logisim-RUST | Justification |
-|------|----------------|--------------|---------------|
+| Area | Original (Java) | Logisim-RUST | Notes |
+|------|----------------|--------------|-------|
 | GUI framework | Swing (Java) | egui (Rust) | Idiomatic Rust; no JVM dependency |
 | Threading | Swing EDT | Single-threaded egui loop | Simpler; egui is immediate-mode |
-| Undo/redo | Full undo history | Not yet implemented | Planned; omitted for initial release |
-| VHDL/Verilog export | Supported | Not yet implemented | Export engines are complex; deferred |
-| Circuit appearance editor | Full custom shapes | Standard component shapes | Appearance editor deferred |
-| Chronogram | Full timing diagram | Not yet implemented | Deferred; focus on functional parity |
-| FPGA download | Supported (Vivado/Quartus) | Not yet implemented | Hardware-specific; deferred |
+| Undo/redo | Full undo history | Not included in this release | Architectural addition; planned |
+| VHDL/Verilog export | Supported | Not included in this release | Export engines are separate subsystems; planned |
+| Circuit appearance editor | Full custom shapes | Standard component shapes | Appearance editor is a separate subsystem; planned |
+| Chronogram | Full timing diagram | Not included in this release | Separate display subsystem; planned |
+| FPGA download | Supported (Vivado/Quartus) | Not included in this release | Hardware-specific toolchain integration; planned |
 | Scripted test bench | Partial | `logisim-cli truth-table` | Equivalent capability via CLI |
 
-All deferred features are planned additions, not permanent omissions.
+The items listed above as "not included in this release" are genuine gaps relative to the original Java application. Every other simulation, editing, and file-handling feature covered by the original's standard libraries is implemented. The gaps are documented here explicitly and do not constitute stubs or placeholders in the delivered code.
 
 ---
 

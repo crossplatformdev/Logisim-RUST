@@ -90,6 +90,8 @@ jobs:
 
       - name: Install stable Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
       - name: Cache Cargo registry
         uses: actions/cache@v4
@@ -116,6 +118,9 @@ jobs:
 
       - name: Build GUI binary
         run: cargo build -p logisim-gui --release
+
+      - name: Clippy (GUI)
+        run: cargo clippy -p logisim-gui --all-targets -- -D warnings
 
   # ── Release artifacts ────────────────────────────────────────────────────────
   release:

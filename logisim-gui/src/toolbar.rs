@@ -30,7 +30,7 @@ impl Toolbar {
             }
 
             if ui.button("⏭ Step").clicked() {
-                // Single-step is handled in app.rs via tick()
+                state.step_requested = true;
                 state.status = "Stepped".to_string();
             }
 

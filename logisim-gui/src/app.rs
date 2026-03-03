@@ -23,6 +23,8 @@ pub struct LogisimApp {
     pending_open: Option<std::path::PathBuf>,
     /// Accumulated simulation time since last tick.
     sim_accumulator: f32,
+    /// Whether the About dialog is open.
+    about_open: bool,
 }
 
 impl LogisimApp {
@@ -68,6 +70,7 @@ impl LogisimApp {
             toolbar: Toolbar::new(),
             pending_open: None,
             sim_accumulator: 0.0,
+            about_open: false,
         }
     }
 
@@ -192,6 +195,15 @@ impl LogisimApp {
     }
 
     fn tick_simulation(&mut self, dt: f32) {
+        // Handle single-step request (from toolbar Step button).
+        if self.state.step_requested {
+            self.state.step_requested = false;
+            let name = self.state.active_circuit.clone();
+            if let Err(e) = self.state.simulator.tick(&name) {
+                self.state.status = format!("Simulation error: {}", e);
+            }
+        }
+
         if !self.state.running {
             return;
         }
@@ -297,7 +309,7 @@ impl eframe::App for LogisimApp {
 
                 ui.menu_button("Help", |ui| {
                     if ui.button("About Logisim-RUST").clicked() {
-                        // TODO: about dialog
+                        self.about_open = true;
                         ui.close_menu();
                     }
                 });
@@ -375,6 +387,9 @@ impl eframe::App for LogisimApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             self.canvas.show(ui, &mut self.state);
         });
+
+        // About dialog.
+        crate::dialogs::show_about(ctx, &mut self.about_open);
 
         // Request continuous repaint when simulating.
         if self.state.running {

@@ -307,10 +307,17 @@ impl ComponentKind {
 
             ComponentKind::Splitter { combined_width, fan_out } => {
                 let mut ports = vec![Port::input("combined", *combined_width, (0, 0))];
+                let total_bits = combined_width.get();
+                let fan_out_u32 = *fan_out as u32;
+                let group_width = if fan_out_u32 != 0 && total_bits % fan_out_u32 == 0 {
+                    BitWidth::new(total_bits / fan_out_u32)
+                } else {
+                    BitWidth::ONE
+                };
                 for i in 0..*fan_out {
                     ports.push(Port::output(
                         format!("bit{}", i),
-                        BitWidth::ONE,
+                        group_width,
                         (0, i as i32 + 1),
                     ));
                 }

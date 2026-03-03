@@ -375,12 +375,16 @@ mod tests {
     use std::io::Write;
 
     fn write_temp_circ(content: &str) -> String {
-        let path = format!("/tmp/test_circuit_{}.circ", std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .subsec_nanos());
+        let mut path = std::env::temp_dir();
+        path.push(format!(
+            "test_circuit_{}.circ",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .subsec_nanos()
+        ));
         std::fs::write(&path, content).unwrap();
-        path
+        path.to_string_lossy().into_owned()
     }
 
     const AND_CIRC: &str = r##"<?xml version="1.0" encoding="UTF-8" standalone="no"?>

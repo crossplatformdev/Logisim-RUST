@@ -176,6 +176,20 @@ impl Bus {
         }
     }
 
+    /// Create a new all-`HighZ` bus of the given width (undriven / high-impedance).
+    pub fn high_z(width: usize) -> Self {
+        Bus {
+            bits: vec![Value::HighZ; width],
+        }
+    }
+
+    /// Create a bus from a single `Value` repeated across `width` bits.
+    pub fn from_value(value: Value, width: usize) -> Self {
+        Bus {
+            bits: vec![value; width],
+        }
+    }
+
     /// Create a bus from an integer value (LSB first).
     pub fn from_u64(value: u64, width: usize) -> Self {
         let bits = (0..width)
