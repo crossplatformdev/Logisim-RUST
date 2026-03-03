@@ -181,7 +181,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Appearance editor | missing | — | — | |
 | Print / export image | missing | — | — | |
 | Find / search | missing | — | — | |
-| Component attribute panel (sidebar) | missing | — | missing | Not yet implemented |
+| Component attribute panel (sidebar) | ✅ | — | ✅ | Read-only attribute table for selected component (Type, Position, Label, Facing, kind-specific attrs) |
 
 ---
 
@@ -265,7 +265,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | I/O components | 7 | 0 | 2 |
 | TTL libraries | 6 | 0 | 1 |
 | File format | 11 | 1 | 1 |
-| GUI / editor | 16 | 1 | 10 |
+| GUI / editor | 17 | 1 | 9 |
 | Undo / Redo | 8 | 0 | 1 |
 | Chronogram | 0 | 0 | 3 |
 | HDL export | 0 | 0 | 3 |
@@ -273,4 +273,4 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Localization | 1 | 0 | 1 |
 | CLI | 3 | 0 | 1 |
 
-_Last updated: 2026-03-03_
+_Last updated: 2026-03-03 (attribute panel added, GUI implemented count 17)_

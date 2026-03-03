@@ -440,13 +440,31 @@ impl eframe::App for LogisimApp {
             });
         });
 
-        // Left panel: component list.
+        // Left panel: component list + attribute table.
         egui::SidePanel::left("component_panel")
             .resizable(true)
             .min_width(150.0)
             .default_width(200.0)
             .show(ctx, |ui| {
-                self.component_panel.show(ui, &mut self.state);
+                let avail = ui.available_height();
+                // Top portion: component palette (default 60% of left panel height,
+                // max 70%). Bottom portion: attribute table for the selected component.
+                // This matches the upstream Explorer/Attribute split in Logisim-Evolution.
+                egui::TopBottomPanel::top("palette_inner")
+                    .resizable(true)
+                    .min_height(80.0)
+                    .max_height(avail * 0.70)
+                    .default_height(avail * 0.60)
+                    .frame(egui::Frame::none())
+                    .show_inside(ui, |ui| {
+                        self.component_panel.show(ui, &mut self.state);
+                    });
+                // Scrollable attribute table for the selected component.
+                egui::ScrollArea::vertical()
+                    .id_salt("attr_scroll")
+                    .show(ui, |ui| {
+                        crate::attr_panel::show_attr_panel(ui, &self.state);
+                    });
             });
 
         // Right panel: circuit list.

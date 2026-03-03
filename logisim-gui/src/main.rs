@@ -3,6 +3,7 @@
 //! Entry point for the graphical user interface built with egui/eframe.
 
 mod app;
+mod attr_panel;
 mod canvas;
 mod component_panel;
 mod dialogs;
