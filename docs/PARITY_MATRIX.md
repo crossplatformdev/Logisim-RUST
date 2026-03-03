@@ -162,7 +162,8 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Grid display | ✅ | — | ✅ | Toggleable |
 | Component placement with ghost preview | ✅ | — | ✅ | |
 | Wire drawing (click-to-start + click-to-finish, L-shaped preview) | partial | — | partial | No click-drag; no T-junction auto-connect; segments stored without auto-junctions |
-| Rubber-band selection | missing | — | — | Not yet implemented; only click-to-select supported |
+| Wire junction dots (T/X-junction) | ✅ | — | ✅ | Filled circles at points where 3+ wire endpoints meet |
+| Rubber-band selection | ✅ | ✅ | ✅ | Drag in empty canvas area selects all covered components |
 | Component drag-to-move | ✅ | — | ✅ | Commits MoveComponent undo action |
 | Delete selected (Delete key) | ✅ | — | ✅ | |
 | Poke tool (toggle input pins) | ✅ | — | ✅ | |
@@ -264,7 +265,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | I/O components | 7 | 0 | 2 |
 | TTL libraries | 6 | 0 | 1 |
 | File format | 11 | 1 | 1 |
-| GUI / editor | 14 | 1 | 11 |
+| GUI / editor | 16 | 1 | 10 |
 | Undo / Redo | 8 | 0 | 1 |
 | Chronogram | 0 | 0 | 3 |
 | HDL export | 0 | 0 | 3 |

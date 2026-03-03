@@ -39,11 +39,17 @@ const HIT_TOLERANCE: i32 = 2;
 pub struct CircuitCanvas {
     /// Component currently being dragged (id, grid-pos at drag start).
     dragging: Option<(ComponentId, i32, i32)>,
+    /// Rubber-band selection rectangle (start screen pos, current screen pos).
+    /// Only active when the user drags in Select tool without hitting a component.
+    rubber_band: Option<(egui::Pos2, egui::Pos2)>,
 }
 
 impl CircuitCanvas {
     pub fn new() -> Self {
-        CircuitCanvas { dragging: None }
+        CircuitCanvas {
+            dragging: None,
+            rubber_band: None,
+        }
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, state: &mut AppState) {
@@ -89,6 +95,8 @@ impl CircuitCanvas {
                 };
                 draw_wire(&painter, wire, origin, state, color);
             }
+            // Draw T-junction dots at points where 3+ wire segments meet.
+            draw_junctions(&painter, &circuit.wires, origin, state);
             let comp_ids: Vec<_> = circuit.components.keys().copied().collect();
             for id in &comp_ids {
                 if let Some(comp) = circuit.get_component(*id) {
@@ -110,7 +118,7 @@ impl CircuitCanvas {
             }
         }
 
-        // ── Component drag-to-move (Select tool, primary button) ──────────
+        // ── Component drag-to-move / rubber-band (Select tool, primary button) ──
         if state.tool == crate::state::Tool::Select {
             if response.drag_started_by(egui::PointerButton::Primary) {
                 if let Some(pos) = response.interact_pointer_pos() {
@@ -127,9 +135,25 @@ impl CircuitCanvas {
             if response.drag_stopped_by(egui::PointerButton::Primary) {
                 self.on_drag_end(state);
             }
+
+            // Draw rubber-band rectangle.
+            if let Some((start, end)) = self.rubber_band {
+                let rect = Rect::from_two_pos(start, end);
+                painter.rect_stroke(
+                    rect,
+                    0.0,
+                    Stroke::new(1.0, egui::Color32::from_rgb(0, 120, 255)),
+                );
+                painter.rect_filled(
+                    rect,
+                    0.0,
+                    egui::Color32::from_rgba_unmultiplied(0, 120, 255, 30),
+                );
+            }
         } else {
             // Cancel any drag if we switched tools.
             self.dragging = None;
+            self.rubber_band = None;
         }
 
         // ── Handle pointer click events ───────────────────────────────────
@@ -176,7 +200,11 @@ impl CircuitCanvas {
             .map(|(id, comp)| (*id, comp.x, comp.y));
         if let Some((id, ox, oy)) = hit {
             self.dragging = Some((id, ox, oy));
+            // Clicking any component always makes it the sole selection (standard UI behaviour).
             state.selected = vec![id];
+        } else {
+            // No component hit — start rubber-band selection.
+            self.rubber_band = Some((pos, pos));
         }
     }
 
@@ -192,6 +220,28 @@ impl CircuitCanvas {
                 }
             }
             self.dragging = Some((id, ox, oy));
+        } else if let Some((start, _)) = self.rubber_band {
+            // Extend rubber-band.
+            self.rubber_band = Some((start, pos));
+            // Live-select all components inside the rubber-band rect.
+            let rect = Rect::from_two_pos(start, pos);
+            // Collect matching IDs first (releases the circuits borrow) then assign.
+            let selected: Vec<ComponentId> = state
+                .project
+                .circuits
+                .get(&state.active_circuit)
+                .map(|c| {
+                    c.components
+                        .iter()
+                        .filter(|(_, comp)| {
+                            let sp = state.grid_to_screen(comp.x, comp.y, origin);
+                            rect.contains(sp)
+                        })
+                        .map(|(id, _)| *id)
+                        .collect()
+                })
+                .unwrap_or_default();
+            state.selected = selected;
         }
     }
 
@@ -218,6 +268,8 @@ impl CircuitCanvas {
                 }
             }
         }
+        // Clear rubber-band (selection already finalised during on_drag_move).
+        self.rubber_band = None;
     }
 
     /// Handle a click at screen position `pos` relative to canvas `origin`.
@@ -384,6 +436,24 @@ fn draw_wire(painter: &Painter, wire: &Wire, origin: Pos2, state: &AppState, col
     let p1 = state.grid_to_screen(wire.from.x, wire.from.y, origin);
     let p2 = state.grid_to_screen(wire.to.x, wire.to.y, origin);
     painter.line_segment([p1, p2], Stroke::new(2.0 * state.zoom, color));
+}
+
+/// Draw junction (filled circle) at every point where 3 or more wire endpoints meet,
+/// matching upstream Logisim-Evolution's T/X junction dot convention.
+fn draw_junctions(painter: &Painter, wires: &[Wire], origin: Pos2, state: &AppState) {
+    use std::collections::HashMap;
+    let mut endpoint_count: HashMap<(i32, i32), usize> = HashMap::new();
+    for w in wires {
+        *endpoint_count.entry((w.from.x, w.from.y)).or_insert(0) += 1;
+        *endpoint_count.entry((w.to.x, w.to.y)).or_insert(0) += 1;
+    }
+    let radius = 3.5 * state.zoom;
+    for ((gx, gy), count) in &endpoint_count {
+        if *count >= 3 {
+            let sp = state.grid_to_screen(*gx, *gy, origin);
+            painter.circle_filled(sp, radius, GATE_BORDER);
+        }
+    }
 }
 
 fn draw_component(

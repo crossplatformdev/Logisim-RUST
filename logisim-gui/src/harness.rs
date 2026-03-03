@@ -629,4 +629,33 @@ mod tests {
         assert_eq!(h.state.tool, Tool::Select);
         assert!(h.state.wire_start.is_none());
     }
+
+    // ── Test: rubber-band selection ───────────────────────────────────────────
+
+    #[test]
+    fn test_rubber_band_selection() {
+        let mut h = GuiHarness::new();
+
+        // Place two pins at different grid positions.
+        h.dispatch(SyntheticEvent::SetTool(Tool::Place(ComponentKind::Pin {
+            is_output: false,
+            width: BitWidth::ONE,
+        })));
+        h.dispatch(SyntheticEvent::ClickAtGrid { gx: 3, gy: 3 });
+        h.dispatch(SyntheticEvent::ClickAtGrid { gx: 15, gy: 15 });
+        assert_eq!(h.component_count(), 2);
+
+        // Switch to Select, start a rubber-band drag that covers only (3,3).
+        h.dispatch(SyntheticEvent::SetTool(Tool::Select));
+        h.dispatch(SyntheticEvent::DragStartAtGrid { gx: 0, gy: 0 }); // canvas bg → rubber band
+        h.dispatch(SyntheticEvent::DragToGrid { gx: 7, gy: 7 });
+        h.dispatch(SyntheticEvent::DragEnd);
+
+        // Only the pin at (3,3) should be selected.
+        assert_eq!(
+            h.state.selected.len(),
+            1,
+            "rubber-band must select only the covered component"
+        );
+    }
 }
