@@ -372,7 +372,7 @@ impl ComponentKind {
             ComponentKind::Tunnel { .. } => "Tunnel".to_string(),
             ComponentKind::Probe { .. } => "Probe".to_string(),
             ComponentKind::PullResistor { .. } => "Pull Resistor".to_string(),
-            ComponentKind::TristateBuffer { .. } => "Controlled Buffer".to_string(),
+            ComponentKind::TristateBuffer { .. } => "Tristate Buffer".to_string(),
             ComponentKind::BitExtender { .. } => "Bit Extender".to_string(),
             ComponentKind::AndGate { .. } => "AND Gate".to_string(),
             ComponentKind::OrGate { .. } => "OR Gate".to_string(),

@@ -116,12 +116,13 @@ A headless CLI for scripting and automated verification.
 
 Most standard Logisim-Evolution libraries are implemented.  The table below
 lists supported component categories; a small number of components (e.g. the
-*Controlled Buffer* in the gates library) were added to the parser in this
-release to close known round-trip gaps:
+*Controlled Buffer* in the gates library and the *Tristate Buffer* in the
+wiring library) were added to the parser in this release to close known
+round-trip gaps:
 
 | Library | Components |
 |---------|-----------|
-| **Wiring** | Pin, Clock, Constant, Power, Ground, Splitter, Tunnel, Probe, Pull Resistor, Controlled Buffer |
+| **Wiring** | Pin, Clock, Constant, Power, Ground, Splitter, Tunnel, Probe, Pull Resistor, Tristate Buffer |
 | **Gates** | AND, OR, NAND, NOR, XOR, XNOR, NOT, Buffer, Controlled Buffer |
 | **Plexers** | Multiplexer, Demultiplexer, Decoder, Priority Encoder, Bit Selector |
 | **Arithmetic** | Adder, Subtractor, Multiplier, Divider, Negator, Comparator, Shift Register, Bit Adder, Bit Finder |

@@ -343,7 +343,7 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
             "Buffer" => Ok(ComponentKind::Buffer {
                 width: get_width("width"),
             }),
-            "Controlled Buffer" | "Tristate Buffer" => Ok(ComponentKind::ControlledBuffer {
+            "Controlled Buffer" => Ok(ComponentKind::ControlledBuffer {
                 width: get_width("width"),
             }),
             "Odd Parity" => Ok(ComponentKind::OddParityGate {

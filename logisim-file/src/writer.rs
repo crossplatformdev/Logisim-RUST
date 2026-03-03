@@ -517,4 +517,76 @@ mod tests {
         assert_eq!(escape(r#"a"b"#), "a&quot;b");
         assert_eq!(escape("a<b>c"), "a&lt;b&gt;c");
     }
+
+    #[test]
+    fn test_tristate_buffer_roundtrip() {
+        // TristateBuffer is a wiring-lib component named "Tristate Buffer"
+        let mut project = Project::new("test");
+        let mut circuit = Circuit::new("main");
+        circuit.add_component(
+            ComponentKind::TristateBuffer {
+                width: BitWidth::ONE,
+            },
+            10,
+            10,
+        );
+        project.add_circuit(circuit);
+
+        let mut buf = Vec::new();
+        write_circ(&project, &mut buf).unwrap();
+        let xml = String::from_utf8(buf).unwrap();
+
+        // Must serialize as wiring lib ("0") with name "Tristate Buffer"
+        assert!(
+            xml.contains(r#"lib="0""#),
+            "TristateBuffer must use wiring lib 0"
+        );
+        assert!(
+            xml.contains(r#"name="Tristate Buffer""#),
+            "TristateBuffer must serialize as 'Tristate Buffer'"
+        );
+
+        // Must parse back correctly
+        let project2 = parse_circ(xml.as_bytes()).unwrap();
+        let circuit2 = &project2.circuits["main"];
+        assert_eq!(circuit2.components.len(), 1);
+        let comp = circuit2.components.values().next().unwrap();
+        assert!(matches!(comp.kind, ComponentKind::TristateBuffer { .. }));
+    }
+
+    #[test]
+    fn test_controlled_buffer_roundtrip() {
+        // ControlledBuffer is a gates-lib component named "Controlled Buffer"
+        let mut project = Project::new("test");
+        let mut circuit = Circuit::new("main");
+        circuit.add_component(
+            ComponentKind::ControlledBuffer {
+                width: BitWidth::ONE,
+            },
+            10,
+            10,
+        );
+        project.add_circuit(circuit);
+
+        let mut buf = Vec::new();
+        write_circ(&project, &mut buf).unwrap();
+        let xml = String::from_utf8(buf).unwrap();
+
+        // Must serialize as gates lib ("1") with name "Controlled Buffer"
+        assert!(
+            xml.contains(r#"lib="1""#),
+            "ControlledBuffer must use gates lib 1"
+        );
+        assert!(
+            xml.contains(r#"name="Controlled Buffer""#),
+            "ControlledBuffer must serialize as 'Controlled Buffer'"
+        );
+
+        // Must parse back correctly
+        let project2 = parse_circ(xml.as_bytes()).unwrap();
+        let circuit2 = &project2.circuits["main"];
+        assert_eq!(circuit2.components.len(), 1);
+        let comp = circuit2.components.values().next().unwrap();
+        assert!(matches!(comp.kind, ComponentKind::ControlledBuffer { .. }));
+    }
 }

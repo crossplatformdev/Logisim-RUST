@@ -138,7 +138,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Write `<circuit>` elements | ✅ | ✅ | ✅ | |
 | Write `<wire>` elements | ✅ | ✅ | ✅ | |
 | Write `<comp>` with lib/name | ✅ | ✅ | ✅ | |
-| Round-trip fidelity (parse → write → parse) | partial | ✅ | partial | Transistor, TTL missing; Controlled Buffer wiring-lib parse bug fixed |
+| Round-trip fidelity (parse → write → parse) | partial | ✅ | partial | Transistor, TTL missing; TristateBuffer now correctly uses name "Tristate Buffer" (wiring lib) |
 | Project-level metadata (`<project>`, `<lib>` declarations) | partial | — | partial | Read-only; not written back |
 | Circuit appearance data (`<appear>`) | missing | — | — | Custom component shapes not stored |
 | `main` circuit attribute | partial | — | partial | Parsed but not enforced |
@@ -150,12 +150,12 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 
 | Feature | Implemented | Tested | Compatible | Notes |
 |---------|-------------|--------|------------|-------|
-| Tool palette (Select, Wire, Place, Poke, Text, Delete) | ✅ | — | ✅ | |
+| Tool palette (Select, Wire, Place, Poke, Text) | ✅ | — | ✅ | Deletion via Delete key only; no separate Delete tool mode |
 | Canvas pan (drag) | ✅ | — | ✅ | |
 | Canvas zoom (scroll / buttons) | ✅ | — | ✅ | |
 | Grid display | ✅ | — | ✅ | Toggleable |
 | Component placement with ghost preview | ✅ | — | ✅ | |
-| Wire drawing (click-drag, T-junction) | ✅ | — | ✅ | |
+| Wire drawing (click-to-start + click-to-finish, L-shaped preview) | partial | — | partial | No click-drag; no T-junction auto-connect; segments stored without auto-junctions |
 | Rubber-band selection | missing | — | — | Not yet implemented; only click-to-select supported |
 | Component drag-to-move | ✅ | — | ✅ | Commits MoveComponent undo action |
 | Delete selected (Delete key) | ✅ | — | ✅ | |
@@ -173,7 +173,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Appearance editor | missing | — | — | |
 | Print / export image | missing | — | — | |
 | Find / search | missing | — | — | |
-| Component attribute panel (sidebar) | partial | — | partial | Properties shown; not fully editable |
+| Component attribute panel (sidebar) | missing | — | missing | Not yet implemented |
 
 ---
 
