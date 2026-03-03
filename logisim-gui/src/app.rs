@@ -371,7 +371,10 @@ impl eframe::App for LogisimApp {
                     }
                     if ui.button("Step").clicked() {
                         let name = self.state.active_circuit.clone();
-                        let _ = self.state.simulator.tick(&name);
+                        if let Err(e) = self.state.simulator.tick(&name) {
+                            self.state.status = format!("Simulation error: {}", e);
+                            self.state.running = false;
+                        }
                         ui.close_menu();
                     }
                     ui.separator();

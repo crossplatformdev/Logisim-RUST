@@ -118,7 +118,8 @@ fn write_component<W: Write>(
 ) -> Result<()> {
     let lib = lib_number(&comp.kind);
     let name = comp.kind.component_name();
-    let loc = format!("({},{})", comp.x, comp.y);
+    // Convert grid units → pixel units (Logisim grid spacing is 10 px).
+    let loc = format!("({},{})", comp.x * 10, comp.y * 10);
 
     writeln!(
         writer,
@@ -431,10 +432,14 @@ fn write_kind_attrs<W: Write>(kind: &ComponentKind, writer: &mut W) -> Result<()
 // ── Wire ──────────────────────────────────────────────────────────────────────
 
 fn write_wire<W: Write>(wire: &Wire, writer: &mut W) -> Result<()> {
+    // Convert grid units → pixel units (Logisim grid spacing is 10 px).
     writeln!(
         writer,
         r#"    <wire from="({},{})" to="({},{})"/>"#,
-        wire.from.x, wire.from.y, wire.to.x, wire.to.y
+        wire.from.x * 10,
+        wire.from.y * 10,
+        wire.to.x * 10,
+        wire.to.y * 10
     )?;
     Ok(())
 }
@@ -463,13 +468,14 @@ mod tests {
     fn make_test_project() -> Project {
         let mut project = Project::new("test");
         let mut circuit = Circuit::new("main");
+        // Coordinates are in grid units (1 unit = 10 px in Logisim's pixel space).
         circuit.add_component(
             ComponentKind::Pin {
                 is_output: false,
                 width: BitWidth::ONE,
             },
-            30,
-            140,
+            3,
+            14,
         );
         circuit.add_component(
             ComponentKind::AndGate {
@@ -478,19 +484,19 @@ mod tests {
                 negate_inputs: vec![],
                 negate_output: false,
             },
-            160,
-            140,
+            16,
+            14,
         );
         circuit.add_component(
             ComponentKind::Pin {
                 is_output: true,
                 width: BitWidth::ONE,
             },
-            290,
-            140,
+            29,
+            14,
         );
-        circuit.add_wire(30, 140, 160, 140);
-        circuit.add_wire(160, 142, 290, 140);
+        circuit.add_wire(3, 14, 16, 14);
+        circuit.add_wire(16, 14, 29, 14);
         project.add_circuit(circuit);
         project
     }

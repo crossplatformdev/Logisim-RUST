@@ -144,7 +144,7 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Round-trip subcircuit references | ✅ | |
 | Library declarations in header | ✅ | |
 | Main circuit (`<main name="..."/>`) | ✅ | Written and parsed |
-| Appearance data (`<appear>`) | ✅ | Preserved verbatim through parse→write cycles |
+| Appearance data (`<appear>`) | ✅ | Preserved and round-tripped (canonicalized) through parse→write cycles |
 | Description / metadata attributes | 🟡 | Partially preserved |
 
 ---

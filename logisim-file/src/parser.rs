@@ -658,7 +658,9 @@ fn parse_wire(e: &BytesStart) -> Result<Option<logisim_core::circuit::Wire>> {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/// Parse a Logisim location string like `(160,130)` into `(x, y)`.
+/// Parse a Logisim location string like `(160,130)` into grid units `(x, y)`.
+/// Logisim `.circ` files store coordinates in pixel units (multiples of 10);
+/// the GUI uses grid units where 1 unit = `BASE_GRID_PX` screen pixels.
 fn parse_loc(s: &str) -> Result<(i32, i32)> {
     let s = s.trim().trim_start_matches('(').trim_end_matches(')');
     let mut parts = s.splitn(2, ',');
@@ -674,7 +676,8 @@ fn parse_loc(s: &str) -> Result<(i32, i32)> {
         .trim()
         .parse::<i32>()
         .map_err(|_| FileError::InvalidCoord(s.to_string()))?;
-    Ok((x, y))
+    // Convert pixel units → grid units (Logisim grid spacing is 10 px).
+    Ok((x / 10, y / 10))
 }
 
 /// Parse a Logisim facing string.
@@ -811,9 +814,10 @@ mod tests {
 
     #[test]
     fn test_parse_loc() {
-        assert_eq!(parse_loc("(160,130)").unwrap(), (160, 130));
+        // parse_loc converts from pixel units (as stored in .circ) to grid units (÷10).
+        assert_eq!(parse_loc("(160,130)").unwrap(), (16, 13));
         assert_eq!(parse_loc("(0,0)").unwrap(), (0, 0));
-        assert_eq!(parse_loc("(-10,200)").unwrap(), (-10, 200));
+        assert_eq!(parse_loc("(-10,200)").unwrap(), (-1, 20));
     }
 
     #[test]
