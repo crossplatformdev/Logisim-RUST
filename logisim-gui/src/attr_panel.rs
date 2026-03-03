@@ -4,6 +4,7 @@
 use crate::state::AppState;
 use egui::Ui;
 use logisim_core::component::{ComponentKind, Facing};
+use logisim_core::history::UndoAction;
 
 /// Grid-to-pixel conversion factor (10 px per grid unit at zoom 1×).
 const GRID_PX: i32 = 10;
@@ -11,10 +12,10 @@ const GRID_PX: i32 = 10;
 /// Renders the attribute table for the currently selected component(s).
 ///
 /// Matches the upstream Logisim-Evolution `AttrTable` panel:
-/// - One component selected → full attribute grid
+/// - One component selected → full attribute grid with editable label
 /// - Multiple selected → count summary
 /// - Nothing selected → neutral message
-pub fn show_attr_panel(ui: &mut Ui, state: &AppState) {
+pub fn show_attr_panel(ui: &mut Ui, state: &mut AppState) {
     ui.separator();
     ui.heading("Selection");
     ui.separator();
@@ -24,7 +25,8 @@ pub fn show_attr_panel(ui: &mut Ui, state: &AppState) {
         return;
     }
 
-    let circuit = match state.project.circuits.get(&state.active_circuit) {
+    let circuit_name = state.active_circuit.clone();
+    let circuit = match state.project.circuits.get(&circuit_name) {
         Some(c) => c,
         None => {
             ui.label("Circuit not found.");
@@ -37,13 +39,20 @@ pub fn show_attr_panel(ui: &mut Ui, state: &AppState) {
         return;
     }
 
-    let comp = match circuit.components.get(&state.selected[0]) {
+    let comp_id = state.selected[0];
+    let comp = match circuit.components.get(&comp_id) {
         Some(c) => c,
         None => {
             ui.label("Component not found.");
             return;
         }
     };
+
+    let comp_x = comp.x;
+    let comp_y = comp.y;
+    let comp_facing = comp.facing;
+    let comp_label = comp.label.clone();
+    let comp_kind = comp.kind.clone();
 
     // Attribute grid: two columns (name, value), matching upstream row layout.
     egui::Grid::new("attr_grid")
@@ -53,22 +62,52 @@ pub fn show_attr_panel(ui: &mut Ui, state: &AppState) {
         .min_col_width(60.0)
         .show(ui, |ui| {
             // ── Common attributes ────────────────────────────────────────────
-            attr_row(ui, "Type", component_type_name(&comp.kind));
-            attr_row(ui, "X", &(comp.x * GRID_PX).to_string());
-            attr_row(ui, "Y", &(comp.y * GRID_PX).to_string());
-            if !comp.label.is_empty() {
-                attr_row(ui, "Label", &comp.label);
+            attr_row(ui, "Type", component_type_name(&comp_kind));
+            attr_row(ui, "X", &(comp_x * GRID_PX).to_string());
+            attr_row(ui, "Y", &(comp_y * GRID_PX).to_string());
+
+            // Editable label field — matches upstream Logisim-Evolution behaviour.
+            // Use egui's temporary per-id memory so intermediate typed text is not
+            // overwritten each frame when the widget has focus.
+            ui.label(egui::RichText::new("Label").weak());
+            let edit_id = egui::Id::new(("label_edit", comp_id));
+            let mut label_buf: String = ui
+                .data_mut(|d| d.get_temp::<String>(edit_id))
+                .unwrap_or_else(|| comp_label.clone());
+            let label_resp = ui.text_edit_singleline(&mut label_buf);
+            ui.data_mut(|d| d.insert_temp(edit_id, label_buf.clone()));
+            if label_resp.lost_focus() && label_buf != comp_label {
+                // Commit the label change with undo support.
+                let action = UndoAction::ChangeLabel {
+                    circuit_name: circuit_name.clone(),
+                    id: comp_id,
+                    old_label: comp_label.clone(),
+                    new_label: label_buf.clone(),
+                };
+                action.apply(&mut state.project);
+                state.history.push(action);
+                state.modified = true;
+                state.sync_simulator();
+                // Clear temp buffer so next open shows the committed value.
+                ui.data_mut(|d| d.remove::<String>(edit_id));
             }
-            attr_row(ui, "Facing", facing_name(comp.facing));
+            ui.end_row();
+
+            attr_row(ui, "Facing", facing_name(comp_facing));
 
             // ── Kind-specific attributes ─────────────────────────────────────
-            kind_attrs(ui, &comp.kind);
+            kind_attrs(ui, &comp_kind);
 
             // ── Extra XML attributes ──────────────────────────────────────────
-            let mut sorted_attrs: Vec<_> = comp.attributes.iter().collect();
-            sorted_attrs.sort_by_key(|(k, _)| k.as_str());
-            for (k, v) in sorted_attrs {
-                attr_row(ui, k, v);
+            // Re-borrow after potential mutation above.
+            if let Some(c) = state.project.circuits.get(&circuit_name) {
+                if let Some(comp) = c.components.get(&comp_id) {
+                    let mut sorted_attrs: Vec<_> = comp.attributes.iter().collect();
+                    sorted_attrs.sort_by_key(|(k, _)| k.as_str());
+                    for (k, v) in sorted_attrs {
+                        attr_row(ui, k, v);
+                    }
+                }
             }
         });
 }

@@ -38,6 +38,13 @@ pub enum UndoAction {
         new_x: i32,
         new_y: i32,
     },
+    /// A component's label was changed.
+    ChangeLabel {
+        circuit_name: String,
+        id: ComponentId,
+        old_label: String,
+        new_label: String,
+    },
     /// A batch of actions that should be treated as one undo step.
     Batch(Vec<UndoAction>),
 }
@@ -84,6 +91,17 @@ impl UndoAction {
                 old_y: new_y,
                 new_x: old_x,
                 new_y: old_y,
+            },
+            UndoAction::ChangeLabel {
+                circuit_name,
+                id,
+                old_label,
+                new_label,
+            } => UndoAction::ChangeLabel {
+                circuit_name,
+                id,
+                old_label: new_label,
+                new_label: old_label,
             },
             UndoAction::Batch(actions) => {
                 // Reverse the order so sub-actions undo correctly.
@@ -133,6 +151,18 @@ impl UndoAction {
                     if let Some(comp) = circuit.components.get_mut(id) {
                         comp.x = *new_x;
                         comp.y = *new_y;
+                    }
+                }
+            }
+            UndoAction::ChangeLabel {
+                circuit_name,
+                id,
+                new_label,
+                ..
+            } => {
+                if let Some(circuit) = project.circuits.get_mut(circuit_name) {
+                    if let Some(comp) = circuit.components.get_mut(id) {
+                        comp.label = new_label.clone();
                     }
                 }
             }
@@ -355,5 +385,39 @@ mod tests {
             wire: Wire::new(5, 5, 15, 5),
         });
         assert!(!hist.can_redo());
+    }
+
+    #[test]
+    fn test_undo_change_label() {
+        let mut p = make_project();
+        let mut hist = UndoHistory::new(10);
+
+        let id = {
+            let c = p.circuits.get_mut("main").unwrap();
+            c.add_component(ComponentKind::Clock, 0, 0)
+        };
+
+        // Change label from "" to "clk".
+        hist.push(UndoAction::ChangeLabel {
+            circuit_name: "main".to_string(),
+            id,
+            old_label: String::new(),
+            new_label: "clk".to_string(),
+        });
+        p.circuits
+            .get_mut("main")
+            .unwrap()
+            .components
+            .get_mut(&id)
+            .unwrap()
+            .label = "clk".to_string();
+
+        assert_eq!(p.circuits["main"].components[&id].label, "clk");
+
+        hist.undo(&mut p);
+        assert_eq!(p.circuits["main"].components[&id].label, "");
+
+        hist.redo(&mut p);
+        assert_eq!(p.circuits["main"].components[&id].label, "clk");
     }
 }

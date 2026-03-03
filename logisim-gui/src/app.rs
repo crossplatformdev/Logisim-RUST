@@ -466,7 +466,7 @@ impl eframe::App for LogisimApp {
                 egui::ScrollArea::vertical()
                     .id_salt("attr_scroll")
                     .show(ui, |ui| {
-                        crate::attr_panel::show_attr_panel(ui, &self.state);
+                        crate::attr_panel::show_attr_panel(ui, &mut self.state);
                     });
             });
 
