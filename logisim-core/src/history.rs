@@ -5,7 +5,7 @@
 //! reverses actions against a [`Project`].
 
 use crate::circuit::Wire;
-use crate::component::{Component, ComponentId, Facing};
+use crate::component::{Component, ComponentId, ComponentKind, Facing};
 use crate::project::Project;
 
 // ── UndoAction ────────────────────────────────────────────────────────────────
@@ -51,6 +51,13 @@ pub enum UndoAction {
         id: ComponentId,
         old_facing: Facing,
         new_facing: Facing,
+    },
+    /// A component's kind (and thus its kind-specific attributes) was changed.
+    ChangeKind {
+        circuit_name: String,
+        id: ComponentId,
+        old_kind: ComponentKind,
+        new_kind: ComponentKind,
     },
     /// A batch of actions that should be treated as one undo step.
     Batch(Vec<UndoAction>),
@@ -120,6 +127,17 @@ impl UndoAction {
                 id,
                 old_facing: new_facing,
                 new_facing: old_facing,
+            },
+            UndoAction::ChangeKind {
+                circuit_name,
+                id,
+                old_kind,
+                new_kind,
+            } => UndoAction::ChangeKind {
+                circuit_name,
+                id,
+                old_kind: new_kind,
+                new_kind: old_kind,
             },
             UndoAction::Batch(actions) => {
                 // Reverse the order so sub-actions undo correctly.
@@ -193,6 +211,18 @@ impl UndoAction {
                 if let Some(circuit) = project.circuits.get_mut(circuit_name) {
                     if let Some(comp) = circuit.components.get_mut(id) {
                         comp.facing = *new_facing;
+                    }
+                }
+            }
+            UndoAction::ChangeKind {
+                circuit_name,
+                id,
+                new_kind,
+                ..
+            } => {
+                if let Some(circuit) = project.circuits.get_mut(circuit_name) {
+                    if let Some(comp) = circuit.components.get_mut(id) {
+                        comp.kind = new_kind.clone();
                     }
                 }
             }
@@ -480,5 +510,63 @@ mod tests {
 
         hist.redo(&mut p);
         assert_eq!(p.circuits["main"].components[&id].facing, Facing::North);
+    }
+
+    #[test]
+    fn test_undo_change_kind() {
+        use crate::value::BitWidth;
+
+        let mut p = make_project();
+        let mut hist = UndoHistory::new(10);
+
+        // Add a 2-input AND gate.
+        let id = {
+            let c = p.circuits.get_mut("main").unwrap();
+            c.add_component(
+                ComponentKind::AndGate {
+                    inputs: 2,
+                    width: BitWidth::ONE,
+                    negate_inputs: vec![false, false],
+                    negate_output: false,
+                },
+                0,
+                0,
+            )
+        };
+
+        let old_kind = p.circuits["main"].components[&id].kind.clone();
+        let new_kind = ComponentKind::AndGate {
+            inputs: 3,
+            width: BitWidth::ONE,
+            negate_inputs: vec![false, false, false],
+            negate_output: false,
+        };
+
+        // Change input count from 2 to 3.
+        let action = UndoAction::ChangeKind {
+            circuit_name: "main".to_string(),
+            id,
+            old_kind,
+            new_kind,
+        };
+        action.apply(&mut p);
+        hist.push(action);
+
+        assert!(matches!(
+            p.circuits["main"].components[&id].kind,
+            ComponentKind::AndGate { inputs: 3, .. }
+        ));
+
+        hist.undo(&mut p);
+        assert!(matches!(
+            p.circuits["main"].components[&id].kind,
+            ComponentKind::AndGate { inputs: 2, .. }
+        ));
+
+        hist.redo(&mut p);
+        assert!(matches!(
+            p.circuits["main"].components[&id].kind,
+            ComponentKind::AndGate { inputs: 3, .. }
+        ));
     }
 }

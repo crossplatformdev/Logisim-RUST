@@ -5,6 +5,7 @@ use crate::state::AppState;
 use egui::Ui;
 use logisim_core::component::{ComponentKind, Facing};
 use logisim_core::history::UndoAction;
+use logisim_core::value::BitWidth;
 
 /// Grid-to-pixel conversion factor (10 px per grid unit at zoom 1×).
 const GRID_PX: i32 = 10;
@@ -53,6 +54,9 @@ pub fn show_attr_panel(ui: &mut Ui, state: &mut AppState) {
     let comp_facing = comp.facing;
     let comp_label = comp.label.clone();
     let comp_kind = comp.kind.clone();
+
+    // pending_kind: collected inside the grid closure, applied after the grid closes.
+    let mut pending_kind: Option<ComponentKind> = None;
 
     // Attribute grid: two columns (name, value), matching upstream row layout.
     egui::Grid::new("attr_grid")
@@ -119,7 +123,8 @@ pub fn show_attr_panel(ui: &mut Ui, state: &mut AppState) {
             ui.end_row();
 
             // ── Kind-specific attributes ─────────────────────────────────────
-            kind_attrs(ui, &comp_kind);
+            // Collect a pending kind change; applied after the grid closes.
+            pending_kind = kind_attrs_editable(ui, &comp_kind);
 
             // ── Extra XML attributes ──────────────────────────────────────────
             // Re-borrow after potential mutation above.
@@ -133,173 +138,416 @@ pub fn show_attr_panel(ui: &mut Ui, state: &mut AppState) {
                 }
             }
         });
+
+    // Apply any kind change that was triggered inside the grid.
+    if let Some(new_kind) = pending_kind {
+        let action = UndoAction::ChangeKind {
+            circuit_name: circuit_name.clone(),
+            id: comp_id,
+            old_kind: comp_kind,
+            new_kind,
+        };
+        action.apply(&mut state.project);
+        state.history.push(action);
+        state.modified = true;
+        state.sync_simulator();
+    }
 }
 
-fn kind_attrs(ui: &mut Ui, kind: &ComponentKind) {
+/// Renders kind-specific attribute rows, returning a new `ComponentKind` if any
+/// editable field was changed by the user (via DragValue). Returns `None` when
+/// nothing changed.
+///
+/// Editable fields match upstream Logisim-Evolution:
+/// - **Data Bits** (1–64) — all components that carry a bit-width
+/// - **Inputs** (2–32) — multi-input gates
+/// - **Select Bits** (1–10) — plexers
+/// - **Fan Out** (2–32) — Splitter
+fn kind_attrs_editable(ui: &mut Ui, kind: &ComponentKind) -> Option<ComponentKind> {
     match kind {
         ComponentKind::Pin { is_output, width } => {
             attr_row(ui, "I/O", if *is_output { "Output" } else { "Input" });
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let new_w = edit_width(ui, "Data Bits", *width)?;
+            Some(ComponentKind::Pin {
+                is_output: *is_output,
+                width: new_w,
+            })
         }
         ComponentKind::Constant { width, value } => {
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let new_w = edit_width(ui, "Data Bits", *width);
             attr_row(ui, "Value", &format!("0x{:X}", value));
+            new_w.map(|w| ComponentKind::Constant {
+                width: w,
+                value: *value,
+            })
         }
         ComponentKind::Probe { width } => {
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let new_w = edit_width(ui, "Data Bits", *width)?;
+            Some(ComponentKind::Probe { width: new_w })
         }
         ComponentKind::Tunnel { label, width } => {
             attr_row(ui, "Label", label);
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let new_w = edit_width(ui, "Data Bits", *width)?;
+            Some(ComponentKind::Tunnel {
+                label: label.clone(),
+                width: new_w,
+            })
         }
         ComponentKind::Splitter {
             combined_width,
             fan_out,
         } => {
-            attr_row(ui, "Bit Width", &combined_width.get().to_string());
-            attr_row(ui, "Fan Out", &fan_out.to_string());
+            let new_w = edit_width(ui, "Bit Width", *combined_width);
+            let mut new_fo = *fan_out as u32;
+            let fo_changed = drag_row(ui, "Fan Out", &mut new_fo, 2, 32);
+            if new_w.is_some() || fo_changed {
+                Some(ComponentKind::Splitter {
+                    combined_width: new_w.unwrap_or(*combined_width),
+                    fan_out: new_fo as u8,
+                })
+            } else {
+                None
+            }
         }
         ComponentKind::PullResistor { direction, width } => {
             attr_row(ui, "Pull", &format!("{:?}", direction));
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let new_w = edit_width(ui, "Data Bits", *width)?;
+            Some(ComponentKind::PullResistor {
+                direction: *direction,
+                width: new_w,
+            })
         }
-        ComponentKind::TristateBuffer { width }
-        | ComponentKind::ControlledBuffer { width }
-        | ComponentKind::Buffer { width }
-        | ComponentKind::NotGate { width } => {
-            attr_row(ui, "Data Bits", &width.get().to_string());
+        ComponentKind::TristateBuffer { width } => {
+            let new_w = edit_width(ui, "Data Bits", *width)?;
+            Some(ComponentKind::TristateBuffer { width: new_w })
+        }
+        ComponentKind::ControlledBuffer { width } => {
+            let new_w = edit_width(ui, "Data Bits", *width)?;
+            Some(ComponentKind::ControlledBuffer { width: new_w })
+        }
+        ComponentKind::Buffer { width } => {
+            let new_w = edit_width(ui, "Data Bits", *width)?;
+            Some(ComponentKind::Buffer { width: new_w })
+        }
+        ComponentKind::NotGate { width } => {
+            let new_w = edit_width(ui, "Data Bits", *width)?;
+            Some(ComponentKind::NotGate { width: new_w })
         }
         ComponentKind::AndGate {
             inputs,
             width,
             negate_inputs,
             negate_output,
-        }
-        | ComponentKind::OrGate {
-            inputs,
-            width,
-            negate_inputs,
-            negate_output,
         } => {
-            attr_row(ui, "Inputs", &inputs.to_string());
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let changed = edit_inputs_width(ui, *inputs, *width);
             attr_row(ui, "Negate Out", if *negate_output { "Yes" } else { "No" });
             let neg_str: String = negate_inputs
                 .iter()
                 .map(|&n| if n { '1' } else { '0' })
                 .collect();
             attr_row(ui, "Negate In", &neg_str);
+            changed.map(|(new_inputs, new_w)| {
+                let new_negs = resize_negates(negate_inputs, new_inputs as usize);
+                ComponentKind::AndGate {
+                    inputs: new_inputs,
+                    width: new_w,
+                    negate_inputs: new_negs,
+                    negate_output: *negate_output,
+                }
+            })
         }
-        ComponentKind::NandGate { inputs, width }
-        | ComponentKind::NorGate { inputs, width }
-        | ComponentKind::XorGate { inputs, width }
-        | ComponentKind::XnorGate { inputs, width }
-        | ComponentKind::OddParityGate { inputs, width }
-        | ComponentKind::EvenParityGate { inputs, width } => {
-            attr_row(ui, "Inputs", &inputs.to_string());
-            attr_row(ui, "Data Bits", &width.get().to_string());
+        ComponentKind::OrGate {
+            inputs,
+            width,
+            negate_inputs,
+            negate_output,
+        } => {
+            let changed = edit_inputs_width(ui, *inputs, *width);
+            attr_row(ui, "Negate Out", if *negate_output { "Yes" } else { "No" });
+            let neg_str: String = negate_inputs
+                .iter()
+                .map(|&n| if n { '1' } else { '0' })
+                .collect();
+            attr_row(ui, "Negate In", &neg_str);
+            changed.map(|(new_inputs, new_w)| {
+                let new_negs = resize_negates(negate_inputs, new_inputs as usize);
+                ComponentKind::OrGate {
+                    inputs: new_inputs,
+                    width: new_w,
+                    negate_inputs: new_negs,
+                    negate_output: *negate_output,
+                }
+            })
+        }
+        ComponentKind::NandGate { inputs, width } => {
+            let (new_inputs, new_w) = edit_inputs_width(ui, *inputs, *width)?;
+            Some(ComponentKind::NandGate {
+                inputs: new_inputs,
+                width: new_w,
+            })
+        }
+        ComponentKind::NorGate { inputs, width } => {
+            let (new_inputs, new_w) = edit_inputs_width(ui, *inputs, *width)?;
+            Some(ComponentKind::NorGate {
+                inputs: new_inputs,
+                width: new_w,
+            })
+        }
+        ComponentKind::XorGate { inputs, width } => {
+            let (new_inputs, new_w) = edit_inputs_width(ui, *inputs, *width)?;
+            Some(ComponentKind::XorGate {
+                inputs: new_inputs,
+                width: new_w,
+            })
+        }
+        ComponentKind::XnorGate { inputs, width } => {
+            let (new_inputs, new_w) = edit_inputs_width(ui, *inputs, *width)?;
+            Some(ComponentKind::XnorGate {
+                inputs: new_inputs,
+                width: new_w,
+            })
+        }
+        ComponentKind::OddParityGate { inputs, width } => {
+            let (new_inputs, new_w) = edit_inputs_width(ui, *inputs, *width)?;
+            Some(ComponentKind::OddParityGate {
+                inputs: new_inputs,
+                width: new_w,
+            })
+        }
+        ComponentKind::EvenParityGate { inputs, width } => {
+            let (new_inputs, new_w) = edit_inputs_width(ui, *inputs, *width)?;
+            Some(ComponentKind::EvenParityGate {
+                inputs: new_inputs,
+                width: new_w,
+            })
         }
         ComponentKind::Multiplexer {
             select_bits,
             data_width,
+        } => {
+            let (new_sel, new_w) = edit_select_bits_width(ui, *select_bits, *data_width)?;
+            Some(ComponentKind::Multiplexer {
+                select_bits: new_sel,
+                data_width: new_w,
+            })
         }
-        | ComponentKind::Demultiplexer {
+        ComponentKind::Demultiplexer {
             select_bits,
             data_width,
         } => {
-            attr_row(ui, "Select Bits", &select_bits.to_string());
-            attr_row(ui, "Data Bits", &data_width.get().to_string());
+            let (new_sel, new_w) = edit_select_bits_width(ui, *select_bits, *data_width)?;
+            Some(ComponentKind::Demultiplexer {
+                select_bits: new_sel,
+                data_width: new_w,
+            })
         }
-        ComponentKind::Decoder { select_bits } | ComponentKind::PriorityEncoder { select_bits } => {
-            attr_row(ui, "Select Bits", &select_bits.to_string());
+        ComponentKind::Decoder { select_bits } => {
+            let mut new_s = *select_bits as u32;
+            if drag_row(ui, "Select Bits", &mut new_s, 1, 10) {
+                Some(ComponentKind::Decoder {
+                    select_bits: new_s as u8,
+                })
+            } else {
+                None
+            }
+        }
+        ComponentKind::PriorityEncoder { select_bits } => {
+            let mut new_s = *select_bits as u32;
+            if drag_row(ui, "Select Bits", &mut new_s, 1, 10) {
+                Some(ComponentKind::PriorityEncoder {
+                    select_bits: new_s as u8,
+                })
+            } else {
+                None
+            }
         }
         ComponentKind::BitSelector {
             group_bits,
             data_width,
         } => {
-            attr_row(ui, "Group Bits", &group_bits.to_string());
-            attr_row(ui, "Data Bits", &data_width.get().to_string());
+            let mut new_g = *group_bits as u32;
+            let g_changed = drag_row(ui, "Group Bits", &mut new_g, 1, 10);
+            let new_w = edit_width(ui, "Data Bits", *data_width);
+            let new_w_val = new_w.unwrap_or(*data_width);
+            if g_changed || new_w.is_some() {
+                Some(ComponentKind::BitSelector {
+                    group_bits: new_g as u8,
+                    data_width: new_w_val,
+                })
+            } else {
+                None
+            }
         }
         ComponentKind::BitExtender {
             input_width,
             output_width,
         } => {
-            attr_row(ui, "In Bits", &input_width.get().to_string());
-            attr_row(ui, "Out Bits", &output_width.get().to_string());
+            let new_in = edit_width(ui, "In Bits", *input_width);
+            let new_out = edit_width(ui, "Out Bits", *output_width);
+            if new_in.is_some() || new_out.is_some() {
+                Some(ComponentKind::BitExtender {
+                    input_width: new_in.unwrap_or(*input_width),
+                    output_width: new_out.unwrap_or(*output_width),
+                })
+            } else {
+                None
+            }
         }
-        ComponentKind::Adder { width }
-        | ComponentKind::Subtractor { width }
-        | ComponentKind::Multiplier { width }
-        | ComponentKind::Divider { width }
-        | ComponentKind::Negator { width }
-        | ComponentKind::Comparator { width }
-        | ComponentKind::BitAdder { width }
-        | ComponentKind::DFlipFlop { width }
-        | ComponentKind::TFlipFlop { width }
-        | ComponentKind::JKFlipFlop { width }
-        | ComponentKind::SRFlipFlop { width }
-        | ComponentKind::Register { width }
-        | ComponentKind::Counter { width } => {
-            attr_row(ui, "Data Bits", &width.get().to_string());
+        ComponentKind::Adder { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::Adder { width: w })
+        }
+        ComponentKind::Subtractor { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::Subtractor { width: w })
+        }
+        ComponentKind::Multiplier { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::Multiplier { width: w })
+        }
+        ComponentKind::Divider { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::Divider { width: w })
+        }
+        ComponentKind::Negator { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::Negator { width: w })
+        }
+        ComponentKind::Comparator { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::Comparator { width: w })
+        }
+        ComponentKind::BitAdder { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::BitAdder { width: w })
+        }
+        ComponentKind::DFlipFlop { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::DFlipFlop { width: w })
+        }
+        ComponentKind::TFlipFlop { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::TFlipFlop { width: w })
+        }
+        ComponentKind::JKFlipFlop { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::JKFlipFlop { width: w })
+        }
+        ComponentKind::SRFlipFlop { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::SRFlipFlop { width: w })
+        }
+        ComponentKind::Register { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::Register { width: w })
+        }
+        ComponentKind::Counter { width } => {
+            edit_width(ui, "Data Bits", *width).map(|w| ComponentKind::Counter { width: w })
         }
         ComponentKind::ShiftRegister { stages, width } => {
-            attr_row(ui, "Stages", &stages.to_string());
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let mut new_s = *stages as u32;
+            let s_changed = drag_row(ui, "Stages", &mut new_s, 1, 64);
+            let new_w = edit_width(ui, "Data Bits", *width);
+            if s_changed || new_w.is_some() {
+                Some(ComponentKind::ShiftRegister {
+                    stages: new_s as u8,
+                    width: new_w.unwrap_or(*width),
+                })
+            } else {
+                None
+            }
         }
         ComponentKind::BitFinder { width, find_type } => {
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let new_w = edit_width(ui, "Data Bits", *width);
             attr_row(ui, "Find", &format!("{:?}", find_type));
+            new_w.map(|w| ComponentKind::BitFinder {
+                width: w,
+                find_type: *find_type,
+            })
         }
         ComponentKind::Ram {
             addr_bits,
             data_bits,
             sync,
         } => {
-            attr_row(ui, "Address Bits", &addr_bits.to_string());
-            attr_row(ui, "Data Bits", &data_bits.get().to_string());
+            let mut new_a = *addr_bits as u32;
+            let a_changed = drag_row(ui, "Address Bits", &mut new_a, 1, 24);
+            let new_d = edit_width(ui, "Data Bits", *data_bits);
             attr_row(ui, "Synchronous", if *sync { "Yes" } else { "No" });
+            if a_changed || new_d.is_some() {
+                Some(ComponentKind::Ram {
+                    addr_bits: new_a as u8,
+                    data_bits: new_d.unwrap_or(*data_bits),
+                    sync: *sync,
+                })
+            } else {
+                None
+            }
         }
         ComponentKind::Rom {
             addr_bits,
             data_bits,
-            ..
+            contents,
         } => {
-            attr_row(ui, "Address Bits", &addr_bits.to_string());
-            attr_row(ui, "Data Bits", &data_bits.get().to_string());
+            let mut new_a = *addr_bits as u32;
+            let a_changed = drag_row(ui, "Address Bits", &mut new_a, 1, 24);
+            let new_d = edit_width(ui, "Data Bits", *data_bits);
+            if a_changed || new_d.is_some() {
+                Some(ComponentKind::Rom {
+                    addr_bits: new_a as u8,
+                    data_bits: new_d.unwrap_or(*data_bits),
+                    contents: contents.clone(),
+                })
+            } else {
+                None
+            }
         }
         ComponentKind::ShiftRegisterMemory {
             stages,
             width,
             parallel_load,
         } => {
-            attr_row(ui, "Stages", &stages.to_string());
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let mut new_s = *stages as u32;
+            let s_changed = drag_row(ui, "Stages", &mut new_s, 1, 64);
+            let new_w = edit_width(ui, "Data Bits", *width);
             attr_row(
                 ui,
                 "Parallel Load",
                 if *parallel_load { "Yes" } else { "No" },
             );
+            if s_changed || new_w.is_some() {
+                Some(ComponentKind::ShiftRegisterMemory {
+                    stages: new_s as u8,
+                    width: new_w.unwrap_or(*width),
+                    parallel_load: *parallel_load,
+                })
+            } else {
+                None
+            }
         }
         ComponentKind::Transistor { width, p_type } => {
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let new_w = edit_width(ui, "Data Bits", *width);
             attr_row(ui, "Type", if *p_type { "P-type" } else { "N-type" });
+            new_w.map(|w| ComponentKind::Transistor {
+                width: w,
+                p_type: *p_type,
+            })
         }
         ComponentKind::TransmissionGate { width } => {
-            attr_row(ui, "Data Bits", &width.get().to_string());
+            let new_w = edit_width(ui, "Data Bits", *width)?;
+            Some(ComponentKind::TransmissionGate { width: new_w })
         }
         ComponentKind::DipSwitch { switches } => {
-            attr_row(ui, "Switches", &switches.to_string());
+            let mut new_s = *switches as u32;
+            if drag_row(ui, "Switches", &mut new_s, 1, 32) {
+                Some(ComponentKind::DipSwitch {
+                    switches: new_s as u8,
+                })
+            } else {
+                None
+            }
         }
         ComponentKind::DotMatrix { rows, cols } => {
             attr_row(ui, "Rows", &rows.to_string());
             attr_row(ui, "Columns", &cols.to_string());
+            None
         }
         ComponentKind::Tty { rows, cols } => {
             attr_row(ui, "Rows", &rows.to_string());
             attr_row(ui, "Columns", &cols.to_string());
+            None
         }
         ComponentKind::Subcircuit { circuit_name } => {
             attr_row(ui, "Circuit", circuit_name);
+            None
         }
         // No extra attrs for these kinds:
         ComponentKind::Power
@@ -316,8 +564,59 @@ fn kind_attrs(ui: &mut Ui, kind: &ComponentKind) {
         | ComponentKind::Ttl7404
         | ComponentKind::Ttl7408
         | ComponentKind::Ttl7432
-        | ComponentKind::Ttl7486 => {}
+        | ComponentKind::Ttl7486 => None,
     }
+}
+
+/// Renders a "Data Bits" drag-value row. Returns `Some(new_width)` if the value changed.
+fn edit_width(ui: &mut Ui, label: &str, current: BitWidth) -> Option<BitWidth> {
+    let mut v = current.get();
+    if drag_row(ui, label, &mut v, 1, 64) {
+        Some(BitWidth::new(v))
+    } else {
+        None
+    }
+}
+
+/// Renders "Inputs" and "Data Bits" rows.  Returns `Some((new_inputs, new_width))` if
+/// either changed.
+fn edit_inputs_width(ui: &mut Ui, inputs: u8, width: BitWidth) -> Option<(u8, BitWidth)> {
+    let mut new_i = inputs as u32;
+    let i_changed = drag_row(ui, "Inputs", &mut new_i, 2, 32);
+    let new_w = edit_width(ui, "Data Bits", width);
+    if i_changed || new_w.is_some() {
+        Some((new_i as u8, new_w.unwrap_or(width)))
+    } else {
+        None
+    }
+}
+
+/// Renders "Select Bits" and "Data Bits" rows. Returns `Some((new_sel, new_width))` if
+/// either changed.
+fn edit_select_bits_width(ui: &mut Ui, sel: u8, width: BitWidth) -> Option<(u8, BitWidth)> {
+    let mut new_s = sel as u32;
+    let s_changed = drag_row(ui, "Select Bits", &mut new_s, 1, 10);
+    let new_w = edit_width(ui, "Data Bits", width);
+    if s_changed || new_w.is_some() {
+        Some((new_s as u8, new_w.unwrap_or(width)))
+    } else {
+        None
+    }
+}
+
+/// Renders a single label + DragValue row. Returns `true` if the value changed.
+fn drag_row(ui: &mut Ui, name: &str, value: &mut u32, min: u32, max: u32) -> bool {
+    ui.label(egui::RichText::new(name).weak());
+    let resp = ui.add(egui::DragValue::new(value).range(min..=max).speed(1.0));
+    ui.end_row();
+    resp.changed()
+}
+
+/// Resize a `negate_inputs` vector to the new number of inputs, padding with `false`.
+fn resize_negates(existing: &[bool], new_len: usize) -> Vec<bool> {
+    let mut v = existing.to_vec();
+    v.resize(new_len, false);
+    v
 }
 
 fn attr_row(ui: &mut Ui, name: &str, value: &str) {
