@@ -93,7 +93,30 @@ pub fn show_attr_panel(ui: &mut Ui, state: &mut AppState) {
             }
             ui.end_row();
 
-            attr_row(ui, "Facing", facing_name(comp_facing));
+            // ── Editable Facing ──────────────────────────────────────────────
+            ui.label(egui::RichText::new("Facing").weak());
+            let all_facings = [Facing::East, Facing::West, Facing::North, Facing::South];
+            let mut current_facing = comp_facing;
+            egui::ComboBox::from_id_salt(("facing_combo", comp_id))
+                .selected_text(facing_name(current_facing))
+                .show_ui(ui, |ui| {
+                    for &f in &all_facings {
+                        ui.selectable_value(&mut current_facing, f, facing_name(f));
+                    }
+                });
+            if current_facing != comp_facing {
+                let action = UndoAction::ChangeFacing {
+                    circuit_name: circuit_name.clone(),
+                    id: comp_id,
+                    old_facing: comp_facing,
+                    new_facing: current_facing,
+                };
+                action.apply(&mut state.project);
+                state.history.push(action);
+                state.modified = true;
+                state.sync_simulator();
+            }
+            ui.end_row();
 
             // ── Kind-specific attributes ─────────────────────────────────────
             kind_attrs(ui, &comp_kind);

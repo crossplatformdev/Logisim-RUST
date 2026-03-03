@@ -5,7 +5,7 @@
 //! reverses actions against a [`Project`].
 
 use crate::circuit::Wire;
-use crate::component::{Component, ComponentId};
+use crate::component::{Component, ComponentId, Facing};
 use crate::project::Project;
 
 // ── UndoAction ────────────────────────────────────────────────────────────────
@@ -44,6 +44,13 @@ pub enum UndoAction {
         id: ComponentId,
         old_label: String,
         new_label: String,
+    },
+    /// A component's facing direction was changed.
+    ChangeFacing {
+        circuit_name: String,
+        id: ComponentId,
+        old_facing: Facing,
+        new_facing: Facing,
     },
     /// A batch of actions that should be treated as one undo step.
     Batch(Vec<UndoAction>),
@@ -102,6 +109,17 @@ impl UndoAction {
                 id,
                 old_label: new_label,
                 new_label: old_label,
+            },
+            UndoAction::ChangeFacing {
+                circuit_name,
+                id,
+                old_facing,
+                new_facing,
+            } => UndoAction::ChangeFacing {
+                circuit_name,
+                id,
+                old_facing: new_facing,
+                new_facing: old_facing,
             },
             UndoAction::Batch(actions) => {
                 // Reverse the order so sub-actions undo correctly.
@@ -163,6 +181,18 @@ impl UndoAction {
                 if let Some(circuit) = project.circuits.get_mut(circuit_name) {
                     if let Some(comp) = circuit.components.get_mut(id) {
                         comp.label = new_label.clone();
+                    }
+                }
+            }
+            UndoAction::ChangeFacing {
+                circuit_name,
+                id,
+                new_facing,
+                ..
+            } => {
+                if let Some(circuit) = project.circuits.get_mut(circuit_name) {
+                    if let Some(comp) = circuit.components.get_mut(id) {
+                        comp.facing = *new_facing;
                     }
                 }
             }
@@ -419,5 +449,36 @@ mod tests {
 
         hist.redo(&mut p);
         assert_eq!(p.circuits["main"].components[&id].label, "clk");
+    }
+
+    #[test]
+    fn test_undo_change_facing() {
+        use crate::component::Facing;
+
+        let mut p = make_project();
+        let mut hist = UndoHistory::new(10);
+
+        let id = {
+            let c = p.circuits.get_mut("main").unwrap();
+            c.add_component(ComponentKind::Clock, 0, 0)
+        };
+
+        // Default facing is East; change to North via action.apply().
+        let action = UndoAction::ChangeFacing {
+            circuit_name: "main".to_string(),
+            id,
+            old_facing: Facing::East,
+            new_facing: Facing::North,
+        };
+        action.apply(&mut p);
+        hist.push(action);
+
+        assert_eq!(p.circuits["main"].components[&id].facing, Facing::North);
+
+        hist.undo(&mut p);
+        assert_eq!(p.circuits["main"].components[&id].facing, Facing::East);
+
+        hist.redo(&mut p);
+        assert_eq!(p.circuits["main"].components[&id].facing, Facing::North);
     }
 }

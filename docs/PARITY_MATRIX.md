@@ -182,7 +182,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Appearance editor | missing | — | — | |
 | Print / export image | missing | — | — | |
 | Find / search | missing | — | — | |
-| Component attribute panel (sidebar) | ✅ | — | ✅ | Read-only attribute table for selected component (Type, Position, Label, Facing, kind-specific attrs) |
+| Component attribute panel (sidebar) | ✅ | ✅ | ✅ | Attribute table for selected component (Type, Position, Label (editable+undo), Facing (editable+undo), kind-specific attrs) |
 
 ---
 
@@ -195,6 +195,8 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Undo add wire | ✅ | ✅ | ✅ | |
 | Undo remove wire | ✅ | ✅ | ✅ | |
 | Undo move component | ✅ | ✅ | ✅ | |
+| Undo change label | ✅ | ✅ | ✅ | `UndoAction::ChangeLabel` |
+| Undo change facing | ✅ | ✅ | ✅ | `UndoAction::ChangeFacing` |
 | Batched undo (multi-action) | ✅ | ✅ | ✅ | `UndoAction::Batch` |
 | Bounded history (200 steps) | ✅ | ✅ | ✅ | Oldest entries evicted |
 | History cleared on file load | ✅ | ✅ | ✅ | |
@@ -267,11 +269,11 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | TTL libraries | 6 | 0 | 1 |
 | File format | 11 | 1 | 1 |
 | GUI / editor | 18 | 1 | 9 |
-| Undo / Redo | 8 | 0 | 1 |
+| Undo / Redo | 10 | 0 | 1 |
 | Chronogram | 0 | 0 | 3 |
 | HDL export | 0 | 0 | 3 |
 | FPGA / board | 0 | 0 | 4 |
 | Localization | 1 | 0 | 1 |
 | CLI | 3 | 0 | 1 |
 
-_Last updated: 2026-03-03 (Ctrl+click additive selection added, GUI implemented count 18)_
+_Last updated: 2026-03-03 (Editable Facing with undo added; undo/redo count 10)_
