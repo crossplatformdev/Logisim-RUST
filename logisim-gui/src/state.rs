@@ -4,14 +4,14 @@ use logisim_core::{
     component::{ComponentId, ComponentKind},
     project::Project,
     simulation::Simulator,
-    value::BitWidth,
 };
 use std::path::PathBuf;
 
 /// The currently selected interaction tool.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub enum Tool {
     /// Selection / pointer tool.
+    #[default]
     Select,
     /// Wire drawing tool.
     Wire,
@@ -21,12 +21,6 @@ pub enum Tool {
     Poke,
     /// Text/label tool.
     Text,
-}
-
-impl Default for Tool {
-    fn default() -> Self {
-        Tool::Select
-    }
 }
 
 /// Global application state.
@@ -60,7 +54,7 @@ pub struct AppState {
     /// Status bar message.
     pub status: String,
     /// Clipboard (copied components).
-    pub clipboard: Vec<logisim_core::component::Component>,
+    pub _clipboard: Vec<logisim_core::component::Component>,
     /// Pending single-step request.
     pub step_requested: bool,
 }
@@ -84,7 +78,7 @@ impl AppState {
             sim_hz: 1.0,
             wire_start: None,
             status: "Ready".to_string(),
-            clipboard: Vec::new(),
+            _clipboard: Vec::new(),
             step_requested: false,
         }
     }

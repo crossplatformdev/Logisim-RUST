@@ -28,9 +28,9 @@
 //! </project>
 //! ```
 
+pub mod error;
 pub mod parser;
 pub mod writer;
-pub mod error;
 
 pub use error::FileError;
 pub use parser::parse_circ;

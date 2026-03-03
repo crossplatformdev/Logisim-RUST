@@ -4,12 +4,8 @@ use crate::canvas::CircuitCanvas;
 use crate::component_panel::ComponentPanel;
 use crate::state::{AppState, Tool};
 use crate::toolbar::Toolbar;
-use egui::{Context, KeyboardShortcut, Modifiers};
-use logisim_core::{
-    circuit::Circuit,
-    component::ComponentKind,
-    value::BitWidth,
-};
+use egui::{Context, Modifiers};
+use logisim_core::{circuit::Circuit, component::ComponentKind, value::BitWidth};
 use logisim_file::{parse_circ, write_circ};
 use std::io::BufReader;
 
@@ -20,7 +16,7 @@ pub struct LogisimApp {
     component_panel: ComponentPanel,
     toolbar: Toolbar,
     /// Pending file dialog result (used with rfd async on native).
-    pending_open: Option<std::path::PathBuf>,
+    _pending_open: Option<std::path::PathBuf>,
     /// Accumulated simulation time since last tick.
     sim_accumulator: f32,
     /// Whether the About dialog is open.
@@ -35,12 +31,22 @@ impl LogisimApp {
         let mut main = Circuit::new("main");
         // Place a few example components.
         main.add_component_with_label(
-            ComponentKind::Pin { is_output: false, width: BitWidth::ONE },
-            3, 3, "A",
+            ComponentKind::Pin {
+                is_output: false,
+                width: BitWidth::ONE,
+            },
+            3,
+            3,
+            "A",
         );
         main.add_component_with_label(
-            ComponentKind::Pin { is_output: false, width: BitWidth::ONE },
-            3, 5, "B",
+            ComponentKind::Pin {
+                is_output: false,
+                width: BitWidth::ONE,
+            },
+            3,
+            5,
+            "B",
         );
         main.add_component(
             ComponentKind::AndGate {
@@ -49,18 +55,28 @@ impl LogisimApp {
                 negate_inputs: vec![false, false],
                 negate_output: false,
             },
-            8, 4,
+            8,
+            4,
         );
         main.add_component_with_label(
-            ComponentKind::Pin { is_output: true, width: BitWidth::ONE },
-            13, 4, "OUT",
+            ComponentKind::Pin {
+                is_output: true,
+                width: BitWidth::ONE,
+            },
+            13,
+            4,
+            "OUT",
         );
         main.add_wire(3, 3, 8, 3);
         main.add_wire(3, 5, 8, 5);
         main.add_wire(10, 4, 13, 4);
 
         state.project.add_circuit(main);
-        state.active_circuit = state.project.main_circuit_name().unwrap_or("main").to_string();
+        state.active_circuit = state
+            .project
+            .main_circuit_name()
+            .unwrap_or("main")
+            .to_string();
         state.sync_simulator();
 
         LogisimApp {
@@ -68,7 +84,7 @@ impl LogisimApp {
             canvas: CircuitCanvas::new(),
             component_panel: ComponentPanel::new(),
             toolbar: Toolbar::new(),
-            pending_open: None,
+            _pending_open: None,
             sim_accumulator: 0.0,
             about_open: false,
         }
@@ -285,8 +301,7 @@ impl eframe::App for LogisimApp {
                     ui.separator();
                     ui.label("Speed (Hz):");
                     ui.add(
-                        egui::Slider::new(&mut self.state.sim_hz, 0.1..=1000.0)
-                            .logarithmic(true),
+                        egui::Slider::new(&mut self.state.sim_hz, 0.1..=1000.0).logarithmic(true),
                     );
                 });
 
@@ -332,9 +347,16 @@ impl eframe::App for LogisimApp {
                     .and_then(|p| p.file_name())
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| "Untitled".to_string());
-                ui.label(format!("{}{} | {}", title, modified_mark, self.state.status));
+                ui.label(format!(
+                    "{}{} | {}",
+                    title, modified_mark, self.state.status
+                ));
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let run_label = if self.state.running { "▶ Running" } else { "⏹ Stopped" };
+                    let run_label = if self.state.running {
+                        "▶ Running"
+                    } else {
+                        "⏹ Stopped"
+                    };
                     ui.label(run_label);
                     ui.separator();
                     ui.label(format!("Zoom: {:.0}%", self.state.zoom * 100.0));
@@ -362,10 +384,7 @@ impl eframe::App for LogisimApp {
                 let circuit_names: Vec<String> = self.state.project.circuit_order.clone();
                 for name in &circuit_names {
                     let active = name == &self.state.active_circuit;
-                    if ui
-                        .selectable_label(active, name)
-                        .clicked()
-                    {
+                    if ui.selectable_label(active, name).clicked() {
                         self.state.active_circuit = name.clone();
                         self.state.selected.clear();
                     }
@@ -374,9 +393,7 @@ impl eframe::App for LogisimApp {
                 if ui.button("+ New Circuit").clicked() {
                     let idx = self.state.project.circuits.len() + 1;
                     let new_name = format!("circuit{}", idx);
-                    self.state
-                        .project
-                        .add_circuit(Circuit::new(&new_name));
+                    self.state.project.add_circuit(Circuit::new(&new_name));
                     self.state.active_circuit = new_name;
                     self.state.modified = true;
                     self.state.sync_simulator();

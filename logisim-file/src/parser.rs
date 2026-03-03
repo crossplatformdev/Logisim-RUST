@@ -6,7 +6,7 @@
 use crate::error::{FileError, Result};
 use logisim_core::{
     circuit::Circuit,
-    component::{Component, ComponentId, ComponentKind, Facing, PullDirection, BitFinderType},
+    component::{BitFinderType, Component, ComponentId, ComponentKind, Facing, PullDirection},
     project::Project,
     value::BitWidth,
 };
@@ -115,8 +115,7 @@ fn parse_circuit<R: BufRead>(
     xml: &mut Reader<R>,
     lib_map: &HashMap<String, String>,
 ) -> Result<Circuit> {
-    let name = get_attr(start, b"name")?
-        .unwrap_or_else(|| "unnamed".to_string());
+    let name = get_attr(start, b"name")?.unwrap_or_else(|| "unnamed".to_string());
     let mut circuit = Circuit::new(&name);
 
     let mut buf = Vec::new();
@@ -211,10 +210,10 @@ fn build_component(
     attrs: HashMap<String, String>,
 ) -> Result<Component> {
     let lib_num = get_attr(start, b"lib")?.unwrap_or_default();
-    let name = get_attr(start, b"name")?
-        .ok_or_else(|| FileError::MissingAttribute("name".to_string()))?;
-    let loc = get_attr(start, b"loc")?
-        .ok_or_else(|| FileError::MissingAttribute("loc".to_string()))?;
+    let name =
+        get_attr(start, b"name")?.ok_or_else(|| FileError::MissingAttribute("name".to_string()))?;
+    let loc =
+        get_attr(start, b"loc")?.ok_or_else(|| FileError::MissingAttribute("loc".to_string()))?;
 
     let (x, y) = parse_loc(&loc)?;
 
@@ -229,7 +228,10 @@ fn build_component(
 
     // Apply common attributes — but skip `label` for Tunnel since it is already
     // embedded in the kind's own field to avoid duplication on write.
-    let is_tunnel = matches!(comp.kind, logisim_core::component::ComponentKind::Tunnel { .. });
+    let is_tunnel = matches!(
+        comp.kind,
+        logisim_core::component::ComponentKind::Tunnel { .. }
+    );
     if !is_tunnel {
         if let Some(label) = attrs.get("label") {
             comp.label = label.clone();
@@ -243,11 +245,7 @@ fn build_component(
     Ok(comp)
 }
 
-fn build_kind(
-    lib: &str,
-    name: &str,
-    attrs: &HashMap<String, String>,
-) -> Result<ComponentKind> {
+fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<ComponentKind> {
     let get_width = |key: &str| -> BitWidth {
         attrs
             .get(key)
@@ -261,20 +259,12 @@ fn build_kind(
             .and_then(|v| v.parse::<u8>().ok())
             .unwrap_or(default)
     };
-    let get_u64 = |key: &str| -> u64 {
-        attrs
-            .get(key)
-            .and_then(|v| parse_integer(v))
-            .unwrap_or(0)
-    };
+    let get_u64 = |key: &str| -> u64 { attrs.get(key).and_then(|v| parse_integer(v)).unwrap_or(0) };
 
     match lib {
         "wiring" | "0" => match name {
             "Pin" => {
-                let output = attrs
-                    .get("output")
-                    .map(|v| v == "true")
-                    .unwrap_or(false);
+                let output = attrs.get("output").map(|v| v == "true").unwrap_or(false);
                 Ok(ComponentKind::Pin {
                     is_output: output,
                     width: get_width("width"),
@@ -295,18 +285,26 @@ fn build_kind(
                 label: attrs.get("label").cloned().unwrap_or_default(),
                 width: get_width("width"),
             }),
-            "Probe" => Ok(ComponentKind::Probe { width: get_width("width") }),
+            "Probe" => Ok(ComponentKind::Probe {
+                width: get_width("width"),
+            }),
             "Pull Resistor" => {
                 let dir = match attrs.get("pull").map(|s| s.as_str()).unwrap_or("up") {
                     "down" => PullDirection::Down,
                     _ => PullDirection::Up,
                 };
-                Ok(ComponentKind::PullResistor { direction: dir, width: get_width("width") })
+                Ok(ComponentKind::PullResistor {
+                    direction: dir,
+                    width: get_width("width"),
+                })
             }
-            "Controlled Buffer" | "Tristate Buffer" => {
-                Ok(ComponentKind::TristateBuffer { width: get_width("width") })
-            }
-            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
+            "Controlled Buffer" | "Tristate Buffer" => Ok(ComponentKind::TristateBuffer {
+                width: get_width("width"),
+            }),
+            _ => Err(FileError::UnknownComponent {
+                lib: lib.to_string(),
+                name: name.to_string(),
+            }),
         },
 
         "gates" | "1" => match name {
@@ -338,9 +336,16 @@ fn build_kind(
                 inputs: get_u8("inputs", 2),
                 width: get_width("width"),
             }),
-            "NOT Gate" => Ok(ComponentKind::NotGate { width: get_width("width") }),
-            "Buffer" => Ok(ComponentKind::Buffer { width: get_width("width") }),
-            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
+            "NOT Gate" => Ok(ComponentKind::NotGate {
+                width: get_width("width"),
+            }),
+            "Buffer" => Ok(ComponentKind::Buffer {
+                width: get_width("width"),
+            }),
+            _ => Err(FileError::UnknownComponent {
+                lib: lib.to_string(),
+                name: name.to_string(),
+            }),
         },
 
         "plexers" | "2" => match name {
@@ -362,21 +367,38 @@ fn build_kind(
                 group_bits: get_u8("group", 1),
                 data_width: get_width("width"),
             }),
-            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
+            _ => Err(FileError::UnknownComponent {
+                lib: lib.to_string(),
+                name: name.to_string(),
+            }),
         },
 
         "arithmetic" | "3" => match name {
-            "Adder" => Ok(ComponentKind::Adder { width: get_width("width") }),
-            "Subtractor" => Ok(ComponentKind::Subtractor { width: get_width("width") }),
-            "Multiplier" => Ok(ComponentKind::Multiplier { width: get_width("width") }),
-            "Divider" => Ok(ComponentKind::Divider { width: get_width("width") }),
-            "Negator" => Ok(ComponentKind::Negator { width: get_width("width") }),
-            "Comparator" => Ok(ComponentKind::Comparator { width: get_width("width") }),
+            "Adder" => Ok(ComponentKind::Adder {
+                width: get_width("width"),
+            }),
+            "Subtractor" => Ok(ComponentKind::Subtractor {
+                width: get_width("width"),
+            }),
+            "Multiplier" => Ok(ComponentKind::Multiplier {
+                width: get_width("width"),
+            }),
+            "Divider" => Ok(ComponentKind::Divider {
+                width: get_width("width"),
+            }),
+            "Negator" => Ok(ComponentKind::Negator {
+                width: get_width("width"),
+            }),
+            "Comparator" => Ok(ComponentKind::Comparator {
+                width: get_width("width"),
+            }),
             "Shift Register" => Ok(ComponentKind::ShiftRegister {
                 stages: get_u8("stages", 8),
                 width: get_width("width"),
             }),
-            "Bit Adder" => Ok(ComponentKind::BitAdder { width: get_width("width") }),
+            "Bit Adder" => Ok(ComponentKind::BitAdder {
+                width: get_width("width"),
+            }),
             "Bit Finder" => Ok(ComponentKind::BitFinder {
                 width: get_width("width"),
                 find_type: match attrs.get("type").map(|s| s.as_str()).unwrap_or("high") {
@@ -384,15 +406,28 @@ fn build_kind(
                     _ => BitFinderType::High,
                 },
             }),
-            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
+            _ => Err(FileError::UnknownComponent {
+                lib: lib.to_string(),
+                name: name.to_string(),
+            }),
         },
 
         "memory" | "4" => match name {
-            "D Flip-Flop" => Ok(ComponentKind::DFlipFlop { width: get_width("width") }),
-            "T Flip-Flop" => Ok(ComponentKind::TFlipFlop { width: get_width("width") }),
-            "JK Flip-Flop" => Ok(ComponentKind::JKFlipFlop { width: get_width("width") }),
-            "SR Flip-Flop" | "RS Flip-Flop" => Ok(ComponentKind::SRFlipFlop { width: get_width("width") }),
-            "Register" => Ok(ComponentKind::Register { width: get_width("width") }),
+            "D Flip-Flop" => Ok(ComponentKind::DFlipFlop {
+                width: get_width("width"),
+            }),
+            "T Flip-Flop" => Ok(ComponentKind::TFlipFlop {
+                width: get_width("width"),
+            }),
+            "JK Flip-Flop" => Ok(ComponentKind::JKFlipFlop {
+                width: get_width("width"),
+            }),
+            "SR Flip-Flop" | "RS Flip-Flop" => Ok(ComponentKind::SRFlipFlop {
+                width: get_width("width"),
+            }),
+            "Register" => Ok(ComponentKind::Register {
+                width: get_width("width"),
+            }),
             "RAM" => Ok(ComponentKind::Ram {
                 addr_bits: get_u8("addrWidth", 8),
                 data_bits: get_width("dataWidth"),
@@ -401,15 +436,22 @@ fn build_kind(
             "ROM" => Ok(ComponentKind::Rom {
                 addr_bits: get_u8("addrWidth", 8),
                 data_bits: get_width("dataWidth"),
-                contents: parse_rom_contents(attrs.get("contents").map(|s| s.as_str()).unwrap_or("")),
+                contents: parse_rom_contents(
+                    attrs.get("contents").map(|s| s.as_str()).unwrap_or(""),
+                ),
             }),
-            "Counter" => Ok(ComponentKind::Counter { width: get_width("width") }),
+            "Counter" => Ok(ComponentKind::Counter {
+                width: get_width("width"),
+            }),
             "Shift Register" => Ok(ComponentKind::ShiftRegisterMemory {
                 stages: get_u8("length", 8),
                 width: get_width("width"),
                 parallel_load: attrs.get("load").map(|v| v == "true").unwrap_or(false),
             }),
-            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
+            _ => Err(FileError::UnknownComponent {
+                lib: lib.to_string(),
+                name: name.to_string(),
+            }),
         },
 
         "io" | "5" => match name {
@@ -430,7 +472,10 @@ fn build_kind(
                 rows: get_u8("rows", 8),
                 cols: get_u8("cols", 32),
             }),
-            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
+            _ => Err(FileError::UnknownComponent {
+                lib: lib.to_string(),
+                name: name.to_string(),
+            }),
         },
 
         // User-defined subcircuits
@@ -521,10 +566,9 @@ fn get_attr(e: &BytesStart, key: &[u8]) -> Result<Option<String>> {
 
 /// Parse an `<a name="..." val="..."/>` element.
 fn parse_attr_element(e: &BytesStart) -> Result<(String, String)> {
-    let name = get_attr(e, b"name")?
-        .ok_or_else(|| FileError::MissingAttribute("name".to_string()))?;
-    let val = get_attr(e, b"val")?
-        .ok_or_else(|| FileError::MissingAttribute("val".to_string()))?;
+    let name =
+        get_attr(e, b"name")?.ok_or_else(|| FileError::MissingAttribute("name".to_string()))?;
+    let val = get_attr(e, b"val")?.ok_or_else(|| FileError::MissingAttribute("val".to_string()))?;
     Ok((name, val))
 }
 
@@ -668,8 +712,17 @@ mod tests {
     fn test_parse_memory_components() {
         let project = parse_circ(MEMORY_CIRC.as_bytes()).unwrap();
         let circuit = &project.circuits["mem"];
-        assert!(circuit.components.values().any(|c| matches!(c.kind, ComponentKind::DFlipFlop { .. })));
-        assert!(circuit.components.values().any(|c| matches!(c.kind, ComponentKind::Register { .. })));
-        assert!(circuit.components.values().any(|c| matches!(c.kind, ComponentKind::Counter { .. })));
+        assert!(circuit
+            .components
+            .values()
+            .any(|c| matches!(c.kind, ComponentKind::DFlipFlop { .. })));
+        assert!(circuit
+            .components
+            .values()
+            .any(|c| matches!(c.kind, ComponentKind::Register { .. })));
+        assert!(circuit
+            .components
+            .values()
+            .any(|c| matches!(c.kind, ComponentKind::Counter { .. })));
     }
 }

@@ -1,6 +1,6 @@
 //! Dialog boxes (About, component properties, etc.)
 
-use egui::{Context, Ui};
+use egui::Context;
 
 /// Show the About dialog.
 pub fn show_about(ctx: &Context, open: &mut bool) {

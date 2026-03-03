@@ -32,11 +32,7 @@ fn parse_opts(args: &[String]) -> Result<Opts, String> {
         match args[i].as_str() {
             "--circuit" => {
                 i += 1;
-                opts.circuit = Some(
-                    args.get(i)
-                        .ok_or("--circuit requires an argument")?
-                        .clone(),
-                );
+                opts.circuit = Some(args.get(i).ok_or("--circuit requires an argument")?.clone());
             }
             "--steps" => {
                 i += 1;
@@ -89,7 +85,10 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
     let mut sim = Simulator::new(project.clone());
 
     if !opts.terse {
-        println!("Simulating circuit '{}' for {} steps", circuit_name, opts.steps);
+        println!(
+            "Simulating circuit '{}' for {} steps",
+            circuit_name, opts.steps
+        );
         println!("{}", "-".repeat(50));
     }
 
@@ -106,7 +105,13 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
             .map(|&id| {
                 circuit
                     .get_component(id)
-                    .map(|c| if c.label.is_empty() { format!("{}", id) } else { c.label.clone() })
+                    .map(|c| {
+                        if c.label.is_empty() {
+                            format!("{}", id)
+                        } else {
+                            c.label.clone()
+                        }
+                    })
                     .unwrap_or_else(|| format!("{}", id))
             })
             .collect();
@@ -115,14 +120,24 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
             .map(|&id| {
                 circuit
                     .get_component(id)
-                    .map(|c| if c.label.is_empty() { format!("{}", id) } else { c.label.clone() })
+                    .map(|c| {
+                        if c.label.is_empty() {
+                            format!("{}", id)
+                        } else {
+                            c.label.clone()
+                        }
+                    })
                     .unwrap_or_else(|| format!("{}", id))
             })
             .collect();
         println!("Inputs:  {}", in_labels.join(", "));
         println!("Outputs: {}", out_labels.join(", "));
         println!("{}", "-".repeat(50));
-        println!("Step | {} | {}", in_labels.join(" | "), out_labels.join(" | "));
+        println!(
+            "Step | {} | {}",
+            in_labels.join(" | "),
+            out_labels.join(" | ")
+        );
         println!("{}", "-".repeat(50));
     }
 
@@ -191,13 +206,19 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
     let circuit = &project.circuits[&circuit_name];
 
     // Gather input/output pins.
-    let mut input_pins: Vec<_> = circuit.input_pins().iter().map(|c| (c.id, {
-        if let ComponentKind::Pin { width, .. } = c.kind {
-            width
-        } else {
-            BitWidth::ONE
-        }
-    })).collect();
+    let mut input_pins: Vec<_> = circuit
+        .input_pins()
+        .iter()
+        .map(|c| {
+            (c.id, {
+                if let ComponentKind::Pin { width, .. } = c.kind {
+                    width
+                } else {
+                    BitWidth::ONE
+                }
+            })
+        })
+        .collect();
     let mut output_pins: Vec<_> = circuit.output_pins().iter().map(|c| c.id).collect();
     input_pins.sort_by_key(|(id, _)| *id);
     output_pins.sort();
@@ -348,13 +369,27 @@ pub fn run_info(raw_args: &[String]) -> Result<(), String> {
                 _ => {}
             }
         }
-        if wiring > 0 { println!("      Wiring:     {}", wiring); }
-        if gates > 0 { println!("      Gates:      {}", gates); }
-        if plexers > 0 { println!("      Plexers:    {}", plexers); }
-        if arithmetic > 0 { println!("      Arithmetic: {}", arithmetic); }
-        if memory > 0 { println!("      Memory:     {}", memory); }
-        if io > 0 { println!("      I/O:        {}", io); }
-        if subcircuits > 0 { println!("      Subcircuits: {}", subcircuits); }
+        if wiring > 0 {
+            println!("      Wiring:     {}", wiring);
+        }
+        if gates > 0 {
+            println!("      Gates:      {}", gates);
+        }
+        if plexers > 0 {
+            println!("      Plexers:    {}", plexers);
+        }
+        if arithmetic > 0 {
+            println!("      Arithmetic: {}", arithmetic);
+        }
+        if memory > 0 {
+            println!("      Memory:     {}", memory);
+        }
+        if io > 0 {
+            println!("      I/O:        {}", io);
+        }
+        if subcircuits > 0 {
+            println!("      Subcircuits: {}", subcircuits);
+        }
     }
 
     if !project.options.is_empty() {

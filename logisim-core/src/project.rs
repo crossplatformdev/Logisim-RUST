@@ -99,7 +99,11 @@ mod tests {
         p.add_circuit(Circuit::new("a"));
         p.add_circuit(Circuit::new("b"));
         p.add_circuit(Circuit::new("c"));
-        let names: Vec<_> = p.ordered_circuits().iter().map(|c| c.name.as_str()).collect();
+        let names: Vec<_> = p
+            .ordered_circuits()
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect();
         assert_eq!(names, vec!["a", "b", "c"]);
     }
 }

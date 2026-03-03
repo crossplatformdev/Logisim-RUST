@@ -73,13 +73,9 @@ impl Wire {
     /// Returns `true` if the given point lies on this wire segment.
     pub fn contains(&self, x: i32, y: i32) -> bool {
         if self.is_horizontal() {
-            y == self.from.y
-                && x >= self.from.x.min(self.to.x)
-                && x <= self.from.x.max(self.to.x)
+            y == self.from.y && x >= self.from.x.min(self.to.x) && x <= self.from.x.max(self.to.x)
         } else {
-            x == self.from.x
-                && y >= self.from.y.min(self.to.y)
-                && y <= self.from.y.max(self.to.y)
+            x == self.from.x && y >= self.from.y.min(self.to.y) && y <= self.from.y.max(self.to.y)
         }
     }
 }
@@ -131,8 +127,7 @@ impl Circuit {
     pub fn add_component(&mut self, kind: ComponentKind, x: i32, y: i32) -> ComponentId {
         let id = ComponentId(self.next_id);
         self.next_id += 1;
-        self.components
-            .insert(id, Component::new(id, kind, x, y));
+        self.components.insert(id, Component::new(id, kind, x, y));
         id
     }
 
@@ -208,17 +203,18 @@ impl Circuit {
         // Collect all grid points that are mentioned by wires.
         let mut parent: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
 
-        let find = |parent: &mut HashMap<(i32, i32), (i32, i32)>, mut x: (i32, i32)| -> (i32, i32) {
-            loop {
-                let p = *parent.entry(x).or_insert(x);
-                if p == x {
-                    return x;
+        let find =
+            |parent: &mut HashMap<(i32, i32), (i32, i32)>, mut x: (i32, i32)| -> (i32, i32) {
+                loop {
+                    let p = *parent.entry(x).or_insert(x);
+                    if p == x {
+                        return x;
+                    }
+                    let gp = *parent.entry(p).or_insert(p);
+                    parent.insert(x, gp);
+                    x = gp;
                 }
-                let gp = *parent.entry(p).or_insert(p);
-                parent.insert(x, gp);
-                x = gp;
-            }
-        };
+            };
 
         // Union all points that share a wire.
         for wire in &self.wires {
@@ -273,7 +269,15 @@ impl Circuit {
     pub fn input_pins(&self) -> Vec<&Component> {
         self.components
             .values()
-            .filter(|c| matches!(c.kind, ComponentKind::Pin { is_output: false, .. }))
+            .filter(|c| {
+                matches!(
+                    c.kind,
+                    ComponentKind::Pin {
+                        is_output: false,
+                        ..
+                    }
+                )
+            })
             .collect()
     }
 
@@ -281,7 +285,15 @@ impl Circuit {
     pub fn output_pins(&self) -> Vec<&Component> {
         self.components
             .values()
-            .filter(|c| matches!(c.kind, ComponentKind::Pin { is_output: true, .. }))
+            .filter(|c| {
+                matches!(
+                    c.kind,
+                    ComponentKind::Pin {
+                        is_output: true,
+                        ..
+                    }
+                )
+            })
             .collect()
     }
 
@@ -312,10 +324,31 @@ mod tests {
             10,
         );
         // Add two input pins
-        c.add_component(ComponentKind::Pin { is_output: false, width: BitWidth::ONE }, 0, 10);
-        c.add_component(ComponentKind::Pin { is_output: false, width: BitWidth::ONE }, 0, 11);
+        c.add_component(
+            ComponentKind::Pin {
+                is_output: false,
+                width: BitWidth::ONE,
+            },
+            0,
+            10,
+        );
+        c.add_component(
+            ComponentKind::Pin {
+                is_output: false,
+                width: BitWidth::ONE,
+            },
+            0,
+            11,
+        );
         // Add one output pin
-        c.add_component(ComponentKind::Pin { is_output: true, width: BitWidth::ONE }, 20, 10);
+        c.add_component(
+            ComponentKind::Pin {
+                is_output: true,
+                width: BitWidth::ONE,
+            },
+            20,
+            10,
+        );
         // Wire them up
         c.add_wire(0, 10, 10, 10);
         c.add_wire(0, 11, 10, 11);

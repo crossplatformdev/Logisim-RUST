@@ -12,7 +12,7 @@
 //! Sequential elements (flip-flops, registers, RAM, counters) hold state
 //! between clock edges and are updated on the rising edge of their clock input.
 
-use crate::component::{ComponentId, ComponentKind, PullDirection, BitFinderType};
+use crate::component::{BitFinderType, ComponentId, ComponentKind, PullDirection};
 use crate::error::{LogisimError, Result};
 use crate::project::Project;
 use crate::value::{Bus, Value};
@@ -136,12 +136,7 @@ impl Simulator {
     }
 
     /// Set a user-driven input pin value.
-    pub fn set_pin_value(
-        &mut self,
-        circuit_name: &str,
-        component_id: ComponentId,
-        value: Bus,
-    ) {
+    pub fn set_pin_value(&mut self, circuit_name: &str, component_id: ComponentId, value: Bus) {
         self.user_inputs
             .entry(circuit_name.to_string())
             .or_default()
@@ -161,17 +156,18 @@ impl Simulator {
 
     /// Run propagation until stable for the given circuit.
     pub fn propagate(&mut self, circuit_name: &str) -> Result<()> {
-        let circuit = self.project.circuits.get(circuit_name).ok_or_else(|| {
-            LogisimError::CircuitNotFound(circuit_name.to_string())
-        })?;
+        let circuit = self
+            .project
+            .circuits
+            .get(circuit_name)
+            .ok_or_else(|| LogisimError::CircuitNotFound(circuit_name.to_string()))?;
 
         // Build net map for this circuit.
         let net_map = circuit.compute_nets();
 
         // Helper: find the canonical net for a grid point.
-        let canonical = |x: i32, y: i32| -> NetId {
-            net_map.get(&(x, y)).copied().unwrap_or((x, y))
-        };
+        let canonical =
+            |x: i32, y: i32| -> NetId { net_map.get(&(x, y)).copied().unwrap_or((x, y)) };
 
         // Iterative propagation.
         // Keep the previous net values to compare for convergence.
@@ -179,18 +175,13 @@ impl Simulator {
 
         for _iter in 0..MAX_ITERATIONS {
             // Clone state snapshot for reading inputs (avoid borrow conflicts).
-            let state_snapshot = self
-                .states
-                .get(circuit_name)
-                .cloned()
-                .unwrap_or_default();
+            let state_snapshot = self.states.get(circuit_name).cloned().unwrap_or_default();
 
             // Build a fresh driven-values map for this pass (start all nets at HighZ).
             let mut driven: HashMap<NetId, Bus> = HashMap::new();
 
             // Evaluate each component.
-            let component_ids: Vec<ComponentId> =
-                circuit.components.keys().copied().collect();
+            let component_ids: Vec<ComponentId> = circuit.components.keys().copied().collect();
 
             let mut new_states: Vec<(ComponentId, ComponentState)> = Vec::new();
 
@@ -198,7 +189,13 @@ impl Simulator {
                 let comp = &circuit.components[&cid];
 
                 // Input pins are driven by user values (seeded after component eval below).
-                if matches!(comp.kind, ComponentKind::Pin { is_output: false, .. }) {
+                if matches!(
+                    comp.kind,
+                    ComponentKind::Pin {
+                        is_output: false,
+                        ..
+                    }
+                ) {
                     continue;
                 }
 
@@ -250,9 +247,13 @@ impl Simulator {
                 }
 
                 // Collect sequential state updates.
-                if let Some(ns) =
-                    compute_next_state(&comp.kind, cid, &inputs, comp_state_opt, state_snapshot.clock_tick)
-                {
+                if let Some(ns) = compute_next_state(
+                    &comp.kind,
+                    cid,
+                    &inputs,
+                    comp_state_opt,
+                    state_snapshot.clock_tick,
+                ) {
                     new_states.push((cid, ns));
                 }
             }
@@ -260,7 +261,11 @@ impl Simulator {
             // Seed input pins last — their values are authoritative and always
             // override any component-driven value on the same net.
             for (cid, comp) in &circuit.components {
-                if let ComponentKind::Pin { is_output: false, width } = &comp.kind {
+                if let ComponentKind::Pin {
+                    is_output: false,
+                    width,
+                } = &comp.kind
+                {
                     let value = self
                         .user_inputs
                         .get(circuit_name)
@@ -341,18 +346,30 @@ fn evaluate_component(
 
     match kind {
         // ── Wiring ────────────────────────────────────────────────────────────
-        ComponentKind::Pin { is_output: false, width } => {
+        ComponentKind::Pin {
+            is_output: false,
+            width,
+        } => {
             out.insert("out".to_string(), get("out", width.get()));
         }
-        ComponentKind::Pin { is_output: true, .. } => {
+        ComponentKind::Pin {
+            is_output: true, ..
+        } => {
             // Output pin: its output drives are on its input.
         }
         ComponentKind::Clock => {
-            let v = if clock_tick.is_multiple_of(2) { 0u64 } else { 1u64 };
+            let v = if clock_tick.is_multiple_of(2) {
+                0u64
+            } else {
+                1u64
+            };
             out.insert("out".to_string(), Bus::from_u64(v, 1));
         }
         ComponentKind::Constant { width, value } => {
-            out.insert("out".to_string(), Bus::from_u64(*value, width.get() as usize));
+            out.insert(
+                "out".to_string(),
+                Bus::from_u64(*value, width.get() as usize),
+            );
         }
         ComponentKind::Power => {
             out.insert("out".to_string(), Bus::from_u64(1, 1));
@@ -360,7 +377,10 @@ fn evaluate_component(
         ComponentKind::Ground => {
             out.insert("out".to_string(), Bus::from_u64(0, 1));
         }
-        ComponentKind::Splitter { combined_width, fan_out } => {
+        ComponentKind::Splitter {
+            combined_width,
+            fan_out,
+        } => {
             let combined = get("combined", combined_width.get());
             if *fan_out == 0 {
                 // Nothing to drive; leave outputs absent.
@@ -381,7 +401,10 @@ fn evaluate_component(
         ComponentKind::PullResistor { direction, width } => {
             let v = match direction {
                 PullDirection::Up => {
-                    let mask = 1u64.checked_shl(width.get()).map(|v| v - 1).unwrap_or(u64::MAX);
+                    let mask = 1u64
+                        .checked_shl(width.get())
+                        .map(|v| v - 1)
+                        .unwrap_or(u64::MAX);
                     Bus::from_u64(mask, width.get() as usize)
                 }
                 PullDirection::Down => Bus::from_u64(0, width.get() as usize),
@@ -400,8 +423,16 @@ fn evaluate_component(
         }
 
         // ── Gates ─────────────────────────────────────────────────────────────
-        ComponentKind::AndGate { inputs: n, width, negate_inputs, negate_output } => {
-            let mask = 1u64.checked_shl(width.get()).map(|v| v - 1).unwrap_or(u64::MAX);
+        ComponentKind::AndGate {
+            inputs: n,
+            width,
+            negate_inputs,
+            negate_output,
+        } => {
+            let mask = 1u64
+                .checked_shl(width.get())
+                .map(|v| v - 1)
+                .unwrap_or(u64::MAX);
             let mut result = Bus::from_u64(mask, width.get() as usize);
             for i in 0..*n {
                 let mut v = get(&format!("in{}", i), width.get());
@@ -416,7 +447,12 @@ fn evaluate_component(
             out.insert("out".to_string(), result);
         }
 
-        ComponentKind::OrGate { inputs: n, width, negate_inputs, negate_output } => {
+        ComponentKind::OrGate {
+            inputs: n,
+            width,
+            negate_inputs,
+            negate_output,
+        } => {
             let mut result = Bus::from_u64(0, width.get() as usize);
             for i in 0..*n {
                 let mut v = get(&format!("in{}", i), width.get());
@@ -486,7 +522,10 @@ fn evaluate_component(
         }
 
         // ── Plexers ───────────────────────────────────────────────────────────
-        ComponentKind::Multiplexer { select_bits, data_width } => {
+        ComponentKind::Multiplexer {
+            select_bits,
+            data_width,
+        } => {
             let sel = get("sel", *select_bits as u32);
             let idx = sel.to_u64().unwrap_or(0) as usize;
             let n = 1usize << select_bits;
@@ -498,7 +537,10 @@ fn evaluate_component(
             out.insert("out".to_string(), chosen);
         }
 
-        ComponentKind::Demultiplexer { select_bits, data_width } => {
+        ComponentKind::Demultiplexer {
+            select_bits,
+            data_width,
+        } => {
             let sel = get("sel", *select_bits as u32);
             let idx = sel.to_u64().unwrap_or(0) as usize;
             let n = 1usize << select_bits;
@@ -539,14 +581,20 @@ fn evaluate_component(
                 }
             }
             let (enc_val, en_out) = match found_idx {
-                Some(idx) => (Bus::from_u64(idx as u64, *select_bits as usize), Bus::from_u64(1, 1)),
+                Some(idx) => (
+                    Bus::from_u64(idx as u64, *select_bits as usize),
+                    Bus::from_u64(1, 1),
+                ),
                 None => (Bus::from_u64(0, *select_bits as usize), Bus::from_u64(0, 1)),
             };
             out.insert("out".to_string(), enc_val);
             out.insert("en_out".to_string(), en_out);
         }
 
-        ComponentKind::BitSelector { group_bits, data_width } => {
+        ComponentKind::BitSelector {
+            group_bits,
+            data_width,
+        } => {
             let sel = get("sel", *group_bits as u32);
             let data = get("in", data_width.get());
             let idx = sel.to_u64().unwrap_or(0) as usize;
@@ -561,8 +609,14 @@ fn evaluate_component(
             let cin = get1("c_in") == Value::True;
             let mask = (1u128 << width.get()) - 1;
             let sum128 = a as u128 + b as u128 + cin as u128;
-            out.insert("sum".to_string(), Bus::from_u64((sum128 & mask) as u64, width.get() as usize));
-            out.insert("c_out".to_string(), Bus::from_u64((sum128 >> width.get()) as u64 & 1, 1));
+            out.insert(
+                "sum".to_string(),
+                Bus::from_u64((sum128 & mask) as u64, width.get() as usize),
+            );
+            out.insert(
+                "c_out".to_string(),
+                Bus::from_u64((sum128 >> width.get()) as u64 & 1, 1),
+            );
         }
 
         ComponentKind::Subtractor { width } => {
@@ -573,7 +627,10 @@ fn evaluate_component(
             let diff128 = (a as i128) - (b as i128) - (bin as i128);
             let result = ((diff128 & mask as i128) as u64) & mask as u64;
             let bout = if diff128 < 0 { 1u64 } else { 0u64 };
-            out.insert("out".to_string(), Bus::from_u64(result, width.get() as usize));
+            out.insert(
+                "out".to_string(),
+                Bus::from_u64(result, width.get() as usize),
+            );
             out.insert("b_out".to_string(), Bus::from_u64(bout, 1));
         }
 
@@ -583,8 +640,17 @@ fn evaluate_component(
             let cin = get("c_in", width.get()).to_u64().unwrap_or(0);
             let mask = (1u128 << width.get()) - 1;
             let product = a as u128 * b as u128 + cin as u128;
-            out.insert("out".to_string(), Bus::from_u64((product & mask) as u64, width.get() as usize));
-            out.insert("upper".to_string(), Bus::from_u64((product >> width.get()) as u64 & mask as u64, width.get() as usize));
+            out.insert(
+                "out".to_string(),
+                Bus::from_u64((product & mask) as u64, width.get() as usize),
+            );
+            out.insert(
+                "upper".to_string(),
+                Bus::from_u64(
+                    (product >> width.get()) as u64 & mask as u64,
+                    width.get() as usize,
+                ),
+            );
         }
 
         ComponentKind::Divider { width } => {
@@ -596,15 +662,25 @@ fn evaluate_component(
                 (mask, mask)
             } else {
                 let dividend = ((upper as u128) << width.get()) | a as u128;
-                ((dividend / b as u128) as u64 & mask, (dividend % b as u128) as u64 & mask)
+                (
+                    (dividend / b as u128) as u64 & mask,
+                    (dividend % b as u128) as u64 & mask,
+                )
             };
-            out.insert("result".to_string(), Bus::from_u64(result, width.get() as usize));
+            out.insert(
+                "result".to_string(),
+                Bus::from_u64(result, width.get() as usize),
+            );
             out.insert("rem".to_string(), Bus::from_u64(rem, width.get() as usize));
         }
 
         ComponentKind::Negator { width } => {
             let v = get("in", width.get()).to_u64().unwrap_or(0);
-            let mask = if width.get() == 64 { u64::MAX } else { (1u64 << width.get()) - 1 };
+            let mask = if width.get() == 64 {
+                u64::MAX
+            } else {
+                (1u64 << width.get()) - 1
+            };
             let neg = v.wrapping_neg() & mask;
             out.insert("out".to_string(), Bus::from_u64(neg, width.get() as usize));
         }
@@ -666,10 +742,7 @@ fn evaluate_component(
                 .map(|s| s.counter.clone())
                 .unwrap_or_else(|| Bus::from_u64(0, width.get() as usize));
             let max = (1u64 << width.get()) - 1;
-            let terminal = Bus::from_u64(
-                (count.to_u64().unwrap_or(0) == max) as u64,
-                1,
-            );
+            let terminal = Bus::from_u64((count.to_u64().unwrap_or(0) == max) as u64, 1);
             out.insert("count".to_string(), count);
             out.insert("terminal".to_string(), terminal);
         }
@@ -683,14 +756,18 @@ fn evaluate_component(
             out.insert("data_out".to_string(), data);
         }
 
-        ComponentKind::Rom { addr_bits, data_bits, contents } => {
+        ComponentKind::Rom {
+            addr_bits,
+            data_bits,
+            contents,
+        } => {
             let addr = get("addr", *addr_bits as u32);
             let idx = addr.to_u64().unwrap_or(0) as usize;
-            let data = contents
-                .get(idx)
-                .copied()
-                .unwrap_or(0);
-            out.insert("data".to_string(), Bus::from_u64(data, data_bits.get() as usize));
+            let data = contents.get(idx).copied().unwrap_or(0);
+            out.insert(
+                "data".to_string(),
+                Bus::from_u64(data, data_bits.get() as usize),
+            );
         }
 
         ComponentKind::Led => {} // output-only display, no signal outputs
@@ -747,7 +824,11 @@ fn compute_next_state(
                     if reset == Value::True {
                         ns.q = Bus::from_u64(0, width.get() as usize);
                     } else if preset == Value::True {
-                        let mask = if width.get() == 64 { u64::MAX } else { (1u64 << width.get()) - 1 };
+                        let mask = if width.get() == 64 {
+                            u64::MAX
+                        } else {
+                            (1u64 << width.get()) - 1
+                        };
                         ns.q = Bus::from_u64(mask, width.get() as usize);
                     } else {
                         ns.q = get("d", width.get());
@@ -768,7 +849,11 @@ fn compute_next_state(
                     if reset == Value::True {
                         ns.q = Bus::from_u64(0, width.get() as usize);
                     } else if preset == Value::True {
-                        let mask = if width.get() == 64 { u64::MAX } else { (1u64 << width.get()) - 1 };
+                        let mask = if width.get() == 64 {
+                            u64::MAX
+                        } else {
+                            (1u64 << width.get()) - 1
+                        };
                         ns.q = Bus::from_u64(mask, width.get() as usize);
                     } else {
                         let t = get("t", width.get());
@@ -789,7 +874,11 @@ fn compute_next_state(
                 if reset == Value::True {
                     ns.q = Bus::from_u64(0, width.get() as usize);
                 } else if preset == Value::True {
-                    let mask = if width.get() == 64 { u64::MAX } else { (1u64 << width.get()) - 1 };
+                    let mask = if width.get() == 64 {
+                        u64::MAX
+                    } else {
+                        (1u64 << width.get()) - 1
+                    };
                     ns.q = Bus::from_u64(mask, width.get() as usize);
                 } else {
                     let j = get1("j");
@@ -828,7 +917,11 @@ fn compute_next_state(
                 let r = get1("r");
                 match (s, r) {
                     (Value::True, Value::False) => {
-                        let mask = if width.get() == 64 { u64::MAX } else { (1u64 << width.get()) - 1 };
+                        let mask = if width.get() == 64 {
+                            u64::MAX
+                        } else {
+                            (1u64 << width.get()) - 1
+                        };
                         ns.q = Bus::from_u64(mask, width.get() as usize);
                     }
                     (Value::False, Value::True) => {
@@ -874,7 +967,11 @@ fn compute_next_state(
                     ns.counter = get("load", width.get());
                 } else if en != Value::False {
                     let cur = ns.counter.to_u64().unwrap_or(0);
-                    let max = if width.get() == 64 { u64::MAX } else { (1u64 << width.get()) - 1 };
+                    let max = if width.get() == 64 {
+                        u64::MAX
+                    } else {
+                        (1u64 << width.get()) - 1
+                    };
                     let next = if cur >= max { 0 } else { cur + 1 };
                     ns.counter = Bus::from_u64(next, width.get() as usize);
                 }
@@ -882,7 +979,11 @@ fn compute_next_state(
             Some(ns)
         }
 
-        ComponentKind::Ram { addr_bits, data_bits, .. } => {
+        ComponentKind::Ram {
+            addr_bits,
+            data_bits,
+            ..
+        } => {
             let mut ns = state.cloned().unwrap_or_default();
             ns.prev_clk = clk;
             let mem_size = 1usize << addr_bits;
@@ -920,12 +1021,22 @@ mod tests {
     fn make_and_circuit() -> Project {
         let mut circuit = Circuit::new("main");
         circuit.add_component_with_label(
-            ComponentKind::Pin { is_output: false, width: BitWidth::ONE },
-            0, 0, "A",
+            ComponentKind::Pin {
+                is_output: false,
+                width: BitWidth::ONE,
+            },
+            0,
+            0,
+            "A",
         );
         circuit.add_component_with_label(
-            ComponentKind::Pin { is_output: false, width: BitWidth::ONE },
-            0, 10, "B",
+            ComponentKind::Pin {
+                is_output: false,
+                width: BitWidth::ONE,
+            },
+            0,
+            10,
+            "B",
         );
         circuit.add_component(
             ComponentKind::AndGate {
@@ -934,11 +1045,17 @@ mod tests {
                 negate_inputs: vec![false, false],
                 negate_output: false,
             },
-            20, 0,
+            20,
+            0,
         );
         circuit.add_component_with_label(
-            ComponentKind::Pin { is_output: true, width: BitWidth::ONE },
-            40, 0, "OUT",
+            ComponentKind::Pin {
+                is_output: true,
+                width: BitWidth::ONE,
+            },
+            40,
+            0,
+            "OUT",
         );
 
         // Wire A → gate.in0
@@ -971,15 +1088,22 @@ mod tests {
         // The result is on the net driven by the AND gate output.
         // Check via net values
         let state = sim.state("main").unwrap();
-        assert!(state.net_values.values().any(|b| b.to_u64() == Some(1) || b.get(0) == Value::True));
+        assert!(state
+            .net_values
+            .values()
+            .any(|b| b.to_u64() == Some(1) || b.get(0) == Value::True));
     }
 
     #[test]
     fn test_constant_output() {
         let mut circuit = Circuit::new("const");
         let _c = circuit.add_component(
-            ComponentKind::Constant { width: BitWidth::FOUR, value: 0b1010 },
-            10, 10,
+            ComponentKind::Constant {
+                width: BitWidth::FOUR,
+                value: 0b1010,
+            },
+            10,
+            10,
         );
         let mut project = Project::new("test");
         project.add_circuit(circuit);
@@ -987,7 +1111,10 @@ mod tests {
         sim.propagate("const").unwrap();
         // Verify a net has value 0xA
         let state = sim.state("const").unwrap();
-        assert!(state.net_values.values().any(|b| b.to_u64() == Some(0b1010)));
+        assert!(state
+            .net_values
+            .values()
+            .any(|b| b.to_u64() == Some(0b1010)));
     }
 
     #[test]
@@ -996,8 +1123,11 @@ mod tests {
             ("a".to_string(), Bus::from_u64(3, 4)),
             ("b".to_string(), Bus::from_u64(5, 4)),
             ("c_in".to_string(), Bus::from_u64(0, 1)),
-        ].into();
-        let kind = ComponentKind::Adder { width: BitWidth::FOUR };
+        ]
+        .into();
+        let kind = ComponentKind::Adder {
+            width: BitWidth::FOUR,
+        };
         let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
         assert_eq!(result["sum"].to_u64(), Some(8));
         assert_eq!(result["c_out"].to_u64(), Some(0));
@@ -1009,8 +1139,11 @@ mod tests {
             ("a".to_string(), Bus::from_u64(15, 4)),
             ("b".to_string(), Bus::from_u64(1, 4)),
             ("c_in".to_string(), Bus::from_u64(0, 1)),
-        ].into();
-        let kind = ComponentKind::Adder { width: BitWidth::FOUR };
+        ]
+        .into();
+        let kind = ComponentKind::Adder {
+            width: BitWidth::FOUR,
+        };
         let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
         assert_eq!(result["sum"].to_u64(), Some(0));
         assert_eq!(result["c_out"].to_u64(), Some(1));
@@ -1022,15 +1155,21 @@ mod tests {
             ("in0".to_string(), Bus::from_u64(0xA, 4)),
             ("in1".to_string(), Bus::from_u64(0xB, 4)),
             ("sel".to_string(), Bus::from_u64(1, 1)),
-        ].into();
-        let kind = ComponentKind::Multiplexer { select_bits: 1, data_width: BitWidth::FOUR };
+        ]
+        .into();
+        let kind = ComponentKind::Multiplexer {
+            select_bits: 1,
+            data_width: BitWidth::FOUR,
+        };
         let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
         assert_eq!(result["out"].to_u64(), Some(0xB));
     }
 
     #[test]
     fn test_dff_rising_edge() {
-        let kind = ComponentKind::DFlipFlop { width: BitWidth::ONE };
+        let kind = ComponentKind::DFlipFlop {
+            width: BitWidth::ONE,
+        };
 
         // Simulate rising edge: prev_clk=0, clk=1, d=1
         let inputs: HashMap<String, Bus> = [
@@ -1039,7 +1178,8 @@ mod tests {
             ("en".to_string(), Bus::from_u64(1, 1)),
             ("reset".to_string(), Bus::from_u64(0, 1)),
             ("preset".to_string(), Bus::from_u64(0, 1)),
-        ].into();
+        ]
+        .into();
         let prev = ComponentState {
             prev_clk: Value::False,
             q: Bus::from_u64(0, 1),
@@ -1052,14 +1192,17 @@ mod tests {
 
     #[test]
     fn test_counter_increment() {
-        let kind = ComponentKind::Counter { width: BitWidth::FOUR };
+        let kind = ComponentKind::Counter {
+            width: BitWidth::FOUR,
+        };
         let inputs: HashMap<String, Bus> = [
             ("clk".to_string(), Bus::from_u64(1, 1)),
             ("en".to_string(), Bus::from_u64(1, 1)),
             ("reset".to_string(), Bus::from_u64(0, 1)),
             ("ld_en".to_string(), Bus::from_u64(0, 1)),
             ("load".to_string(), Bus::from_u64(0, 4)),
-        ].into();
+        ]
+        .into();
         let prev = ComponentState {
             prev_clk: Value::False,
             counter: Bus::from_u64(5, 4),
@@ -1075,8 +1218,11 @@ mod tests {
         let inputs: HashMap<String, Bus> = [
             ("a".to_string(), Bus::from_u64(5, 4)),
             ("b".to_string(), Bus::from_u64(3, 4)),
-        ].into();
-        let kind = ComponentKind::Comparator { width: BitWidth::FOUR };
+        ]
+        .into();
+        let kind = ComponentKind::Comparator {
+            width: BitWidth::FOUR,
+        };
         let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
         assert_eq!(result["gt"].to_u64(), Some(1));
         assert_eq!(result["eq"].to_u64(), Some(0));
@@ -1085,19 +1231,17 @@ mod tests {
 
     #[test]
     fn test_not_gate() {
-        let inputs: HashMap<String, Bus> = [
-            ("in".to_string(), Bus::from_u64(0b1010, 4)),
-        ].into();
-        let kind = ComponentKind::NotGate { width: BitWidth::FOUR };
+        let inputs: HashMap<String, Bus> = [("in".to_string(), Bus::from_u64(0b1010, 4))].into();
+        let kind = ComponentKind::NotGate {
+            width: BitWidth::FOUR,
+        };
         let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
         assert_eq!(result["out"].to_u64(), Some(0b0101));
     }
 
     #[test]
     fn test_decoder() {
-        let inputs: HashMap<String, Bus> = [
-            ("sel".to_string(), Bus::from_u64(2, 2)),
-        ].into();
+        let inputs: HashMap<String, Bus> = [("sel".to_string(), Bus::from_u64(2, 2))].into();
         let kind = ComponentKind::Decoder { select_bits: 2 };
         let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
         assert_eq!(result["out0"].to_u64(), Some(0));

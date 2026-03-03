@@ -1,10 +1,10 @@
 //! Circuit canvas: handles rendering and interaction for the circuit editor.
 
 use crate::state::{AppState, Tool};
-use egui::{Color32, Painter, Pos2, Rect, Response, Sense, Stroke, Vec2};
+use egui::{Color32, Painter, Pos2, Rect, Sense, Stroke, Vec2};
 use logisim_core::{
     circuit::Wire,
-    component::{Component, ComponentKind, Facing},
+    component::{Component, ComponentKind},
     value::{Bus, Value},
 };
 
@@ -13,22 +13,21 @@ const GRID: f32 = 10.0;
 /// The circuit editing canvas widget.
 pub struct CircuitCanvas {
     /// Is the middle mouse button being dragged (pan)?
-    panning: bool,
+    _panning: bool,
     /// Last drag position for pan.
-    last_drag: Option<Pos2>,
+    _last_drag: Option<Pos2>,
 }
 
 impl CircuitCanvas {
     pub fn new() -> Self {
         CircuitCanvas {
-            panning: false,
-            last_drag: None,
+            _panning: false,
+            _last_drag: None,
         }
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, state: &mut AppState) {
-        let (response, painter) =
-            ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
+        let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
 
         let origin = response.rect.min;
 
@@ -176,13 +175,17 @@ impl CircuitCanvas {
                     .get(&active)
                     .and_then(|c| {
                         c.components.iter().find(|(_, comp)| {
-                            matches!(comp.kind, ComponentKind::Pin { is_output: false, .. })
-                                && {
-                                    let cp = state.grid_to_screen(comp.x, comp.y, origin);
-                                    let half = state.grid_px() * 2.0;
-                                    (cp.x - pos.x).abs() < half
-                                        && (cp.y - pos.y).abs() < half
+                            matches!(
+                                comp.kind,
+                                ComponentKind::Pin {
+                                    is_output: false,
+                                    ..
                                 }
+                            ) && {
+                                let cp = state.grid_to_screen(comp.x, comp.y, origin);
+                                let half = state.grid_px() * 2.0;
+                                (cp.x - pos.x).abs() < half && (cp.y - pos.y).abs() < half
+                            }
                         })
                     })
                     .map(|(id, comp)| {
@@ -225,10 +228,7 @@ fn draw_grid(painter: &Painter, rect: Rect, pan: Vec2, zoom: f32) {
     let x_start = (rect.min.x - pan.x).rem_euclid(grid_px);
     let mut x = rect.min.x + x_start - grid_px;
     while x < rect.max.x {
-        painter.line_segment(
-            [Pos2::new(x, rect.min.y), Pos2::new(x, rect.max.y)],
-            stroke,
-        );
+        painter.line_segment([Pos2::new(x, rect.min.y), Pos2::new(x, rect.max.y)], stroke);
         x += grid_px;
     }
 
@@ -236,21 +236,12 @@ fn draw_grid(painter: &Painter, rect: Rect, pan: Vec2, zoom: f32) {
     let y_start = (rect.min.y - pan.y).rem_euclid(grid_px);
     let mut y = rect.min.y + y_start - grid_px;
     while y < rect.max.y {
-        painter.line_segment(
-            [Pos2::new(rect.min.x, y), Pos2::new(rect.max.x, y)],
-            stroke,
-        );
+        painter.line_segment([Pos2::new(rect.min.x, y), Pos2::new(rect.max.x, y)], stroke);
         y += grid_px;
     }
 }
 
-fn draw_wire(
-    painter: &Painter,
-    wire: &Wire,
-    origin: Pos2,
-    state: &AppState,
-    color: Color32,
-) {
+fn draw_wire(painter: &Painter, wire: &Wire, origin: Pos2, state: &AppState, color: Color32) {
     let p1 = state.grid_to_screen(wire.from.x, wire.from.y, origin);
     let p2 = state.grid_to_screen(wire.to.x, wire.to.y, origin);
     painter.line_segment([p1, p2], Stroke::new(2.0 * state.zoom, color));
@@ -278,7 +269,10 @@ fn draw_component(
     };
 
     match &comp.kind {
-        ComponentKind::Pin { is_output, width } => {
+        ComponentKind::Pin {
+            is_output,
+            width: _,
+        } => {
             let r = g * 0.8;
             let fill = if *is_output {
                 Color32::from_rgb(200, 220, 255)
@@ -298,8 +292,7 @@ fn draw_component(
             }
         }
 
-        ComponentKind::AndGate { inputs, .. }
-        | ComponentKind::NandGate { inputs, .. } => {
+        ComponentKind::AndGate { inputs, .. } | ComponentKind::NandGate { inputs, .. } => {
             let n = *inputs as f32;
             let w = g * 3.0;
             let h = g * n;
@@ -313,8 +306,7 @@ fn draw_component(
             draw_gate_label(painter, pos, w, h, "& ", state);
         }
 
-        ComponentKind::OrGate { inputs, .. }
-        | ComponentKind::NorGate { inputs, .. } => {
+        ComponentKind::OrGate { inputs, .. } | ComponentKind::NorGate { inputs, .. } => {
             let n = *inputs as f32;
             let w = g * 3.0;
             let h = g * n;
@@ -328,8 +320,7 @@ fn draw_component(
             draw_gate_label(painter, pos, w, h, "≥1", state);
         }
 
-        ComponentKind::XorGate { inputs, .. }
-        | ComponentKind::XnorGate { inputs, .. } => {
+        ComponentKind::XorGate { inputs, .. } | ComponentKind::XnorGate { inputs, .. } => {
             let n = *inputs as f32;
             let w = g * 3.0;
             let h = g * n;
@@ -368,11 +359,16 @@ fn draw_component(
             draw_gate_label(painter, pos, r * 2.0, r * 2.0, "CLK", state);
         }
 
-        ComponentKind::Constant { value, width } => {
+        ComponentKind::Constant { value, width: _ } => {
             let w = g * 3.0;
             let h = g * 1.5;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, Color32::from_rgb(255, 255, 200), Stroke::new(1.5, border));
+            painter.rect(
+                rect,
+                g * 0.2,
+                Color32::from_rgb(255, 255, 200),
+                Stroke::new(1.5, border),
+            );
             let label = format!("0x{:X}", value);
             painter.text(
                 rect.center(),
@@ -460,7 +456,12 @@ fn draw_component(
             let w = g * 5.0;
             let h = g * 3.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, Color32::from_rgb(220, 220, 255), Stroke::new(1.5, border));
+            painter.rect(
+                rect,
+                g * 0.2,
+                Color32::from_rgb(220, 220, 255),
+                Stroke::new(1.5, border),
+            );
             draw_gate_label(painter, pos, w, h, "ROM", state);
         }
 
@@ -489,7 +490,12 @@ fn draw_component(
             let w = g * 2.0;
             let h = g * 2.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.4, Color32::from_rgb(200, 200, 200), Stroke::new(2.0, border));
+            painter.rect(
+                rect,
+                g * 0.4,
+                Color32::from_rgb(200, 200, 200),
+                Stroke::new(2.0, border),
+            );
             draw_gate_label(painter, pos, w, h, "BTN", state);
         }
 
@@ -497,7 +503,12 @@ fn draw_component(
             let w = g * 4.0;
             let h = g * 3.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, Color32::from_rgb(230, 200, 230), Stroke::new(1.5, border));
+            painter.rect(
+                rect,
+                g * 0.2,
+                Color32::from_rgb(230, 200, 230),
+                Stroke::new(1.5, border),
+            );
             painter.text(
                 rect.center(),
                 egui::Align2::CENTER_CENTER,
@@ -540,14 +551,7 @@ fn draw_component_ghost(painter: &Painter, comp: &Component, origin: Pos2, state
     );
 }
 
-fn draw_gate_label(
-    painter: &Painter,
-    pos: Pos2,
-    w: f32,
-    h: f32,
-    label: &str,
-    state: &AppState,
-) {
+fn draw_gate_label(painter: &Painter, pos: Pos2, w: f32, h: f32, label: &str, state: &AppState) {
     let center = Pos2::new(pos.x + w / 2.0, pos.y + h / 2.0);
     painter.text(
         center,
@@ -599,23 +603,48 @@ fn draw_seven_seg(painter: &Painter, rect: Rect, segs: &[bool; 8]) {
     //                    e=bot-left, f=top-left, g=middle)
     let segs_lines = [
         // a: top horizontal
-        (Pos2::new(x + w * 0.15, y + h * 0.05), Pos2::new(x + w * 0.85, y + h * 0.05)),
+        (
+            Pos2::new(x + w * 0.15, y + h * 0.05),
+            Pos2::new(x + w * 0.85, y + h * 0.05),
+        ),
         // b: top-right vertical
-        (Pos2::new(x + w * 0.88, y + h * 0.08), Pos2::new(x + w * 0.88, y + h * 0.48)),
+        (
+            Pos2::new(x + w * 0.88, y + h * 0.08),
+            Pos2::new(x + w * 0.88, y + h * 0.48),
+        ),
         // c: bot-right vertical
-        (Pos2::new(x + w * 0.88, y + h * 0.52), Pos2::new(x + w * 0.88, y + h * 0.92)),
+        (
+            Pos2::new(x + w * 0.88, y + h * 0.52),
+            Pos2::new(x + w * 0.88, y + h * 0.92),
+        ),
         // d: bottom horizontal
-        (Pos2::new(x + w * 0.15, y + h * 0.95), Pos2::new(x + w * 0.85, y + h * 0.95)),
+        (
+            Pos2::new(x + w * 0.15, y + h * 0.95),
+            Pos2::new(x + w * 0.85, y + h * 0.95),
+        ),
         // e: bot-left vertical
-        (Pos2::new(x + w * 0.12, y + h * 0.52), Pos2::new(x + w * 0.12, y + h * 0.92)),
+        (
+            Pos2::new(x + w * 0.12, y + h * 0.52),
+            Pos2::new(x + w * 0.12, y + h * 0.92),
+        ),
         // f: top-left vertical
-        (Pos2::new(x + w * 0.12, y + h * 0.08), Pos2::new(x + w * 0.12, y + h * 0.48)),
+        (
+            Pos2::new(x + w * 0.12, y + h * 0.08),
+            Pos2::new(x + w * 0.12, y + h * 0.48),
+        ),
         // g: middle horizontal
-        (Pos2::new(x + w * 0.15, y + h * 0.5), Pos2::new(x + w * 0.85, y + h * 0.5)),
+        (
+            Pos2::new(x + w * 0.15, y + h * 0.5),
+            Pos2::new(x + w * 0.85, y + h * 0.5),
+        ),
     ];
 
     for (i, (p1, p2)) in segs_lines.iter().enumerate() {
-        let color = if segs.get(i).copied().unwrap_or(false) { on } else { off };
+        let color = if segs.get(i).copied().unwrap_or(false) {
+            on
+        } else {
+            off
+        };
         painter.line_segment([*p1, *p2], Stroke::new(t, color));
     }
 }

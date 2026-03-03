@@ -7,7 +7,7 @@
 use crate::error::Result;
 use logisim_core::{
     circuit::{Circuit, Wire},
-    component::{ComponentKind, Facing, PullDirection, BitFinderType},
+    component::{BitFinderType, ComponentKind, Facing, PullDirection},
     project::Project,
 };
 use std::io::Write;
@@ -16,7 +16,10 @@ use std::io::Write;
 
 /// Write a project to a writer in `.circ` XML format.
 pub fn write_circ<W: Write>(project: &Project, writer: &mut W) -> Result<()> {
-    writeln!(writer, r#"<?xml version="1.0" encoding="UTF-8" standalone="no"?>"#)?;
+    writeln!(
+        writer,
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="no"?>"#
+    )?;
     writeln!(writer, r#"<project version="1.0">"#)?;
 
     // Standard library declarations (matching Logisim-Evolution order).
@@ -30,7 +33,12 @@ pub fn write_circ<W: Write>(project: &Project, writer: &mut W) -> Result<()> {
     // Options
     writeln!(writer, "  <options>")?;
     for (k, v) in &project.options {
-        writeln!(writer, r#"    <a name="{}" val="{}"/>"#, escape(k), escape(v))?;
+        writeln!(
+            writer,
+            r#"    <a name="{}" val="{}"/>"#,
+            escape(k),
+            escape(v)
+        )?;
     }
     writeln!(writer, "  </options>")?;
     writeln!(writer, "  <mappings/>")?;
@@ -49,12 +57,21 @@ pub fn write_circ<W: Write>(project: &Project, writer: &mut W) -> Result<()> {
 
 fn write_circuit<W: Write>(circuit: &Circuit, writer: &mut W) -> Result<()> {
     writeln!(writer, r#"  <circuit name="{}">"#, escape(&circuit.name))?;
-    writeln!(writer, r#"    <a name="circuit" val="{}"/>"#, escape(&circuit.name))?;
+    writeln!(
+        writer,
+        r#"    <a name="circuit" val="{}"/>"#,
+        escape(&circuit.name)
+    )?;
 
     // Circuit attributes
     for (k, v) in &circuit.attributes {
         if k != "circuit" {
-            writeln!(writer, r#"    <a name="{}" val="{}"/>"#, escape(k), escape(v))?;
+            writeln!(
+                writer,
+                r#"    <a name="{}" val="{}"/>"#,
+                escape(k),
+                escape(v)
+            )?;
         }
     }
 
@@ -95,11 +112,7 @@ fn write_component<W: Write>(
 
     // Facing
     if comp.facing != Facing::East {
-        writeln!(
-            writer,
-            r#"      <a name="facing" val="{}"/>"#,
-            comp.facing
-        )?;
+        writeln!(writer, r#"      <a name="facing" val="{}"/>"#, comp.facing)?;
     }
 
     // Label — skip for Tunnel since write_kind_attrs emits it as a kind-specific attribute.
@@ -146,8 +159,15 @@ fn write_kind_attrs<W: Write>(kind: &ComponentKind, writer: &mut W) -> Result<()
             }
             writeln!(writer, r#"      <a name="value" val="0x{:X}"/>"#, value)?;
         }
-        ComponentKind::Splitter { combined_width, fan_out } => {
-            writeln!(writer, r#"      <a name="incoming" val="{}"/>"#, combined_width.get())?;
+        ComponentKind::Splitter {
+            combined_width,
+            fan_out,
+        } => {
+            writeln!(
+                writer,
+                r#"      <a name="incoming" val="{}"/>"#,
+                combined_width.get()
+            )?;
             writeln!(writer, r#"      <a name="fanout" val="{}"/>"#, fan_out)?;
         }
         ComponentKind::Tunnel { label, width } => {
@@ -201,21 +221,37 @@ fn write_kind_attrs<W: Write>(kind: &ComponentKind, writer: &mut W) -> Result<()
             }
         }
 
-        ComponentKind::Multiplexer { select_bits, data_width }
-        | ComponentKind::Demultiplexer { select_bits, data_width } => {
+        ComponentKind::Multiplexer {
+            select_bits,
+            data_width,
+        }
+        | ComponentKind::Demultiplexer {
+            select_bits,
+            data_width,
+        } => {
             writeln!(writer, r#"      <a name="select" val="{}"/>"#, select_bits)?;
             if data_width.get() != 1 {
-                writeln!(writer, r#"      <a name="width" val="{}"/>"#, data_width.get())?;
+                writeln!(
+                    writer,
+                    r#"      <a name="width" val="{}"/>"#,
+                    data_width.get()
+                )?;
             }
         }
-        ComponentKind::Decoder { select_bits }
-        | ComponentKind::PriorityEncoder { select_bits } => {
+        ComponentKind::Decoder { select_bits } | ComponentKind::PriorityEncoder { select_bits } => {
             writeln!(writer, r#"      <a name="select" val="{}"/>"#, select_bits)?;
         }
-        ComponentKind::BitSelector { group_bits, data_width } => {
+        ComponentKind::BitSelector {
+            group_bits,
+            data_width,
+        } => {
             writeln!(writer, r#"      <a name="group" val="{}"/>"#, group_bits)?;
             if data_width.get() != 1 {
-                writeln!(writer, r#"      <a name="width" val="{}"/>"#, data_width.get())?;
+                writeln!(
+                    writer,
+                    r#"      <a name="width" val="{}"/>"#,
+                    data_width.get()
+                )?;
             }
         }
 
@@ -258,24 +294,48 @@ fn write_kind_attrs<W: Write>(kind: &ComponentKind, writer: &mut W) -> Result<()
             }
         }
 
-        ComponentKind::Ram { addr_bits, data_bits, sync } => {
+        ComponentKind::Ram {
+            addr_bits,
+            data_bits,
+            sync,
+        } => {
             writeln!(writer, r#"      <a name="addrWidth" val="{}"/>"#, addr_bits)?;
-            writeln!(writer, r#"      <a name="dataWidth" val="{}"/>"#, data_bits.get())?;
+            writeln!(
+                writer,
+                r#"      <a name="dataWidth" val="{}"/>"#,
+                data_bits.get()
+            )?;
             if *sync {
                 writeln!(writer, r#"      <a name="trigger" val="rising"/>"#)?;
             }
         }
 
-        ComponentKind::Rom { addr_bits, data_bits, contents } => {
+        ComponentKind::Rom {
+            addr_bits,
+            data_bits,
+            contents,
+        } => {
             writeln!(writer, r#"      <a name="addrWidth" val="{}"/>"#, addr_bits)?;
-            writeln!(writer, r#"      <a name="dataWidth" val="{}"/>"#, data_bits.get())?;
+            writeln!(
+                writer,
+                r#"      <a name="dataWidth" val="{}"/>"#,
+                data_bits.get()
+            )?;
             if !contents.is_empty() {
                 let hex: Vec<String> = contents.iter().map(|v| format!("{:02X}", v)).collect();
-                writeln!(writer, r#"      <a name="contents" val="{}"/>"#, hex.join(" "))?;
+                writeln!(
+                    writer,
+                    r#"      <a name="contents" val="{}"/>"#,
+                    hex.join(" ")
+                )?;
             }
         }
 
-        ComponentKind::ShiftRegisterMemory { stages, width, parallel_load } => {
+        ComponentKind::ShiftRegisterMemory {
+            stages,
+            width,
+            parallel_load,
+        } => {
             writeln!(writer, r#"      <a name="length" val="{}"/>"#, stages)?;
             if width.get() != 1 {
                 writeln!(writer, r#"      <a name="width" val="{}"/>"#, width.get())?;
@@ -343,17 +403,17 @@ mod tests {
     use super::*;
     use crate::parser::parse_circ;
     use logisim_core::{
-        circuit::Circuit,
-        component::ComponentKind,
-        project::Project,
-        value::BitWidth,
+        circuit::Circuit, component::ComponentKind, project::Project, value::BitWidth,
     };
 
     fn make_test_project() -> Project {
         let mut project = Project::new("test");
         let mut circuit = Circuit::new("main");
         circuit.add_component(
-            ComponentKind::Pin { is_output: false, width: BitWidth::ONE },
+            ComponentKind::Pin {
+                is_output: false,
+                width: BitWidth::ONE,
+            },
             30,
             140,
         );
@@ -368,7 +428,10 @@ mod tests {
             140,
         );
         circuit.add_component(
-            ComponentKind::Pin { is_output: true, width: BitWidth::ONE },
+            ComponentKind::Pin {
+                is_output: true,
+                width: BitWidth::ONE,
+            },
             290,
             140,
         );

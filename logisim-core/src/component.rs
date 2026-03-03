@@ -74,79 +74,193 @@ impl Port {
 pub enum ComponentKind {
     // ── Wiring ────────────────────────────────────────────────────────────────
     /// Input pin (drives a signal into the circuit).
-    Pin { is_output: bool, width: BitWidth },
+    Pin {
+        is_output: bool,
+        width: BitWidth,
+    },
     /// Clock signal generator.
     Clock,
     /// Constant value driver.
-    Constant { width: BitWidth, value: u64 },
+    Constant {
+        width: BitWidth,
+        value: u64,
+    },
     /// Power (logic 1) driver.
     Power,
     /// Ground (logic 0) driver.
     Ground,
     /// Bit splitter: merges or splits multi-bit buses.
-    Splitter { combined_width: BitWidth, fan_out: u8 },
+    Splitter {
+        combined_width: BitWidth,
+        fan_out: u8,
+    },
     /// Tunnel (named wire connection across distance).
-    Tunnel { label: String, width: BitWidth },
+    Tunnel {
+        label: String,
+        width: BitWidth,
+    },
     /// Probe (passive observation point).
-    Probe { width: BitWidth },
+    Probe {
+        width: BitWidth,
+    },
     /// Pull resistor (pull-up or pull-down).
-    PullResistor { direction: PullDirection, width: BitWidth },
+    PullResistor {
+        direction: PullDirection,
+        width: BitWidth,
+    },
     /// Tristate buffer.
-    TristateBuffer { width: BitWidth },
+    TristateBuffer {
+        width: BitWidth,
+    },
 
     // ── Basic Gates ───────────────────────────────────────────────────────────
-    AndGate { inputs: u8, width: BitWidth, negate_inputs: Vec<bool>, negate_output: bool },
-    OrGate  { inputs: u8, width: BitWidth, negate_inputs: Vec<bool>, negate_output: bool },
-    NandGate { inputs: u8, width: BitWidth },
-    NorGate  { inputs: u8, width: BitWidth },
-    XorGate  { inputs: u8, width: BitWidth },
-    XnorGate { inputs: u8, width: BitWidth },
-    NotGate  { width: BitWidth },
-    Buffer   { width: BitWidth },
-    ControlledBuffer { width: BitWidth },
+    AndGate {
+        inputs: u8,
+        width: BitWidth,
+        negate_inputs: Vec<bool>,
+        negate_output: bool,
+    },
+    OrGate {
+        inputs: u8,
+        width: BitWidth,
+        negate_inputs: Vec<bool>,
+        negate_output: bool,
+    },
+    NandGate {
+        inputs: u8,
+        width: BitWidth,
+    },
+    NorGate {
+        inputs: u8,
+        width: BitWidth,
+    },
+    XorGate {
+        inputs: u8,
+        width: BitWidth,
+    },
+    XnorGate {
+        inputs: u8,
+        width: BitWidth,
+    },
+    NotGate {
+        width: BitWidth,
+    },
+    Buffer {
+        width: BitWidth,
+    },
+    ControlledBuffer {
+        width: BitWidth,
+    },
 
     // ── Plexers ───────────────────────────────────────────────────────────────
-    Multiplexer    { select_bits: u8, data_width: BitWidth },
-    Demultiplexer  { select_bits: u8, data_width: BitWidth },
-    Decoder        { select_bits: u8 },
-    PriorityEncoder { select_bits: u8 },
-    BitSelector    { group_bits: u8, data_width: BitWidth },
+    Multiplexer {
+        select_bits: u8,
+        data_width: BitWidth,
+    },
+    Demultiplexer {
+        select_bits: u8,
+        data_width: BitWidth,
+    },
+    Decoder {
+        select_bits: u8,
+    },
+    PriorityEncoder {
+        select_bits: u8,
+    },
+    BitSelector {
+        group_bits: u8,
+        data_width: BitWidth,
+    },
 
     // ── Arithmetic ────────────────────────────────────────────────────────────
-    Adder       { width: BitWidth },
-    Subtractor  { width: BitWidth },
-    Multiplier  { width: BitWidth },
-    Divider     { width: BitWidth },
-    Negator     { width: BitWidth },
-    Comparator  { width: BitWidth },
-    ShiftRegister { stages: u8, width: BitWidth },
-    BitAdder    { width: BitWidth },
-    BitFinder   { width: BitWidth, find_type: BitFinderType },
+    Adder {
+        width: BitWidth,
+    },
+    Subtractor {
+        width: BitWidth,
+    },
+    Multiplier {
+        width: BitWidth,
+    },
+    Divider {
+        width: BitWidth,
+    },
+    Negator {
+        width: BitWidth,
+    },
+    Comparator {
+        width: BitWidth,
+    },
+    ShiftRegister {
+        stages: u8,
+        width: BitWidth,
+    },
+    BitAdder {
+        width: BitWidth,
+    },
+    BitFinder {
+        width: BitWidth,
+        find_type: BitFinderType,
+    },
 
     // ── Memory ────────────────────────────────────────────────────────────────
-    DFlipFlop  { width: BitWidth },
-    TFlipFlop  { width: BitWidth },
-    JKFlipFlop { width: BitWidth },
-    SRFlipFlop { width: BitWidth },
-    Register   { width: BitWidth },
-    Ram        { addr_bits: u8, data_bits: BitWidth, sync: bool },
-    Rom        { addr_bits: u8, data_bits: BitWidth, contents: Vec<u64> },
-    Counter    { width: BitWidth },
-    ShiftRegisterMemory { stages: u8, width: BitWidth, parallel_load: bool },
+    DFlipFlop {
+        width: BitWidth,
+    },
+    TFlipFlop {
+        width: BitWidth,
+    },
+    JKFlipFlop {
+        width: BitWidth,
+    },
+    SRFlipFlop {
+        width: BitWidth,
+    },
+    Register {
+        width: BitWidth,
+    },
+    Ram {
+        addr_bits: u8,
+        data_bits: BitWidth,
+        sync: bool,
+    },
+    Rom {
+        addr_bits: u8,
+        data_bits: BitWidth,
+        contents: Vec<u64>,
+    },
+    Counter {
+        width: BitWidth,
+    },
+    ShiftRegisterMemory {
+        stages: u8,
+        width: BitWidth,
+        parallel_load: bool,
+    },
 
     // ── I/O ───────────────────────────────────────────────────────────────────
     Led,
     RgbLed,
     SevenSegDisplay,
     HexDisplay,
-    DotMatrix     { rows: u8, cols: u8 },
+    DotMatrix {
+        rows: u8,
+        cols: u8,
+    },
     Button,
-    DipSwitch     { switches: u8 },
+    DipSwitch {
+        switches: u8,
+    },
     Keyboard,
-    Tty           { rows: u8, cols: u8 },
+    Tty {
+        rows: u8,
+        cols: u8,
+    },
 
     // ── Subcircuit ────────────────────────────────────────────────────────────
-    Subcircuit { circuit_name: String },
+    Subcircuit {
+        circuit_name: String,
+    },
 }
 
 /// Pull-up or pull-down direction for a pull resistor.
@@ -303,7 +417,10 @@ impl ComponentKind {
             ComponentKind::Power => vec![Port::output("out", BitWidth::ONE, (0, 0))],
             ComponentKind::Ground => vec![Port::output("out", BitWidth::ONE, (0, 0))],
 
-            ComponentKind::Splitter { combined_width, fan_out } => {
+            ComponentKind::Splitter {
+                combined_width,
+                fan_out,
+            } => {
                 let mut ports = vec![Port::input("combined", *combined_width, (0, 0))];
                 let total_bits = combined_width.get();
                 let fan_out_u32 = *fan_out as u32;
@@ -380,7 +497,10 @@ impl ComponentKind {
                 ]
             }
 
-            ComponentKind::Multiplexer { select_bits, data_width } => {
+            ComponentKind::Multiplexer {
+                select_bits,
+                data_width,
+            } => {
                 let n = 1u8 << select_bits;
                 let mut ports: Vec<Port> = (0..n)
                     .map(|i| Port::input(format!("in{}", i), *data_width, (0, i as i32)))
@@ -394,15 +514,14 @@ impl ComponentKind {
                 ports
             }
 
-            ComponentKind::Demultiplexer { select_bits, data_width } => {
+            ComponentKind::Demultiplexer {
+                select_bits,
+                data_width,
+            } => {
                 let n = 1u8 << select_bits;
                 let mut ports = vec![
                     Port::input("in", *data_width, (0, 0)),
-                    Port::input(
-                        "sel",
-                        BitWidth::new(*select_bits as u32),
-                        (0, 1),
-                    ),
+                    Port::input("sel", BitWidth::new(*select_bits as u32), (0, 1)),
                 ];
                 for i in 0..n {
                     ports.push(Port::output(
@@ -445,7 +564,10 @@ impl ComponentKind {
                 ports
             }
 
-            ComponentKind::BitSelector { group_bits, data_width } => {
+            ComponentKind::BitSelector {
+                group_bits,
+                data_width,
+            } => {
                 vec![
                     Port::input("in", *data_width, (0, 0)),
                     Port::input("sel", BitWidth::new(*group_bits as u32), (0, 1)),
@@ -599,7 +721,11 @@ impl ComponentKind {
                 ]
             }
 
-            ComponentKind::Ram { addr_bits, data_bits, sync } => {
+            ComponentKind::Ram {
+                addr_bits,
+                data_bits,
+                sync,
+            } => {
                 let mut ports = vec![
                     Port::input("addr", BitWidth::new(*addr_bits as u32), (0, 0)),
                     Port::input("data_in", *data_bits, (0, 1)),
@@ -613,7 +739,11 @@ impl ComponentKind {
                 ports
             }
 
-            ComponentKind::Rom { addr_bits, data_bits, .. } => {
+            ComponentKind::Rom {
+                addr_bits,
+                data_bits,
+                ..
+            } => {
                 vec![
                     Port::input("addr", BitWidth::new(*addr_bits as u32), (0, 0)),
                     Port::output("data", *data_bits, (0, 1)),
@@ -632,7 +762,11 @@ impl ComponentKind {
                 ]
             }
 
-            ComponentKind::ShiftRegisterMemory { stages, width, parallel_load } => {
+            ComponentKind::ShiftRegisterMemory {
+                stages,
+                width,
+                parallel_load,
+            } => {
                 let mut ports = vec![
                     Port::input("in", *width, (0, 0)),
                     Port::input("shift", BitWidth::ONE, (0, 1)),
@@ -641,11 +775,7 @@ impl ComponentKind {
                 ];
                 if *parallel_load {
                     for i in 0..*stages {
-                        ports.push(Port::input(
-                            format!("load{}", i),
-                            *width,
-                            (0, i as i32 + 4),
-                        ));
+                        ports.push(Port::input(format!("load{}", i), *width, (0, i as i32 + 4)));
                     }
                 }
                 ports.push(Port::output("out", *width, (0, *stages as i32 + 4)));
@@ -680,7 +810,11 @@ impl ComponentKind {
             ComponentKind::DotMatrix { rows, cols } => {
                 let mut ports = Vec::new();
                 for r in 0..*rows {
-                    ports.push(Port::input(format!("row{}", r), BitWidth::ONE, (0, r as i32)));
+                    ports.push(Port::input(
+                        format!("row{}", r),
+                        BitWidth::ONE,
+                        (0, r as i32),
+                    ));
                 }
                 for c in 0..*cols {
                     ports.push(Port::input(
@@ -696,11 +830,9 @@ impl ComponentKind {
                 vec![Port::output("out", BitWidth::ONE, (0, 0))]
             }
 
-            ComponentKind::DipSwitch { switches } => {
-                (0..*switches)
-                    .map(|i| Port::output(format!("out{}", i), BitWidth::ONE, (0, i as i32)))
-                    .collect()
-            }
+            ComponentKind::DipSwitch { switches } => (0..*switches)
+                .map(|i| Port::output(format!("out{}", i), BitWidth::ONE, (0, i as i32)))
+                .collect(),
 
             ComponentKind::Keyboard => {
                 vec![
@@ -870,7 +1002,9 @@ mod tests {
 
     #[test]
     fn test_dff_ports() {
-        let kind = ComponentKind::DFlipFlop { width: BitWidth::ONE };
+        let kind = ComponentKind::DFlipFlop {
+            width: BitWidth::ONE,
+        };
         let ports = kind.ports();
         // d, clk, en, reset, preset, q, q_n = 7
         assert_eq!(ports.len(), 7);
@@ -880,7 +1014,9 @@ mod tests {
 
     #[test]
     fn test_component_port_position() {
-        let kind = ComponentKind::Buffer { width: BitWidth::ONE };
+        let kind = ComponentKind::Buffer {
+            width: BitWidth::ONE,
+        };
         let comp = Component::new(ComponentId(1), kind, 10, 20);
         let pos = comp.port_position("in").unwrap();
         assert_eq!(pos, (10, 20));
@@ -901,18 +1037,24 @@ mod tests {
     #[test]
     fn test_library_names() {
         assert_eq!(
-            ComponentKind::AndGate { inputs: 2, width: BitWidth::ONE, negate_inputs: vec![], negate_output: false }
-                .library_name(),
+            ComponentKind::AndGate {
+                inputs: 2,
+                width: BitWidth::ONE,
+                negate_inputs: vec![],
+                negate_output: false
+            }
+            .library_name(),
             "gates"
         );
         assert_eq!(
-            ComponentKind::Ram { addr_bits: 8, data_bits: BitWidth::EIGHT, sync: false }
-                .library_name(),
+            ComponentKind::Ram {
+                addr_bits: 8,
+                data_bits: BitWidth::EIGHT,
+                sync: false
+            }
+            .library_name(),
             "memory"
         );
-        assert_eq!(
-            ComponentKind::Led.library_name(),
-            "io"
-        );
+        assert_eq!(ComponentKind::Led.library_name(), "io");
     }
 }
