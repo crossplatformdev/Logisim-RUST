@@ -101,7 +101,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | SR Flip-Flop | ✅ | ✅ | ✅ | |
 | Register | ✅ | ✅ | ✅ | |
 | Counter | ✅ | ✅ | ✅ | |
-| Shift Register | ✅ | ✅ | ✅ | |
+| Shift Register | ✅ | ✅ | ✅ | Serial shift + parallel load simulation; 1 unit test |
 | RAM | ✅ | ✅ | ✅ | |
 | ROM | ✅ | ✅ | ✅ | |
 
@@ -116,8 +116,8 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | DotMatrix Display | ✅ | ✅ | ✅ | |
 | Keyboard | ✅ | ✅ | ✅ | |
 | TTY | ✅ | ✅ | ✅ | |
-| Joystick | ✅ | ✅ | ✅ | |
-| Port | ✅ | ✅ | ✅ | |
+| Joystick | missing | — | — | No `ComponentKind` variant; not in upstream standard IO library |
+| Port | missing | — | — | No `ComponentKind` variant; not in upstream standard IO library |
 
 ### 2g. TTL libraries
 
@@ -138,7 +138,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Write `<circuit>` elements | ✅ | ✅ | ✅ | |
 | Write `<wire>` elements | ✅ | ✅ | ✅ | |
 | Write `<comp>` with lib/name | ✅ | ✅ | ✅ | |
-| Round-trip fidelity (parse → write → parse) | partial | ✅ | partial | Bit Extender, Transistor, TTL missing |
+| Round-trip fidelity (parse → write → parse) | partial | ✅ | partial | Transistor, TTL missing; Controlled Buffer wiring-lib parse bug fixed |
 | Project-level metadata (`<project>`, `<lib>` declarations) | partial | — | partial | Read-only; not written back |
 | Circuit appearance data (`<appear>`) | missing | — | — | Custom component shapes not stored |
 | `main` circuit attribute | partial | — | partial | Parsed but not enforced |

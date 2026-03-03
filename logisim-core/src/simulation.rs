@@ -824,6 +824,27 @@ fn evaluate_component(
             );
         }
 
+        ComponentKind::ShiftRegisterMemory {
+            stages: num_stages,
+            width,
+            ..
+        } => {
+            let w = width.get() as usize;
+            let n = *num_stages as usize;
+            // Last stage is the serial output.
+            let last = state
+                .and_then(|s| s.stages.last().cloned())
+                .unwrap_or_else(|| Bus::unknown(w));
+            out.insert("out".to_string(), last.clone());
+            // Per-stage parallel outputs (q0 .. q(n-1)).
+            for i in 0..n {
+                let val = state
+                    .and_then(|s| s.stages.get(i).cloned())
+                    .unwrap_or_else(|| Bus::unknown(w));
+                out.insert(format!("q{}", i), val);
+            }
+        }
+
         ComponentKind::Led => {} // output-only display, no signal outputs
 
         ComponentKind::Button => {
@@ -1052,6 +1073,38 @@ fn compute_next_state(
                     let data = get("data_in", data_bits.get());
                     if addr < mem_size {
                         ns.memory[addr] = data;
+                    }
+                }
+            }
+            Some(ns)
+        }
+
+        ComponentKind::ShiftRegisterMemory {
+            stages: num_stages,
+            width,
+            parallel_load,
+        } => {
+            let w = width.get() as usize;
+            let n = *num_stages as usize;
+            let mut ns = state.cloned().unwrap_or_default();
+            ns.prev_clk = clk;
+            // Ensure stages vector is the right length.
+            if ns.stages.len() != n {
+                ns.stages = vec![Bus::from_u64(0, w); n];
+            }
+            if rising_edge {
+                let en = get1("en");
+                if en != Value::False {
+                    if *parallel_load && get1("ld") == Value::True {
+                        // Parallel load: copy d0..d(n-1) into all stages.
+                        for i in 0..n {
+                            ns.stages[i] = get(&format!("d{}", i), width.get());
+                        }
+                    } else {
+                        // Serial shift: shift right, new data enters stage 0.
+                        let new_in = get("in", width.get());
+                        ns.stages.rotate_right(1);
+                        ns.stages[0] = new_in;
                     }
                 }
             }
@@ -1365,5 +1418,40 @@ mod tests {
         let result = evaluate_component(&kind, ComponentId(1), &inputs, None, 0);
         assert_eq!(result["out"].to_u64(), Some(0b0000_1011));
         assert_eq!(result["out"].width(), 8);
+    }
+
+    #[test]
+    fn test_shift_register_memory_serial_shift() {
+        use crate::simulation::ComponentState;
+        let kind = ComponentKind::ShiftRegisterMemory {
+            stages: 3,
+            width: BitWidth::FOUR,
+            parallel_load: false,
+        };
+        // Initial state: all zeros
+        let prev = ComponentState {
+            stages: vec![
+                Bus::from_u64(0, 4),
+                Bus::from_u64(0, 4),
+                Bus::from_u64(0, 4),
+            ],
+            prev_clk: Value::False,
+            ..ComponentState::default()
+        };
+        // Rising edge with en=1, shift in value 5.
+        let inputs: HashMap<String, Bus> = [
+            ("clk".to_string(), Bus::from_u64(1, 1)),
+            ("en".to_string(), Bus::from_u64(1, 1)),
+            ("in".to_string(), Bus::from_u64(5, 4)),
+        ]
+        .into();
+        let ns = compute_next_state(&kind, ComponentId(1), &inputs, Some(&prev), 0).unwrap();
+        assert_eq!(ns.stages[0].to_u64(), Some(5)); // new value shifted in
+        assert_eq!(ns.stages[1].to_u64(), Some(0)); // previous stage 0
+        assert_eq!(ns.stages[2].to_u64(), Some(0)); // previous stage 1
+                                                    // Outputs from new state
+        let outputs = evaluate_component(&kind, ComponentId(1), &inputs, Some(&ns), 0);
+        assert_eq!(outputs["out"].to_u64(), Some(0)); // last stage
+        assert_eq!(outputs["q0"].to_u64(), Some(5));
     }
 }

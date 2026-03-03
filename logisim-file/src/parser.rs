@@ -298,7 +298,7 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
                     width: get_width("width"),
                 })
             }
-            "Controlled Buffer" | "Tristate Buffer" => Ok(ComponentKind::TristateBuffer {
+            "Tristate Buffer" => Ok(ComponentKind::TristateBuffer {
                 width: get_width("width"),
             }),
             "Bit Extender" => Ok(ComponentKind::BitExtender {

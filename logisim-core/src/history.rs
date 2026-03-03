@@ -324,7 +324,6 @@ mod tests {
 
     #[test]
     fn test_max_size_evicts_oldest() {
-        let mut p = make_project();
         let mut hist = UndoHistory::new(3);
 
         for _ in 0..5 {
