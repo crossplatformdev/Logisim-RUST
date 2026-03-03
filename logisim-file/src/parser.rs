@@ -416,11 +416,7 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
             }),
             "Transistor" => Ok(ComponentKind::Transistor {
                 width: get_width("width"),
-                p_type: false,
-            }),
-            "Transistor P" => Ok(ComponentKind::Transistor {
-                width: get_width("width"),
-                p_type: true,
+                p_type: attrs.get("type").map(|v| v == "p").unwrap_or(false),
             }),
             "Transmission Gate" => Ok(ComponentKind::TransmissionGate {
                 width: get_width("width"),

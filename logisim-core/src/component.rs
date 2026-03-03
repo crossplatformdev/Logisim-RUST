@@ -406,13 +406,7 @@ impl ComponentKind {
             ComponentKind::Probe { .. } => "Probe".to_string(),
             ComponentKind::PullResistor { .. } => "Pull Resistor".to_string(),
             ComponentKind::TristateBuffer { .. } => "Tristate Buffer".to_string(),
-            ComponentKind::Transistor { p_type, .. } => {
-                if *p_type {
-                    "Transistor P".to_string()
-                } else {
-                    "Transistor".to_string()
-                }
-            }
+            ComponentKind::Transistor { .. } => "Transistor".to_string(),
             ComponentKind::TransmissionGate { .. } => "Transmission Gate".to_string(),
             ComponentKind::BitExtender { .. } => "Bit Extender".to_string(),
             ComponentKind::AndGate { .. } => "AND Gate".to_string(),

@@ -237,8 +237,15 @@ fn write_kind_attrs<W: Write>(kind: &ComponentKind, writer: &mut W) -> Result<()
         | ComponentKind::Buffer { width }
         | ComponentKind::ControlledBuffer { width }
         | ComponentKind::TristateBuffer { width }
-        | ComponentKind::Transistor { width, .. }
         | ComponentKind::TransmissionGate { width } => {
+            if width.get() != 1 {
+                writeln!(writer, r#"      <a name="width" val="{}"/>"#, width.get())?;
+            }
+        }
+        ComponentKind::Transistor { width, p_type } => {
+            if *p_type {
+                writeln!(writer, r#"      <a name="type" val="p"/>"#)?;
+            }
             if width.get() != 1 {
                 writeln!(writer, r#"      <a name="width" val="{}"/>"#, width.get())?;
             }
