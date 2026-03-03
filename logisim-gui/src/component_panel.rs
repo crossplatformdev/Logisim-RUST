@@ -335,5 +335,6 @@ fn comp_button(ui: &mut Ui, state: &mut AppState, label: &str, kind: ComponentKi
     let active = matches!(&state.tool, Tool::Place(k) if k == &kind);
     if ui.selectable_label(active, label).clicked() {
         state.tool = Tool::Place(kind);
+        state.wire_start = None;
     }
 }

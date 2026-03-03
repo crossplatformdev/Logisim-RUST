@@ -169,7 +169,7 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Multi-circuit navigation | ✅ | Right-side circuit list; "+ New Circuit" |
 | Circuit rename | ❌ | Not yet implemented |
 | Component labels | ✅ | Rendered on canvas |
-| Wire value overlay | ❌ | Not yet implemented; wires rendered in a fixed blue colour |
+| Wire value overlay | ✅ | Wires coloured by live net values (0=blue, 1=green, unknown=red, Hi-Z=grey) |
 | Poke tool | ✅ | Toggle input pins at runtime |
 | Simulation run/stop/step | ✅ | Toolbar + menu |
 | File open / save / save-as | ✅ | Native file dialogs |

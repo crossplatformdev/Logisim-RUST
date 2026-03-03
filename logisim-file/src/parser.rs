@@ -22,7 +22,6 @@ use std::io::BufRead;
 /// Parse a Logisim-Evolution `.circ` file from a reader.
 pub fn parse_circ<R: BufRead>(reader: R) -> Result<Project> {
     let mut xml = Reader::from_reader(reader);
-    xml.config_mut().trim_text(true);
 
     let mut project = Project::new("untitled");
     let mut lib_map: HashMap<String, String> = HashMap::new(); // name → desc
@@ -198,7 +197,8 @@ fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Resul
                 let tag = String::from_utf8_lossy(e.name().as_ref()).into_owned();
                 captured.push('<');
                 captured.push_str(&tag);
-                for attr in e.attributes().flatten() {
+                for attr in e.attributes() {
+                    let attr = attr.map_err(FileError::Attr)?;
                     let key = String::from_utf8_lossy(attr.key.as_ref()).into_owned();
                     let val = attr
                         .unescape_value()
@@ -227,7 +227,8 @@ fn capture_element<R: BufRead>(xml: &mut Reader<R>, element_name: &str) -> Resul
                 let tag = String::from_utf8_lossy(e.name().as_ref()).into_owned();
                 captured.push('<');
                 captured.push_str(&tag);
-                for attr in e.attributes().flatten() {
+                for attr in e.attributes() {
+                    let attr = attr.map_err(FileError::Attr)?;
                     let key = String::from_utf8_lossy(attr.key.as_ref()).into_owned();
                     let val = attr
                         .unescape_value()
@@ -324,11 +325,13 @@ fn build_component(
 
     let (x, y) = parse_loc(&loc)?;
 
-    // Resolve library
+    // Resolve library: prefer the desc from the <lib> header; fall back to the
+    // raw numeric/string lib attribute so files with missing <lib> headers still
+    // parse deterministically instead of yielding UnknownLibrary("").
     let lib_desc = lib_map
         .get(&lib_num)
         .map(|s| s.trim_start_matches('#').to_lowercase())
-        .unwrap_or_default();
+        .unwrap_or_else(|| lib_num.trim_start_matches('#').to_lowercase());
 
     let kind = build_kind(&lib_desc, &name, &attrs)?;
     let mut comp = Component::new(ComponentId(id), kind, x, y);

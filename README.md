@@ -104,12 +104,14 @@ Options:
 ```json
 [
   {
-    "inputs": { "A": 0, "B": 0 },
-    "outputs": { "Out": 0 }
+    "step": 0,
+    "inputs": { "A": "0", "B": "0" },
+    "outputs": { "Out": "0" }
   },
   {
-    "inputs": { "A": 1, "B": 1 },
-    "outputs": { "Out": 1 }
+    "step": 1,
+    "inputs": { "A": "1", "B": "1" },
+    "outputs": { "Out": "1" }
   }
 ]
 ```

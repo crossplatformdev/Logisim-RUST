@@ -12,14 +12,14 @@ impl Toolbar {
 
     pub fn show(&mut self, ui: &mut Ui, state: &mut AppState) {
         ui.horizontal(|ui| {
-            tool_button(ui, state, "⬆ Select", Tool::Select);
-            tool_button(ui, state, "✏ Wire", Tool::Wire);
-            tool_button(ui, state, "👆 Poke", Tool::Poke);
-            tool_button(ui, state, "T Label", Tool::Text);
+            tool_button(ui, state, "Select", Tool::Select);
+            tool_button(ui, state, "Wire", Tool::Wire);
+            tool_button(ui, state, "Poke", Tool::Poke);
+            tool_button(ui, state, "Label", Tool::Text);
 
             ui.separator();
 
-            let run_label = if state.running { "⏹ Stop" } else { "▶ Run" };
+            let run_label = if state.running { "Stop" } else { "Run" };
             if ui.button(run_label).clicked() {
                 state.running = !state.running;
                 state.status = if state.running {
@@ -29,17 +29,17 @@ impl Toolbar {
                 };
             }
 
-            if ui.button("⏭ Step").clicked() {
+            if ui.button("Step").clicked() {
                 state.step_requested = true;
                 state.status = "Stepped".to_string();
             }
 
             ui.separator();
 
-            if ui.button("🔍+ Zoom In").clicked() {
+            if ui.button("Zoom In").clicked() {
                 state.zoom = (state.zoom * 1.25).min(8.0);
             }
-            if ui.button("🔍- Zoom Out").clicked() {
+            if ui.button("Zoom Out").clicked() {
                 state.zoom = (state.zoom / 1.25).max(0.25);
             }
             if ui.button("1:1").clicked() {
