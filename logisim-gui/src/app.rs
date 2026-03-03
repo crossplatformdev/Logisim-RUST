@@ -477,9 +477,11 @@ impl eframe::App for LogisimApp {
             });
 
         // Central canvas.
-        egui::CentralPanel::default().show(ctx, |ui| {
-            self.canvas.show(ui, &mut self.state);
-        });
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(egui::Color32::WHITE))
+            .show(ctx, |ui| {
+                self.canvas.show(ui, &mut self.state);
+            });
 
         // About dialog.
         crate::dialogs::show_about(ctx, &mut self.about_open);

@@ -9,6 +9,29 @@ use logisim_core::{
     value::{Bus, Value},
 };
 
+// ── Upstream-matching colour constants ────────────────────────────────────────
+/// Wire colour when the net carries logic 0.
+const WIRE_COLOR_0: Color32 = Color32::from_rgb(0, 0, 192);
+/// Wire colour when the net carries logic 1.
+const WIRE_COLOR_1: Color32 = Color32::from_rgb(0, 160, 0);
+/// Wire colour when the net value is unknown (X / uninitialised).
+const WIRE_COLOR_X: Color32 = Color32::from_rgb(160, 0, 0);
+/// Wire colour when the net is high-Z.
+const WIRE_COLOR_Z: Color32 = Color32::from_rgb(150, 150, 150);
+/// Wire colour when there is a multi-driver conflict (Error).
+const WIRE_COLOR_ERR: Color32 = Color32::from_rgb(220, 0, 0);
+
+/// Upstream gate body colour (off-white, like Logisim's default JPanel background).
+const GATE_FILL: Color32 = Color32::from_rgb(255, 255, 255);
+/// Upstream gate border / wire colour (Logisim uses near-black dark blue).
+const GATE_BORDER: Color32 = Color32::from_rgb(0, 0, 0);
+/// Upstream selected-component highlight fill.
+const GATE_FILL_SEL: Color32 = Color32::from_rgb(200, 220, 255);
+/// Upstream selected-component border colour.
+const GATE_BORDER_SEL: Color32 = Color32::from_rgb(0, 100, 200);
+/// Wire colour for a multi-bit bus that is fully driven (all bits 0 or 1).
+const WIRE_COLOR_MULTI: Color32 = Color32::from_rgb(0, 100, 0);
+
 /// Hit-test tolerance in grid units for component selection and dragging.
 const HIT_TOLERANCE: i32 = 2;
 
@@ -51,8 +74,20 @@ impl CircuitCanvas {
         // ── Draw wires and components ─────────────────────────────────────
         let active = state.active_circuit.clone();
         if let Some(circuit) = state.project.circuits.get(&active) {
+            // Precompute net map so we can colour wires by their live logic value.
+            let net_map = circuit.compute_nets();
+            let sim_state = state.simulator.state(&active);
             for wire in &circuit.wires {
-                draw_wire(&painter, wire, origin, state, Color32::from_rgb(0, 0, 192));
+                let net = net_map
+                    .get(&(wire.from.x, wire.from.y))
+                    .copied()
+                    .unwrap_or((wire.from.x, wire.from.y));
+                let color = if let Some(s) = &sim_state {
+                    bus_to_wire_color(&s.net_value(net, 1))
+                } else {
+                    WIRE_COLOR_Z
+                };
+                draw_wire(&painter, wire, origin, state, color);
             }
             let comp_ids: Vec<_> = circuit.components.keys().copied().collect();
             for id in &comp_ids {
@@ -361,33 +396,35 @@ fn draw_component(
     let pos = state.grid_to_screen(comp.x, comp.y, origin);
     let g = state.grid_px();
 
-    let body_color = if selected {
-        Color32::from_rgb(180, 230, 255)
-    } else {
-        Color32::from_rgb(240, 240, 200)
-    };
+    let body_color = if selected { GATE_FILL_SEL } else { GATE_FILL };
     let border = if selected {
-        Color32::from_rgb(0, 120, 200)
+        GATE_BORDER_SEL
     } else {
-        Color32::from_rgb(80, 80, 80)
+        GATE_BORDER
     };
+    let stroke = Stroke::new(1.5 * state.zoom, border);
 
     match &comp.kind {
         ComponentKind::Pin {
             is_output,
             width: _,
         } => {
-            let r = g * 0.8;
-            let fill = if *is_output {
-                Color32::from_rgb(200, 220, 255)
+            // Logisim: input pins are squares, output pins are circles.
+            let s = g * 1.0;
+            if *is_output {
+                painter.circle_filled(
+                    Pos2::new(pos.x + s / 2.0, pos.y + s / 2.0),
+                    s / 2.0,
+                    Color32::from_rgb(200, 220, 255),
+                );
+                painter.circle_stroke(Pos2::new(pos.x + s / 2.0, pos.y + s / 2.0), s / 2.0, stroke);
             } else {
-                Color32::from_rgb(220, 255, 220)
-            };
-            painter.circle_filled(pos, r, fill);
-            painter.circle_stroke(pos, r, Stroke::new(1.5, border));
+                let r = Rect::from_min_size(pos, Vec2::splat(s));
+                painter.rect(r, 0.0, Color32::from_rgb(220, 255, 220), stroke);
+            }
             if !comp.label.is_empty() {
                 painter.text(
-                    Pos2::new(pos.x, pos.y - r - 4.0),
+                    Pos2::new(pos.x + s / 2.0, pos.y - 3.0 * state.zoom),
                     egui::Align2::CENTER_BOTTOM,
                     &comp.label,
                     egui::FontId::proportional(10.0 * state.zoom),
@@ -397,82 +434,63 @@ fn draw_component(
         }
 
         ComponentKind::AndGate { inputs, .. } | ComponentKind::NandGate { inputs, .. } => {
-            let n = *inputs as f32;
-            let w = g * 3.0;
-            let h = g * n;
-            let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.3, body_color, Stroke::new(1.5, border));
+            let n = (*inputs as usize).max(2);
             let negate = matches!(comp.kind, ComponentKind::NandGate { .. });
-            if negate {
-                let out_pos = Pos2::new(pos.x + w + g * 0.3, pos.y + h / 2.0);
-                painter.circle_filled(out_pos, g * 0.2, border);
-            }
-            draw_gate_label(painter, pos, w, h, "& ", state);
+            draw_and_gate(painter, pos, g, n, body_color, stroke, negate);
         }
 
         ComponentKind::OrGate { inputs, .. } | ComponentKind::NorGate { inputs, .. } => {
-            let n = *inputs as f32;
-            let w = g * 3.0;
-            let h = g * n;
-            let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.8, body_color, Stroke::new(1.5, border));
+            let n = (*inputs as usize).max(2);
             let negate = matches!(comp.kind, ComponentKind::NorGate { .. });
-            if negate {
-                let out_pos = Pos2::new(pos.x + w + g * 0.3, pos.y + h / 2.0);
-                painter.circle_filled(out_pos, g * 0.2, border);
-            }
-            draw_gate_label(painter, pos, w, h, "≥1", state);
+            draw_or_gate(painter, pos, g, n, body_color, stroke, false, negate);
         }
 
         ComponentKind::XorGate { inputs, .. } | ComponentKind::XnorGate { inputs, .. } => {
-            let n = *inputs as f32;
-            let w = g * 3.0;
-            let h = g * n;
-            let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.8, body_color, Stroke::new(1.5, border));
+            let n = (*inputs as usize).max(2);
             let negate = matches!(comp.kind, ComponentKind::XnorGate { .. });
-            if negate {
-                let out_pos = Pos2::new(pos.x + w + g * 0.3, pos.y + h / 2.0);
-                painter.circle_filled(out_pos, g * 0.2, border);
-            }
-            draw_gate_label(painter, pos, w, h, "=1", state);
+            draw_or_gate(painter, pos, g, n, body_color, stroke, true, negate);
         }
 
         ComponentKind::NotGate { .. } => {
-            let w = g * 2.0;
-            let h = g * 1.5;
-            let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, 0.0, body_color, Stroke::new(1.5, border));
-            let out_pos = Pos2::new(pos.x + w + g * 0.3, pos.y + h / 2.0);
-            painter.circle_filled(out_pos, g * 0.25, border);
-            draw_gate_label(painter, pos, w, h, "1", state);
+            draw_not_gate(painter, pos, g, body_color, stroke);
         }
 
         ComponentKind::Buffer { .. } => {
-            let w = g * 2.0;
-            let h = g * 1.5;
-            let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, 0.0, body_color, Stroke::new(1.5, border));
-            draw_gate_label(painter, pos, w, h, "1", state);
+            draw_buffer_gate(painter, pos, g, body_color, stroke);
         }
 
         ComponentKind::Clock => {
-            let r = g * 0.8;
-            painter.circle_filled(pos, r, Color32::from_rgb(255, 220, 180));
-            painter.circle_stroke(pos, r, Stroke::new(1.5, border));
-            draw_gate_label(painter, pos, r * 2.0, r * 2.0, "CLK", state);
+            // Logisim: clock is a rectangle with a clock-edge symbol inside.
+            let s = g * 1.0;
+            let r = Rect::from_min_size(pos, Vec2::splat(s));
+            painter.rect(r, 0.0, Color32::from_rgb(255, 245, 210), stroke);
+            // Clock edge: rising edge zigzag in the lower-left
+            let mid_y = pos.y + s * 0.5;
+            let edge_pts = [
+                Pos2::new(pos.x + s * 0.15, pos.y + s * 0.75),
+                Pos2::new(pos.x + s * 0.15, mid_y),
+                Pos2::new(pos.x + s * 0.5, mid_y),
+                Pos2::new(pos.x + s * 0.5, pos.y + s * 0.75),
+            ];
+            for i in 0..edge_pts.len() - 1 {
+                painter.line_segment([edge_pts[i], edge_pts[i + 1]], stroke);
+            }
+            if !comp.label.is_empty() {
+                painter.text(
+                    Pos2::new(pos.x + s / 2.0, pos.y - 3.0 * state.zoom),
+                    egui::Align2::CENTER_BOTTOM,
+                    &comp.label,
+                    egui::FontId::proportional(10.0 * state.zoom),
+                    Color32::BLACK,
+                );
+            }
         }
 
         ComponentKind::Constant { value, width: _ } => {
-            let w = g * 3.0;
-            let h = g * 1.5;
+            let w = g * 2.0;
+            let h = g * 1.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(
-                rect,
-                g * 0.2,
-                Color32::from_rgb(255, 255, 200),
-                Stroke::new(1.5, border),
-            );
+            painter.rect(rect, 0.0, Color32::from_rgb(255, 255, 200), stroke);
             let label = format!("0x{:X}", value);
             painter.text(
                 rect.center(),
@@ -483,51 +501,88 @@ fn draw_component(
             );
         }
 
+        ComponentKind::Power => {
+            // VCC symbol: upward arrow / positive power rail
+            let h = g * 1.5;
+            let mid_x = pos.x + g * 0.5;
+            painter.line_segment(
+                [
+                    Pos2::new(mid_x, pos.y + h),
+                    Pos2::new(mid_x, pos.y + g * 0.3),
+                ],
+                stroke,
+            );
+            painter.line_segment(
+                [Pos2::new(pos.x, pos.y), Pos2::new(pos.x + g, pos.y)],
+                Stroke::new(3.0 * state.zoom, border),
+            );
+        }
+
+        ComponentKind::Ground => {
+            // GND symbol: downward lines
+            let mid_x = pos.x + g * 0.5;
+            painter.line_segment(
+                [Pos2::new(mid_x, pos.y), Pos2::new(mid_x, pos.y + g * 0.5)],
+                stroke,
+            );
+            let offsets = [0.0f32, 0.2, 0.4];
+            for (i, &off) in offsets.iter().enumerate() {
+                let y = pos.y + g * (0.5 + off);
+                let half = g * (0.5 - i as f32 * 0.15);
+                painter.line_segment(
+                    [Pos2::new(mid_x - half, y), Pos2::new(mid_x + half, y)],
+                    stroke,
+                );
+            }
+        }
+
         ComponentKind::Multiplexer { select_bits, .. } => {
-            let w = g * 3.0;
-            let h = g * (1 << select_bits) as f32;
+            let n_in = 1usize << select_bits;
+            let w = g * 4.0;
+            let h = g * n_in.max(2) as f32;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, body_color, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, body_color, stroke);
             draw_gate_label(painter, pos, w, h, "MUX", state);
         }
 
         ComponentKind::Demultiplexer { select_bits, .. } => {
-            let w = g * 3.0;
-            let h = g * (1 << select_bits) as f32;
+            let n_out = 1usize << select_bits;
+            let w = g * 4.0;
+            let h = g * n_out.max(2) as f32;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, body_color, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, body_color, stroke);
             draw_gate_label(painter, pos, w, h, "DEMUX", state);
         }
 
         ComponentKind::Adder { .. } => {
-            let w = g * 3.0;
+            let w = g * 4.0;
             let h = g * 3.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, body_color, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, body_color, stroke);
             draw_gate_label(painter, pos, w, h, "+", state);
         }
 
         ComponentKind::Subtractor { .. } => {
-            let w = g * 3.0;
+            let w = g * 4.0;
             let h = g * 3.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, body_color, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, body_color, stroke);
             draw_gate_label(painter, pos, w, h, "−", state);
         }
 
         ComponentKind::Multiplier { .. } => {
-            let w = g * 3.0;
+            let w = g * 4.0;
             let h = g * 3.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, body_color, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, body_color, stroke);
             draw_gate_label(painter, pos, w, h, "×", state);
         }
 
         ComponentKind::Comparator { .. } => {
-            let w = g * 3.0;
+            let w = g * 4.0;
             let h = g * 3.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, body_color, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, body_color, stroke);
             draw_gate_label(painter, pos, w, h, "CMP", state);
         }
 
@@ -550,36 +605,32 @@ fn draw_component(
             draw_ff_box(painter, pos, g, body_color, border, "CTR", state);
         }
         ComponentKind::Ram { .. } => {
-            let w = g * 5.0;
-            let h = g * 4.0;
+            let w = g * 6.0;
+            let h = g * 5.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, body_color, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, body_color, stroke);
             draw_gate_label(painter, pos, w, h, "RAM", state);
         }
         ComponentKind::Rom { .. } => {
-            let w = g * 5.0;
-            let h = g * 3.0;
+            let w = g * 6.0;
+            let h = g * 4.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(
-                rect,
-                g * 0.2,
-                Color32::from_rgb(220, 220, 255),
-                Stroke::new(1.5, border),
-            );
+            painter.rect(rect, g * 0.2, Color32::from_rgb(220, 220, 255), stroke);
             draw_gate_label(painter, pos, w, h, "ROM", state);
         }
 
         ComponentKind::Led => {
-            let r = g * 0.7;
-            painter.circle_filled(pos, r, Color32::from_rgb(255, 80, 80));
-            painter.circle_stroke(pos, r, Stroke::new(1.5, Color32::from_rgb(180, 0, 0)));
+            let r = g * 0.6;
+            let center = Pos2::new(pos.x + r, pos.y + r);
+            painter.circle_filled(center, r, Color32::from_rgb(255, 80, 80));
+            painter.circle_stroke(center, r, stroke);
         }
 
         ComponentKind::SevenSegDisplay => {
             let w = g * 3.0;
             let h = g * 5.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, Color32::BLACK, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, Color32::BLACK, stroke);
             draw_seven_seg(painter, rect, &[false; 8]);
         }
 
@@ -587,32 +638,76 @@ fn draw_component(
             let w = g * 3.0;
             let h = g * 5.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, Color32::BLACK, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, Color32::BLACK, stroke);
         }
 
         ComponentKind::Button => {
             let w = g * 2.0;
             let h = g * 2.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(
-                rect,
-                g * 0.4,
-                Color32::from_rgb(200, 200, 200),
-                Stroke::new(2.0, border),
-            );
+            painter.rect(rect, g * 0.4, Color32::from_rgb(210, 210, 210), stroke);
             draw_gate_label(painter, pos, w, h, "BTN", state);
         }
 
-        ComponentKind::Subcircuit { circuit_name } => {
-            let w = g * 4.0;
-            let h = g * 3.0;
+        ComponentKind::Splitter {
+            combined_width,
+            fan_out,
+        } => {
+            // Splitter: a fork symbol
+            let w = g * 2.0;
+            let h = g * *fan_out as f32;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(
-                rect,
-                g * 0.2,
-                Color32::from_rgb(230, 200, 230),
-                Stroke::new(1.5, border),
+            painter.rect(rect, 0.0, body_color, stroke);
+            painter.text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                format!("{}", combined_width.get()),
+                egui::FontId::proportional(8.0 * state.zoom),
+                Color32::BLACK,
             );
+        }
+
+        ComponentKind::Tunnel { label, .. } => {
+            // Tunnel: pentagon shape pointing right
+            let w = g * 2.5;
+            let h = g * 1.0;
+            let pts = vec![
+                Pos2::new(pos.x, pos.y),
+                Pos2::new(pos.x + w * 0.75, pos.y),
+                Pos2::new(pos.x + w, pos.y + h / 2.0),
+                Pos2::new(pos.x + w * 0.75, pos.y + h),
+                Pos2::new(pos.x, pos.y + h),
+            ];
+            painter.add(egui::Shape::convex_polygon(pts, body_color, stroke));
+            painter.text(
+                Pos2::new(pos.x + w * 0.4, pos.y + h / 2.0),
+                egui::Align2::CENTER_CENTER,
+                label,
+                egui::FontId::proportional(8.0 * state.zoom),
+                Color32::BLACK,
+            );
+        }
+
+        ComponentKind::Probe { .. } => {
+            // Probe: circle with cross-hairs
+            let r = g * 0.7;
+            let center = Pos2::new(pos.x + r, pos.y + r);
+            painter.circle_filled(center, r, Color32::from_rgb(255, 240, 200));
+            painter.circle_stroke(center, r, stroke);
+            painter.line_segment(
+                [
+                    Pos2::new(center.x - r * 0.6, center.y),
+                    Pos2::new(center.x + r * 0.6, center.y),
+                ],
+                stroke,
+            );
+        }
+
+        ComponentKind::Subcircuit { circuit_name } => {
+            let w = g * 5.0;
+            let h = g * 4.0;
+            let rect = Rect::from_min_size(pos, Vec2::new(w, h));
+            painter.rect(rect, g * 0.2, Color32::from_rgb(235, 215, 235), stroke);
             painter.text(
                 rect.center(),
                 egui::Align2::CENTER_CENTER,
@@ -627,7 +722,7 @@ fn draw_component(
             let w = g * 3.0;
             let h = g * 2.0;
             let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-            painter.rect(rect, g * 0.2, body_color, Stroke::new(1.5, border));
+            painter.rect(rect, g * 0.2, body_color, stroke);
             let label = comp.kind.component_name();
             painter.text(
                 rect.center(),
@@ -638,6 +733,220 @@ fn draw_component(
             );
         }
     }
+}
+
+// ── ANSI gate shape helpers ───────────────────────────────────────────────────
+
+/// Draw a proper ANSI AND gate (or NAND if `negate` is true).
+/// `pos` = top-left corner of bounding box; gate is right-facing.
+fn draw_and_gate(
+    painter: &Painter,
+    pos: Pos2,
+    g: f32,
+    n: usize,
+    fill: Color32,
+    stroke: Stroke,
+    negate: bool,
+) {
+    let h = g * n as f32;
+    let flat = g * 2.0; // flat (left) portion width
+    let r = h / 2.0; // arc radius = half gate height
+    let cy = pos.y + h / 2.0;
+
+    // Build gate body clockwise: left side → top flat → right arc → bottom flat
+    let mut pts = Vec::with_capacity(32);
+    pts.push(Pos2::new(pos.x, pos.y)); // top-left
+    pts.push(Pos2::new(pos.x + flat, pos.y)); // top-right (start of arc)
+                                              // Right semicircular arc: angle from +π/2 (top) to −π/2 (bottom)
+    let nseg = 20;
+    for i in 0..=nseg {
+        let a = std::f32::consts::FRAC_PI_2 * (1.0 - 2.0 * i as f32 / nseg as f32);
+        pts.push(Pos2::new(pos.x + flat + r * a.cos(), cy - r * a.sin()));
+    }
+    pts.push(Pos2::new(pos.x, pos.y + h)); // bottom-left
+
+    painter.add(egui::Shape::Path(egui::epaint::PathShape {
+        points: pts,
+        closed: true,
+        fill,
+        stroke: stroke.into(),
+    }));
+
+    // Input stub lines on left edge
+    let in_step = h / n as f32;
+    for i in 0..n {
+        let iy = pos.y + in_step * (i as f32 + 0.5);
+        painter.line_segment([Pos2::new(pos.x - g, iy), Pos2::new(pos.x, iy)], stroke);
+    }
+
+    // Output line (and optional NAND bubble)
+    let out_x = pos.x + flat + r;
+    if negate {
+        let br = g * 0.25;
+        painter.circle(Pos2::new(out_x + br, cy), br, fill, stroke);
+        painter.line_segment(
+            [Pos2::new(out_x + br * 2.0, cy), Pos2::new(out_x + g, cy)],
+            stroke,
+        );
+    } else {
+        painter.line_segment([Pos2::new(out_x, cy), Pos2::new(out_x + g, cy)], stroke);
+    }
+}
+
+/// Draw a proper ANSI OR/NOR/XOR/XNOR gate.
+/// `xor = true` draws the extra left arc for XOR/XNOR.
+#[allow(clippy::too_many_arguments)]
+fn draw_or_gate(
+    painter: &Painter,
+    pos: Pos2,
+    g: f32,
+    n: usize,
+    fill: Color32,
+    stroke: Stroke,
+    xor: bool,
+    negate: bool,
+) {
+    let h = g * n as f32;
+    let w = g * 3.0;
+    let cy = pos.y + h / 2.0;
+
+    // Back (left) concavity: depth relative to gate width
+    let back_d = w * 0.2;
+    // Front (right) arc radius
+    let fr = h / 2.0;
+    // x-position where the front arc starts
+    let fx = w - fr;
+
+    let nseg = 16;
+
+    // Build gate outline clockwise from back-top
+    let mut pts = Vec::with_capacity(nseg * 2 + 6);
+
+    // Back: quadratic bezier from (pos.x, top) via (pos.x+back_d, cy) to (pos.x, bottom)
+    for i in 0..=nseg {
+        let t = i as f32 / nseg as f32;
+        let mt = 1.0 - t;
+        let bx = mt * mt * pos.x + 2.0 * mt * t * (pos.x + back_d) + t * t * pos.x;
+        let by = mt * mt * pos.y + 2.0 * mt * t * cy + t * t * (pos.y + h);
+        pts.push(Pos2::new(bx, by));
+    }
+
+    // Bottom diagonal from back-bottom to front-bottom
+    pts.push(Pos2::new(pos.x + fx, pos.y + h));
+
+    // Front arc: from bottom to top via right tip
+    for i in 0..=nseg {
+        let t = i as f32 / nseg as f32;
+        let a = -std::f32::consts::FRAC_PI_2 + t * std::f32::consts::PI;
+        pts.push(Pos2::new(pos.x + fx + fr * a.cos(), cy - fr * a.sin()));
+    }
+
+    // Top diagonal from front-top back to back-top
+    pts.push(Pos2::new(pos.x + fx, pos.y));
+    // (the path closes back to pts[0] = back-top)
+
+    painter.add(egui::Shape::Path(egui::epaint::PathShape {
+        points: pts,
+        closed: true,
+        fill,
+        stroke: stroke.into(),
+    }));
+
+    // XOR extra back arc (parallel curve left of the back, same bezier + offset)
+    if xor {
+        let off = g * 0.4;
+        let mut xor_pts = Vec::with_capacity(nseg + 2);
+        for i in 0..=nseg {
+            let t = i as f32 / nseg as f32;
+            let mt = 1.0 - t;
+            let bx = mt * mt * (pos.x - off)
+                + 2.0 * mt * t * (pos.x - off + back_d)
+                + t * t * (pos.x - off);
+            let by = mt * mt * pos.y + 2.0 * mt * t * cy + t * t * (pos.y + h);
+            xor_pts.push(Pos2::new(bx, by));
+        }
+        painter.add(egui::Shape::Path(egui::epaint::PathShape {
+            points: xor_pts,
+            closed: false,
+            fill: Color32::TRANSPARENT,
+            stroke: stroke.into(),
+        }));
+    }
+
+    // Input stub lines
+    let in_step = h / n as f32;
+    for i in 0..n {
+        let iy = pos.y + in_step * (i as f32 + 0.5);
+        // Stubs start at the back curve x for this y
+        let t = (iy - pos.y) / h;
+        let mt = 1.0 - t;
+        let back_x = mt * mt * pos.x + 2.0 * mt * t * (pos.x + back_d) + t * t * pos.x;
+        let start_x = if xor { pos.x - g * 0.4 - g } else { pos.x - g };
+        painter.line_segment([Pos2::new(start_x, iy), Pos2::new(back_x, iy)], stroke);
+    }
+
+    // Output
+    let out_x = pos.x + fx + fr;
+    if negate {
+        let br = g * 0.25;
+        painter.circle(Pos2::new(out_x + br, cy), br, fill, stroke);
+        painter.line_segment(
+            [Pos2::new(out_x + br * 2.0, cy), Pos2::new(out_x + g, cy)],
+            stroke,
+        );
+    } else {
+        painter.line_segment([Pos2::new(out_x, cy), Pos2::new(out_x + g, cy)], stroke);
+    }
+}
+
+/// Draw a proper ANSI NOT gate (triangle with bubble at output).
+fn draw_not_gate(painter: &Painter, pos: Pos2, g: f32, fill: Color32, stroke: Stroke) {
+    let w = g * 2.0;
+    let h = g * 2.0;
+    let cy = pos.y + h / 2.0;
+    let br = g * 0.25;
+
+    // Triangle body
+    let pts = vec![
+        Pos2::new(pos.x, pos.y),
+        Pos2::new(pos.x, pos.y + h),
+        Pos2::new(pos.x + w, cy),
+    ];
+    painter.add(egui::Shape::convex_polygon(pts, fill, stroke));
+
+    // Inversion bubble at tip
+    painter.circle(Pos2::new(pos.x + w + br, cy), br, fill, stroke);
+
+    // Input stub
+    painter.line_segment([Pos2::new(pos.x - g, cy), Pos2::new(pos.x, cy)], stroke);
+    // Output stub
+    painter.line_segment(
+        [
+            Pos2::new(pos.x + w + br * 2.0, cy),
+            Pos2::new(pos.x + w + g, cy),
+        ],
+        stroke,
+    );
+}
+
+/// Draw a Buffer gate (triangle, no inversion bubble).
+fn draw_buffer_gate(painter: &Painter, pos: Pos2, g: f32, fill: Color32, stroke: Stroke) {
+    let w = g * 2.0;
+    let h = g * 2.0;
+    let cy = pos.y + h / 2.0;
+
+    let pts = vec![
+        Pos2::new(pos.x, pos.y),
+        Pos2::new(pos.x, pos.y + h),
+        Pos2::new(pos.x + w, cy),
+    ];
+    painter.add(egui::Shape::convex_polygon(pts, fill, stroke));
+
+    painter.line_segment([Pos2::new(pos.x - g, cy), Pos2::new(pos.x, cy)], stroke);
+    painter.line_segment(
+        [Pos2::new(pos.x + w, cy), Pos2::new(pos.x + w + g, cy)],
+        stroke,
+    );
 }
 
 fn draw_component_ghost(painter: &Painter, comp: &Component, origin: Pos2, state: &AppState) {
@@ -675,11 +984,19 @@ fn draw_ff_box(
     label: &str,
     state: &AppState,
 ) {
-    let w = g * 4.0;
-    let h = g * 4.0;
+    let w = g * 5.0;
+    let h = g * 5.0;
     let rect = Rect::from_min_size(pos, Vec2::new(w, h));
-    painter.rect(rect, g * 0.2, fill, Stroke::new(1.5, border));
-    draw_gate_label(painter, pos, w, h, label, state);
+    let stroke = Stroke::new(1.5 * state.zoom, border);
+    painter.rect(rect, g * 0.2, fill, stroke);
+    // Label at top
+    painter.text(
+        Pos2::new(pos.x + w / 2.0, pos.y + g * 0.5),
+        egui::Align2::CENTER_CENTER,
+        label,
+        egui::FontId::proportional(9.0 * state.zoom),
+        Color32::from_gray(40),
+    );
     // Clock edge indicator (small triangle at bottom-left).
     let clk_pts = [
         Pos2::new(pos.x, pos.y + h - g * 0.4),
@@ -750,5 +1067,29 @@ fn draw_seven_seg(painter: &Painter, rect: Rect, segs: &[bool; 8]) {
             off
         };
         painter.line_segment([*p1, *p2], Stroke::new(t, color));
+    }
+}
+
+/// Map a logic bus value to the upstream Logisim wire colour.
+fn bus_to_wire_color(bus: &Bus) -> Color32 {
+    if bus.has_error() {
+        return WIRE_COLOR_ERR;
+    }
+    if bus.is_high_z() {
+        return WIRE_COLOR_Z;
+    }
+    if bus.width() == 1 {
+        match bus.get(0) {
+            Value::False => WIRE_COLOR_0,
+            Value::True => WIRE_COLOR_1,
+            Value::Unknown => WIRE_COLOR_X,
+            Value::HighZ => WIRE_COLOR_Z,
+            Value::Error => WIRE_COLOR_ERR,
+        }
+    } else if bus.is_fully_known() {
+        // Multi-bit fully driven: dark green
+        WIRE_COLOR_MULTI
+    } else {
+        WIRE_COLOR_Z
     }
 }

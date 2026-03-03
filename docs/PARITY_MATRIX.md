@@ -166,7 +166,8 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | Component drag-to-move | ✅ | — | ✅ | Commits MoveComponent undo action |
 | Delete selected (Delete key) | ✅ | — | ✅ | |
 | Poke tool (toggle input pins) | ✅ | — | ✅ | |
-| Wire value overlay (colour by logic value) | missing | — | — | Not yet implemented; wires always drawn in fixed blue |
+| Wire value overlay (colour by logic value) | ✅ | — | ✅ | 0=blue, 1=green, X=red, Z=grey, error=red; reads live SimulationState |
+| ANSI gate shapes (AND/OR/XOR/NOT/NAND/NOR/XNOR/Buffer) | ✅ | — | ✅ | Proper ANSI symbols: D-shaped AND, curved OR/XOR, triangle NOT/Buffer |
 | Component labels rendered | ✅ | — | ✅ | |
 | Multi-circuit navigation (circuit list) | ✅ | — | ✅ | |
 | Add new circuit | ✅ | — | ✅ | |
@@ -263,7 +264,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 | I/O components | 7 | 0 | 2 |
 | TTL libraries | 6 | 0 | 1 |
 | File format | 11 | 1 | 1 |
-| GUI / editor | 12 | 1 | 9 |
+| GUI / editor | 14 | 1 | 11 |
 | Undo / Redo | 8 | 0 | 1 |
 | Chronogram | 0 | 0 | 3 |
 | HDL export | 0 | 0 | 3 |
