@@ -464,14 +464,11 @@ mod tests {
     use super::*;
 
     fn write_temp_circ(content: &str) -> String {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::SeqCst);
         let mut path = std::env::temp_dir();
-        path.push(format!(
-            "test_circuit_{}.circ",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .subsec_nanos()
-        ));
+        path.push(format!("test_circuit_{}.circ", n));
         std::fs::write(&path, content).unwrap();
         path.to_string_lossy().into_owned()
     }
