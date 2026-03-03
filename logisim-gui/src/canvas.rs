@@ -1,6 +1,6 @@
 //! Circuit canvas: handles rendering and interaction for the circuit editor.
 
-use crate::state::{AppState, Tool};
+use crate::state::{AppState, Tool, BASE_GRID_PX};
 use egui::{Color32, Painter, Pos2, Rect, Sense, Stroke, Vec2};
 use logisim_core::{
     circuit::Wire,
@@ -9,7 +9,6 @@ use logisim_core::{
     value::{Bus, Value},
 };
 
-const GRID: f32 = 10.0;
 /// Hit-test tolerance in grid units for component selection and dragging.
 const HIT_TOLERANCE: i32 = 2;
 
@@ -106,7 +105,7 @@ impl CircuitCanvas {
         }
 
         // ── Ghost component for placement tool ────────────────────────────
-        if let Tool::Place(ref kind) = state.tool.clone() {
+        if let Tool::Place(ref kind) = state.tool {
             if let Some(cursor) = response.hover_pos() {
                 let (gx, gy) = state.screen_to_grid(cursor, origin);
                 let ghost = logisim_core::component::Component::new(
@@ -195,10 +194,11 @@ impl CircuitCanvas {
         let (gx, gy) = state.screen_to_grid(pos, origin);
         let active = state.active_circuit.clone();
 
-        match &state.tool.clone() {
+        match &state.tool {
             Tool::Place(kind) => {
+                let kind = kind.clone();
                 if let Some(circuit) = state.project.circuits.get_mut(&active) {
-                    let id = circuit.add_component(kind.clone(), gx, gy);
+                    let id = circuit.add_component(kind, gx, gy);
                     let comp = circuit.components[&id].clone();
                     state.history.push(UndoAction::AddComponent {
                         circuit_name: active,
@@ -293,8 +293,8 @@ impl CircuitCanvas {
                         })
                     })
                     .map(|(id, comp)| {
-                        let w = if let ComponentKind::Pin { width, .. } = comp.kind {
-                            width
+                        let w = if let ComponentKind::Pin { width, .. } = &comp.kind {
+                            *width
                         } else {
                             logisim_core::value::BitWidth::ONE
                         };
@@ -324,7 +324,7 @@ impl CircuitCanvas {
 // ── Drawing helpers ───────────────────────────────────────────────────────────
 
 fn draw_grid(painter: &Painter, rect: Rect, pan: Vec2, zoom: f32) {
-    let grid_px = GRID * zoom;
+    let grid_px = BASE_GRID_PX * zoom;
     let color = Color32::from_gray(220);
     let stroke = Stroke::new(0.5, color);
 

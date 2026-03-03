@@ -8,6 +8,9 @@ use logisim_core::{
 };
 use std::path::PathBuf;
 
+/// Base grid size in screen pixels at zoom 1×.
+pub const BASE_GRID_PX: f32 = 10.0;
+
 /// The currently selected interaction tool.
 #[derive(Clone, PartialEq, Debug, Default)]
 pub enum Tool {
@@ -86,7 +89,7 @@ impl AppState {
 
     /// Grid size in screen pixels at current zoom.
     pub fn grid_px(&self) -> f32 {
-        10.0 * self.zoom
+        BASE_GRID_PX * self.zoom
     }
 
     /// Convert screen position to grid coordinates.

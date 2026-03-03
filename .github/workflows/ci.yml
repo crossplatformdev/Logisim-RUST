@@ -120,6 +120,10 @@ jobs:
       - name: Build GUI binary
         run: cargo build -p logisim-gui --release
 
+      - name: Test GUI (Linux, headless)
+        if: runner.os == 'Linux'
+        run: cargo test -p logisim-gui --release
+
       - name: Clippy (GUI)
         run: cargo clippy -p logisim-gui --all-targets -- -D warnings
 
@@ -195,12 +199,8 @@ jobs:
           path: ${{ matrix.artifact }}
 
       - name: Create GitHub Release
-        if: matrix.os == 'ubuntu-latest'
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            logisim-linux-x86_64.tar.gz
-            logisim-windows-x86_64.zip
-            logisim-macos-x86_64.tar.gz
+          files: ${{ matrix.artifact }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

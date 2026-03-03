@@ -9,7 +9,7 @@ pub fn show_about(ctx: &Context, open: &mut bool) {
         .resizable(false)
         .show(ctx, |ui| {
             ui.heading("Logisim-RUST");
-            ui.label("Version 1.0.0");
+            ui.label(format!("Version {}", env!("CARGO_PKG_VERSION")));
             ui.separator();
             ui.label(
                 "A Rust rewrite in progress targeting Logisim-Evolution v4.1.0 compatibility.",

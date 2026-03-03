@@ -625,10 +625,13 @@ fn build_kind(lib: &str, name: &str, attrs: &HashMap<String, String>) -> Result<
             }),
         },
 
-        // User-defined subcircuits
-        _ => Ok(ComponentKind::Subcircuit {
+        // User-defined subcircuits (explicitly tagged with the user lib)
+        "user" | "7" => Ok(ComponentKind::Subcircuit {
             circuit_name: name.to_string(),
         }),
+
+        // Unknown library — return an error rather than silently mis-typing
+        unknown => Err(FileError::UnknownLibrary(unknown.to_string())),
     }
 }
 

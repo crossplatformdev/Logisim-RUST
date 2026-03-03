@@ -38,11 +38,15 @@ fn parse_opts(args: &[String]) -> Result<Opts, String> {
             }
             "--steps" => {
                 i += 1;
-                opts.steps = args
+                let steps = args
                     .get(i)
                     .ok_or("--steps requires an argument")?
                     .parse::<usize>()
                     .map_err(|_| "--steps must be a positive integer".to_string())?;
+                if steps == 0 {
+                    return Err("--steps must be a positive integer".to_string());
+                }
+                opts.steps = steps;
             }
             "--terse" => {
                 opts.terse = true;
@@ -160,14 +164,18 @@ pub fn run_simulate(raw_args: &[String]) -> Result<(), String> {
             .collect();
 
         if opts.format_json {
+            let mut inputs = serde_json::Map::new();
+            for (k, v) in in_labels.iter().zip(in_vals.iter()) {
+                inputs.insert(k.clone(), serde_json::Value::String(v.clone()));
+            }
+            let mut outputs = serde_json::Map::new();
+            for (k, v) in out_labels.iter().zip(out_vals.iter()) {
+                outputs.insert(k.clone(), serde_json::Value::String(v.clone()));
+            }
             let mut obj = serde_json::Map::new();
             obj.insert("step".to_string(), serde_json::Value::Number(step.into()));
-            for (k, v) in in_labels.iter().zip(in_vals.iter()) {
-                obj.insert(k.clone(), serde_json::Value::String(v.clone()));
-            }
-            for (k, v) in out_labels.iter().zip(out_vals.iter()) {
-                obj.insert(k.clone(), serde_json::Value::String(v.clone()));
-            }
+            obj.insert("inputs".to_string(), serde_json::Value::Object(inputs));
+            obj.insert("outputs".to_string(), serde_json::Value::Object(outputs));
             json_steps.push(serde_json::Value::Object(obj));
         } else if !opts.terse {
             println!(
@@ -332,14 +340,15 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
             .collect();
 
         if opts.format_json {
-            let mut obj = serde_json::Map::new();
+            let mut inputs = serde_json::Map::new();
             for (k, v) in in_labels.iter().zip(in_vals.iter()) {
                 let num: serde_json::Value = v
                     .parse::<u64>()
                     .map(|n| serde_json::Value::Number(n.into()))
                     .unwrap_or(serde_json::Value::Null);
-                obj.insert(k.clone(), num);
+                inputs.insert(k.clone(), num);
             }
+            let mut outputs = serde_json::Map::new();
             for (k, v) in out_labels.iter().zip(out_vals.iter()) {
                 let num: serde_json::Value = if v == "null" {
                     serde_json::Value::Null
@@ -348,8 +357,11 @@ pub fn run_truth_table(raw_args: &[String]) -> Result<(), String> {
                         .map(|n| serde_json::Value::Number(n.into()))
                         .unwrap_or(serde_json::Value::Null)
                 };
-                obj.insert(k.clone(), num);
+                outputs.insert(k.clone(), num);
             }
+            let mut obj = serde_json::Map::new();
+            obj.insert("inputs".to_string(), serde_json::Value::Object(inputs));
+            obj.insert("outputs".to_string(), serde_json::Value::Object(outputs));
             json_rows.push(serde_json::Value::Object(obj));
         } else {
             let row_vals: Vec<&str> = in_vals

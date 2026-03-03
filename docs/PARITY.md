@@ -121,7 +121,13 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 
 | Library | Status | Notes |
 |---------|--------|-------|
-| TTL 7400 series | ❌ | Not yet implemented |
+| TTL 7400 (NAND) | ✅ | Implemented with full simulation semantics |
+| TTL 7402 (NOR) | ✅ | |
+| TTL 7404 (NOT) | ✅ | |
+| TTL 7408 (AND) | ✅ | |
+| TTL 7432 (OR) | ✅ | |
+| TTL 7486 (XOR) | ✅ | |
+| Remaining 74xx series | ❌ | Not yet implemented |
 
 ---
 
@@ -133,12 +139,12 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Write v4.1.0-compatible `.circ` files | 🟡 | Core elements written; some attributes omitted |
 | Round-trip component positions | ✅ | |
 | Round-trip wire segments | ✅ | |
-| Round-trip component attributes | 🟡 | Common attributes yes; appearance data no |
+| Round-trip component attributes | 🟡 | Common attributes yes; some exotic attributes skipped |
 | Round-trip multi-circuit projects | ✅ | |
 | Round-trip subcircuit references | ✅ | |
 | Library declarations in header | ✅ | |
 | Main circuit (`<main name="..."/>`) | ✅ | Written and parsed |
-| Appearance data (`<appear>`) | ❌ | Not read/written |
+| Appearance data (`<appear>`) | ✅ | Preserved verbatim through parse→write cycles |
 | Description / metadata attributes | 🟡 | Partially preserved |
 
 ---
@@ -249,8 +255,8 @@ Each subsystem is evaluated against the Logisim-Evolution v4.1.0 release
 | Arithmetic components | 9 | 0 | 0 |
 | Memory components | 9 | 0 | 0 |
 | I/O components | 9 | 0 | 0 |
-| TTL libraries | 0 | 0 | 1 |
-| File format | 4 | 4 | 2 |
+| TTL libraries | 6 | 0 | 1 |
+| File format | 5 | 3 | 2 |
 | GUI / editor | 13 | 0 | 9 |
 | Undo/Redo | 8 | 0 | 1 |
 | Chronogram | 0 | 0 | 2 |

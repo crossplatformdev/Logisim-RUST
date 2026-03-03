@@ -30,15 +30,19 @@ pub fn write_circ<W: Write>(project: &Project, writer: &mut W) -> Result<()> {
     writeln!(writer, "  <lib desc=\"#Memory\" name=\"4\"/>")?;
     writeln!(writer, "  <lib desc=\"#I/O\" name=\"5\"/>")?;
     writeln!(writer, "  <lib desc=\"#TTL\" name=\"6\"/>")?;
+    writeln!(writer, "  <lib desc=\"#user\" name=\"7\"/>")?;
 
     // Main circuit declaration.
     if let Some(main) = &project.main_circuit {
         writeln!(writer, r#"  <main name="{}"/>"#, escape(main))?;
     }
 
-    // Options
+    // Options (sorted for deterministic output)
     writeln!(writer, "  <options>")?;
-    for (k, v) in &project.options {
+    let mut option_keys: Vec<_> = project.options.keys().collect();
+    option_keys.sort();
+    for k in option_keys {
+        let v = &project.options[k];
         writeln!(
             writer,
             r#"    <a name="{}" val="{}"/>"#,
@@ -69,8 +73,11 @@ fn write_circuit<W: Write>(circuit: &Circuit, writer: &mut W) -> Result<()> {
         escape(&circuit.name)
     )?;
 
-    // Circuit attributes
-    for (k, v) in &circuit.attributes {
+    // Circuit attributes (sorted for deterministic output)
+    let mut attr_keys: Vec<_> = circuit.attributes.keys().collect();
+    attr_keys.sort();
+    for k in attr_keys {
+        let v = &circuit.attributes[k];
         if k != "circuit" {
             writeln!(
                 writer,
@@ -151,6 +158,7 @@ fn lib_number(kind: &ComponentKind) -> &'static str {
         "memory" => "4",
         "io" => "5",
         "ttl" => "6",
+        "user" => "7",
         _ => "0",
     }
 }
