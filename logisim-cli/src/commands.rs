@@ -372,7 +372,6 @@ pub fn run_info(raw_args: &[String]) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
 
     fn write_temp_circ(content: &str) -> String {
         let mut path = std::env::temp_dir();

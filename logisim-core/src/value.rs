@@ -12,13 +12,14 @@ use std::fmt;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
 /// A single-bit logic value using multi-valued logic.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, Serialize, Deserialize)]
 pub enum Value {
     /// Logic 0 (driven low).
     False,
     /// Logic 1 (driven high).
     True,
     /// Unknown / uninitialised (X).
+    #[default]
     Unknown,
     /// Error / short circuit (E).
     Error,
@@ -98,12 +99,6 @@ impl Value {
             'z' | 'Z' => Some(Value::HighZ),
             _ => None,
         }
-    }
-}
-
-impl Default for Value {
-    fn default() -> Self {
-        Value::Unknown
     }
 }
 
@@ -287,7 +282,7 @@ impl Bus {
 
     /// Returns `true` if any bit is `Error`.
     pub fn has_error(&self) -> bool {
-        self.bits.iter().any(|&v| v == Value::Error)
+        self.bits.contains(&Value::Error)
     }
 
     /// Returns `true` if all bits are known.
@@ -311,7 +306,7 @@ impl Bus {
     /// Format as a hex string for display (little-endian bit order).
     pub fn to_hex_string(&self) -> String {
         if let Some(v) = self.to_u64() {
-            let nibbles = (self.width() + 3) / 4;
+            let nibbles = self.width().div_ceil(4);
             format!("{:0>width$X}", v, width = nibbles)
         } else {
             self.bits.iter().rev().map(|v| v.to_char()).collect()
@@ -339,7 +334,7 @@ impl BitWidth {
     pub const SIXTY_FOUR: BitWidth = BitWidth(64);
 
     pub fn new(bits: u32) -> Self {
-        assert!(bits >= 1 && bits <= 64, "BitWidth must be 1–64");
+        assert!((1..=64).contains(&bits), "BitWidth must be 1–64");
         BitWidth(bits)
     }
 

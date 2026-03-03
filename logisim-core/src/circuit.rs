@@ -224,7 +224,7 @@ impl Circuit {
         for wire in &self.wires {
             let p1 = (wire.from.x, wire.from.y);
             let p2 = (wire.to.x, wire.to.y);
-            // Also union all intermediate points on the wire segment.
+            // Union all intermediate points on axis-aligned segments.
             if wire.is_horizontal() {
                 let y = wire.from.y;
                 let x_min = wire.from.x.min(wire.to.x);
@@ -237,7 +237,8 @@ impl Circuit {
                         parent.insert(root_pt, root_p1);
                     }
                 }
-            } else {
+                // p2 was visited in the loop above; no extra union needed.
+            } else if wire.is_vertical() {
                 let x = wire.from.x;
                 let y_min = wire.from.y.min(wire.to.y);
                 let y_max = wire.from.y.max(wire.to.y);
@@ -249,12 +250,14 @@ impl Circuit {
                         parent.insert(root_pt, root_p1);
                     }
                 }
-            }
-            // Ensure p2 is also unioned.
-            let root_p1 = find(&mut parent, p1);
-            let root_p2 = find(&mut parent, p2);
-            if root_p1 != root_p2 {
-                parent.insert(root_p2, root_p1);
+                // p2 was visited in the loop above; no extra union needed.
+            } else {
+                // Diagonal wire: only union the two endpoints.
+                let root_p1 = find(&mut parent, p1);
+                let root_p2 = find(&mut parent, p2);
+                if root_p1 != root_p2 {
+                    parent.insert(root_p2, root_p1);
+                }
             }
         }
 

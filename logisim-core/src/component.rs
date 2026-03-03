@@ -231,9 +231,7 @@ impl ComponentKind {
     /// Human-readable component name (matches Logisim-Evolution XML `name` attribute).
     pub fn component_name(&self) -> String {
         match self {
-            ComponentKind::Pin { is_output, .. } => {
-                if *is_output { "Pin".to_string() } else { "Pin".to_string() }
-            }
+            ComponentKind::Pin { .. } => "Pin".to_string(),
             ComponentKind::Clock => "Clock".to_string(),
             ComponentKind::Constant { .. } => "Constant".to_string(),
             ComponentKind::Power => "Power".to_string(),
@@ -764,7 +762,7 @@ pub enum Facing {
 
 impl Facing {
     pub fn from_degrees(deg: i32) -> Self {
-        match ((deg % 360) + 360) % 360 {
+        match deg.rem_euclid(360) {
             90 => Facing::South,
             180 => Facing::West,
             270 => Facing::North,

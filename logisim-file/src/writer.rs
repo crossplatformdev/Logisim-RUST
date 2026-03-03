@@ -102,8 +102,8 @@ fn write_component<W: Write>(
         )?;
     }
 
-    // Label
-    if !comp.label.is_empty() {
+    // Label — skip for Tunnel since write_kind_attrs emits it as a kind-specific attribute.
+    if !comp.label.is_empty() && !matches!(comp.kind, ComponentKind::Tunnel { .. }) {
         writeln!(
             writer,
             r#"      <a name="label" val="{}"/>"#,

@@ -227,9 +227,13 @@ fn build_component(
     let kind = build_kind(&lib_desc, &name, &attrs)?;
     let mut comp = Component::new(ComponentId(id), kind, x, y);
 
-    // Apply common attributes.
-    if let Some(label) = attrs.get("label") {
-        comp.label = label.clone();
+    // Apply common attributes — but skip `label` for Tunnel since it is already
+    // embedded in the kind's own field to avoid duplication on write.
+    let is_tunnel = matches!(comp.kind, logisim_core::component::ComponentKind::Tunnel { .. });
+    if !is_tunnel {
+        if let Some(label) = attrs.get("label") {
+            comp.label = label.clone();
+        }
     }
     if let Some(facing) = attrs.get("facing") {
         comp.facing = parse_facing(facing);
@@ -248,7 +252,7 @@ fn build_kind(
         attrs
             .get(key)
             .and_then(|v| v.parse::<u32>().ok())
-            .map(|w| BitWidth::new(w.max(1).min(64)))
+            .map(|w| BitWidth::new(w.clamp(1, 64)))
             .unwrap_or(BitWidth::ONE)
     };
     let get_u8 = |key: &str, default: u8| -> u8 {
@@ -302,7 +306,7 @@ fn build_kind(
             "Controlled Buffer" | "Tristate Buffer" => {
                 Ok(ComponentKind::TristateBuffer { width: get_width("width") })
             }
-            _ => Ok(ComponentKind::Probe { width: BitWidth::ONE }),
+            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
         },
 
         "gates" | "1" => match name {
@@ -336,7 +340,7 @@ fn build_kind(
             }),
             "NOT Gate" => Ok(ComponentKind::NotGate { width: get_width("width") }),
             "Buffer" => Ok(ComponentKind::Buffer { width: get_width("width") }),
-            _ => Ok(ComponentKind::Buffer { width: BitWidth::ONE }),
+            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
         },
 
         "plexers" | "2" => match name {
@@ -358,7 +362,7 @@ fn build_kind(
                 group_bits: get_u8("group", 1),
                 data_width: get_width("width"),
             }),
-            _ => Ok(ComponentKind::Buffer { width: BitWidth::ONE }),
+            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
         },
 
         "arithmetic" | "3" => match name {
@@ -380,7 +384,7 @@ fn build_kind(
                     _ => BitFinderType::High,
                 },
             }),
-            _ => Ok(ComponentKind::Adder { width: BitWidth::ONE }),
+            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
         },
 
         "memory" | "4" => match name {
@@ -405,7 +409,7 @@ fn build_kind(
                 width: get_width("width"),
                 parallel_load: attrs.get("load").map(|v| v == "true").unwrap_or(false),
             }),
-            _ => Ok(ComponentKind::Register { width: BitWidth::ONE }),
+            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
         },
 
         "io" | "5" => match name {
@@ -426,7 +430,7 @@ fn build_kind(
                 rows: get_u8("rows", 8),
                 cols: get_u8("cols", 32),
             }),
-            _ => Ok(ComponentKind::Led),
+            _ => Err(FileError::UnknownComponent { lib: lib.to_string(), name: name.to_string() }),
         },
 
         // User-defined subcircuits

@@ -110,7 +110,7 @@ impl Simulator {
     /// Create a new simulator for a project.
     pub fn new(project: Project) -> Self {
         let mut states = HashMap::new();
-        for (name, _circuit) in &project.circuits {
+        for name in project.circuits.keys() {
             states.insert(name.clone(), SimulationState::new());
         }
         Simulator {
@@ -173,51 +173,37 @@ impl Simulator {
             net_map.get(&(x, y)).copied().unwrap_or((x, y))
         };
 
-        // Seed input pins into the state before iterative propagation.
-        {
-            let state = self.states.entry(circuit_name.to_string()).or_default();
-            for (cid, comp) in &circuit.components {
-                if let ComponentKind::Pin { is_output: false, width } = &comp.kind {
-                    let value = self
-                        .user_inputs
-                        .get(circuit_name)
-                        .and_then(|ui| ui.get(cid))
-                        .cloned()
-                        .unwrap_or_else(|| Bus::unknown(width.get() as usize));
-                    // The output port of an input pin is "out" at its origin.
-                    let pos = comp.port_position("out");
-                    if let Some((x, y)) = pos {
-                        let net = canonical(x, y);
-                        state.set_net_value(net, value);
-                    }
-                }
-            }
-        }
-
         // Iterative propagation.
-        for _iter in 0..MAX_ITERATIONS {
-            let mut changed = false;
+        // Keep the previous net values to compare for convergence.
+        let mut prev_nets: HashMap<NetId, Bus> = HashMap::new();
 
-            // Clone the state we need for reading (to avoid borrow conflicts).
+        for _iter in 0..MAX_ITERATIONS {
+            // Clone state snapshot for reading inputs (avoid borrow conflicts).
             let state_snapshot = self
                 .states
                 .get(circuit_name)
                 .cloned()
                 .unwrap_or_default();
 
+            // Build a fresh driven-values map for this pass (start all nets at HighZ).
+            let mut driven: HashMap<NetId, Bus> = HashMap::new();
+
             // Evaluate each component.
             let component_ids: Vec<ComponentId> =
                 circuit.components.keys().copied().collect();
 
+            let mut new_states: Vec<(ComponentId, ComponentState)> = Vec::new();
+
             for &cid in &component_ids {
                 let comp = &circuit.components[&cid];
 
-                // Input pins are already seeded above; skip re-evaluation.
+                // Input pins are driven by user values (seeded after component eval below).
                 if matches!(comp.kind, ComponentKind::Pin { is_output: false, .. }) {
                     continue;
                 }
 
-                // Gather input values for this component.
+                // Gather input values from the *previous snapshot* so evaluation
+                // is not order-dependent.
                 let inputs: HashMap<String, Bus> = comp
                     .all_port_positions()
                     .into_iter()
@@ -244,43 +230,60 @@ impl Simulator {
                     state_snapshot.clock_tick,
                 );
 
-                // Determine if sequential state needs updating.
-                let new_state =
-                    compute_next_state(&comp.kind, cid, &inputs, comp_state_opt, state_snapshot.clock_tick);
-
-                // Write outputs to nets and detect changes.
-                let state = self.states.entry(circuit_name.to_string()).or_default();
-
+                // Accumulate outputs into the fresh driven map via resolution.
                 for (port_name, bus) in &outputs {
                     let ports = comp.kind.ports();
                     let port = ports.iter().find(|p| &p.name == port_name);
                     if let Some(port) = port {
                         if matches!(port.direction, crate::component::PortDirection::Output) {
-                            let pos = comp.port_position(port_name);
-                            if let Some((x, y)) = pos {
+                            if let Some((x, y)) = comp.port_position(port_name) {
                                 let net = canonical(x, y);
                                 let width_usize = port.width.get() as usize;
-                                // Start from HighZ (transparent) so the first driver wins cleanly.
-                                let existing = state
-                                    .net_values
+                                let existing = driven
                                     .get(&net)
                                     .cloned()
                                     .unwrap_or_else(|| Bus::high_z(width_usize));
-                                let resolved = existing.resolve(bus);
-                                if existing != resolved {
-                                    changed = true;
-                                }
-                                state.set_net_value(net, resolved);
+                                driven.insert(net, existing.resolve(bus));
                             }
                         }
                     }
                 }
 
-                // Update sequential state.
-                if let Some(ns) = new_state {
-                    let st = state.component_state.entry(cid).or_default();
-                    *st = ns;
+                // Collect sequential state updates.
+                if let Some(ns) =
+                    compute_next_state(&comp.kind, cid, &inputs, comp_state_opt, state_snapshot.clock_tick)
+                {
+                    new_states.push((cid, ns));
                 }
+            }
+
+            // Seed input pins last — their values are authoritative and always
+            // override any component-driven value on the same net.
+            for (cid, comp) in &circuit.components {
+                if let ComponentKind::Pin { is_output: false, width } = &comp.kind {
+                    let value = self
+                        .user_inputs
+                        .get(circuit_name)
+                        .and_then(|ui| ui.get(cid))
+                        .cloned()
+                        .unwrap_or_else(|| Bus::unknown(width.get() as usize));
+                    if let Some((x, y)) = comp.port_position("out") {
+                        let net = canonical(x, y);
+                        driven.insert(net, value);
+                    }
+                }
+            }
+
+            // Check convergence: have the driven net values changed from last pass?
+            let changed = driven != prev_nets;
+            prev_nets = driven.clone();
+
+            // Commit the freshly resolved net values and any sequential state.
+            let state = self.states.entry(circuit_name.to_string()).or_default();
+            state.net_values = driven;
+            for (cid, ns) in new_states {
+                let st = state.component_state.entry(cid).or_default();
+                *st = ns;
             }
 
             if !changed {
@@ -299,9 +302,17 @@ impl Simulator {
         let net_map = circuit.compute_nets();
 
         let ports = comp.kind.ports();
-        let port = ports.iter().find(|p| {
-            matches!(p.direction, crate::component::PortDirection::Output)
-        })?;
+        // Prefer an output port (input pins); fall back to input port (output pins,
+        // which only expose an "in" port). No generic .first() fallback is needed
+        // since all pin-like components have at least one of these two directions.
+        let port = ports
+            .iter()
+            .find(|p| matches!(p.direction, crate::component::PortDirection::Output))
+            .or_else(|| {
+                ports
+                    .iter()
+                    .find(|p| matches!(p.direction, crate::component::PortDirection::Input))
+            })?;
         let (x, y) = comp.port_position(&port.name)?;
         let net = net_map.get(&(x, y)).copied().unwrap_or((x, y));
         Some(state.net_value(net, port.width.get()))
@@ -337,7 +348,7 @@ fn evaluate_component(
             // Output pin: its output drives are on its input.
         }
         ComponentKind::Clock => {
-            let v = if (clock_tick % 2) == 0 { 0u64 } else { 1u64 };
+            let v = if clock_tick.is_multiple_of(2) { 0u64 } else { 1u64 };
             out.insert("out".to_string(), Bus::from_u64(v, 1));
         }
         ComponentKind::Constant { width, value } => {
@@ -351,12 +362,16 @@ fn evaluate_component(
         }
         ComponentKind::Splitter { combined_width, fan_out } => {
             let combined = get("combined", combined_width.get());
-            let bits_each = combined_width.get() / *fan_out as u32;
-            for i in 0..*fan_out {
-                let start = (i as u32 * bits_each) as usize;
-                let end = start + bits_each as usize;
-                let slice = combined.slice(start, end);
-                out.insert(format!("bit{}", i), slice);
+            if *fan_out == 0 {
+                // Nothing to drive; leave outputs absent.
+            } else {
+                let bits_each = combined_width.get() / *fan_out as u32;
+                for i in 0..*fan_out {
+                    let start = (i as u32 * bits_each) as usize;
+                    let end = start + bits_each as usize;
+                    let slice = combined.slice(start, end);
+                    out.insert(format!("bit{}", i), slice);
+                }
             }
         }
         ComponentKind::Tunnel { width, .. } => {
@@ -365,7 +380,10 @@ fn evaluate_component(
         }
         ComponentKind::PullResistor { direction, width } => {
             let v = match direction {
-                PullDirection::Up => Bus::from_u64((1u64 << width.get()) - 1, width.get() as usize),
+                PullDirection::Up => {
+                    let mask = 1u64.checked_shl(width.get()).map(|v| v - 1).unwrap_or(u64::MAX);
+                    Bus::from_u64(mask, width.get() as usize)
+                }
                 PullDirection::Down => Bus::from_u64(0, width.get() as usize),
             };
             out.insert("out".to_string(), v);
@@ -383,7 +401,8 @@ fn evaluate_component(
 
         // ── Gates ─────────────────────────────────────────────────────────────
         ComponentKind::AndGate { inputs: n, width, negate_inputs, negate_output } => {
-            let mut result = Bus::from_u64((1u64 << width.get()) - 1, width.get() as usize);
+            let mask = 1u64.checked_shl(width.get()).map(|v| v - 1).unwrap_or(u64::MAX);
+            let mut result = Bus::from_u64(mask, width.get() as usize);
             for i in 0..*n {
                 let mut v = get(&format!("in{}", i), width.get());
                 if negate_inputs.get(i as usize).copied().unwrap_or(false) {
@@ -900,15 +919,15 @@ mod tests {
 
     fn make_and_circuit() -> Project {
         let mut circuit = Circuit::new("main");
-        let pin_a = circuit.add_component_with_label(
+        circuit.add_component_with_label(
             ComponentKind::Pin { is_output: false, width: BitWidth::ONE },
             0, 0, "A",
         );
-        let pin_b = circuit.add_component_with_label(
+        circuit.add_component_with_label(
             ComponentKind::Pin { is_output: false, width: BitWidth::ONE },
             0, 10, "B",
         );
-        let gate = circuit.add_component(
+        circuit.add_component(
             ComponentKind::AndGate {
                 inputs: 2,
                 width: BitWidth::ONE,
@@ -917,7 +936,7 @@ mod tests {
             },
             20, 0,
         );
-        let out = circuit.add_component_with_label(
+        circuit.add_component_with_label(
             ComponentKind::Pin { is_output: true, width: BitWidth::ONE },
             40, 0, "OUT",
         );
@@ -949,12 +968,6 @@ mod tests {
         sim.set_pin_value("main", cids[1], Bus::from_u64(1, 1));
         sim.propagate("main").unwrap();
 
-        // Get output pin
-        let out_id = sim.project().circuits["main"]
-            .output_pins()
-            .first()
-            .unwrap()
-            .id;
         // The result is on the net driven by the AND gate output.
         // Check via net values
         let state = sim.state("main").unwrap();
@@ -1027,9 +1040,11 @@ mod tests {
             ("reset".to_string(), Bus::from_u64(0, 1)),
             ("preset".to_string(), Bus::from_u64(0, 1)),
         ].into();
-        let mut prev = ComponentState::default();
-        prev.prev_clk = Value::False;
-        prev.q = Bus::from_u64(0, 1);
+        let prev = ComponentState {
+            prev_clk: Value::False,
+            q: Bus::from_u64(0, 1),
+            ..ComponentState::default()
+        };
 
         let ns = compute_next_state(&kind, ComponentId(1), &inputs, Some(&prev), 0).unwrap();
         assert_eq!(ns.q.to_u64(), Some(1));
@@ -1045,9 +1060,11 @@ mod tests {
             ("ld_en".to_string(), Bus::from_u64(0, 1)),
             ("load".to_string(), Bus::from_u64(0, 4)),
         ].into();
-        let mut prev = ComponentState::default();
-        prev.prev_clk = Value::False;
-        prev.counter = Bus::from_u64(5, 4);
+        let prev = ComponentState {
+            prev_clk: Value::False,
+            counter: Bus::from_u64(5, 4),
+            ..ComponentState::default()
+        };
 
         let ns = compute_next_state(&kind, ComponentId(1), &inputs, Some(&prev), 0).unwrap();
         assert_eq!(ns.counter.to_u64(), Some(6));
