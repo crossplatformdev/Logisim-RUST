@@ -1,0 +1,17 @@
+[package]
+name = "logisim-file"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Logisim-Evolution .circ file parser and writer"
+
+[dependencies]
+logisim-core = { workspace = true }
+serde = { workspace = true }
+quick-xml = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+env_logger = { workspace = true }

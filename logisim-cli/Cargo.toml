@@ -1,0 +1,18 @@
+[package]
+name = "logisim-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Command-line interface for Logisim-RUST: simulate and verify circuits non-interactively"
+
+[dependencies]
+logisim-core = { workspace = true }
+logisim-file = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+serde_json = { workspace = true }
+
+[[bin]]
+name = "logisim-cli"
+path = "src/main.rs"

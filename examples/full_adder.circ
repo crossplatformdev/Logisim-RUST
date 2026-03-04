@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project version="1.0">
+  <lib desc="#Wiring" name="0"/>
+  <lib desc="#Gates" name="1"/>
+  <lib desc="#Arithmetic" name="3"/>
+  <options>
+    <a name="gateUndefined" val="isolated"/>
+  </options>
+  <mappings/>
+  <toolbar/>
+  <circuit name="full_adder">
+    <a name="circuit" val="full_adder"/>
+    <!-- Input pins: A, B, Cin -->
+    <comp lib="0" loc="(30,130)" name="Pin">
+      <a name="label" val="A"/>
+    </comp>
+    <comp lib="0" loc="(30,150)" name="Pin">
+      <a name="label" val="B"/>
+    </comp>
+    <comp lib="0" loc="(30,170)" name="Pin">
+      <a name="label" val="Cin"/>
+    </comp>
+    <!-- XOR gates for Sum -->
+    <comp lib="1" loc="(130,140)" name="XOR Gate">
+      <a name="inputs" val="2"/>
+    </comp>
+    <comp lib="1" loc="(220,155)" name="XOR Gate">
+      <a name="inputs" val="2"/>
+    </comp>
+    <!-- AND gates for carry generation -->
+    <comp lib="1" loc="(130,180)" name="AND Gate">
+      <a name="inputs" val="2"/>
+    </comp>
+    <comp lib="1" loc="(130,200)" name="AND Gate">
+      <a name="inputs" val="2"/>
+    </comp>
+    <comp lib="1" loc="(130,220)" name="AND Gate">
+      <a name="inputs" val="2"/>
+    </comp>
+    <!-- OR gate for Cout -->
+    <comp lib="1" loc="(220,200)" name="OR Gate">
+      <a name="inputs" val="3"/>
+    </comp>
+    <!-- Output pins: Sum, Cout -->
+    <comp lib="0" loc="(310,155)" name="Pin">
+      <a name="output" val="true"/>
+      <a name="label" val="Sum"/>
+    </comp>
+    <comp lib="0" loc="(310,200)" name="Pin">
+      <a name="output" val="true"/>
+      <a name="label" val="Cout"/>
+    </comp>
+    <!-- Wires -->
+    <wire from="(30,130)" to="(130,130)"/>
+    <wire from="(30,150)" to="(130,131)"/>
+    <wire from="(130,132)" to="(220,155)"/>
+    <wire from="(30,170)" to="(220,156)"/>
+    <wire from="(220,157)" to="(310,155)"/>
+    <wire from="(30,130)" to="(130,180)"/>
+    <wire from="(30,150)" to="(130,181)"/>
+    <wire from="(130,132)" to="(130,200)"/>
+    <wire from="(30,170)" to="(130,201)"/>
+    <wire from="(30,150)" to="(130,220)"/>
+    <wire from="(30,170)" to="(130,221)"/>
+    <wire from="(130,182)" to="(220,198)"/>
+    <wire from="(130,202)" to="(220,199)"/>
+    <wire from="(130,222)" to="(220,200)"/>
+    <wire from="(220,201)" to="(310,200)"/>
+  </circuit>
+</project>

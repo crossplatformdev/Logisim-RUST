@@ -1,0 +1,207 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "master", "copilot/**" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ── Format & Lint ────────────────────────────────────────────────────────────
+  lint:
+    name: Format & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy (core, file, cli)
+        run: >
+          cargo clippy
+          -p logisim-core
+          -p logisim-file
+          -p logisim-cli
+          --all-targets
+          -- -D warnings
+
+  # ── Build & Test (cross-platform) ───────────────────────────────────────────
+  test:
+    name: Build & Test — ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build (core, file, cli)
+        run: cargo build -p logisim-core -p logisim-file -p logisim-cli --release
+
+      - name: Run tests (core, file, cli)
+        run: cargo test -p logisim-core -p logisim-file -p logisim-cli --release
+
+  # ── GUI Build (compile-check only on headless CI) ────────────────────────────
+  build-gui:
+    name: Build GUI — ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-gui-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-gui-
+
+      - name: Install Linux GUI dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxkbcommon-dev \
+            libwayland-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libegl1-mesa-dev \
+            pkg-config
+
+      - name: Build GUI binary
+        run: cargo build -p logisim-gui --release
+
+      - name: Test GUI (Linux, headless)
+        if: runner.os == 'Linux'
+        run: cargo test -p logisim-gui --release
+
+      - name: Clippy (GUI)
+        run: cargo clippy -p logisim-gui --all-targets -- -D warnings
+
+  # ── Release artifacts ────────────────────────────────────────────────────────
+  release:
+    name: Build Release Artifacts
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [lint, test, build-gui]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: logisim-linux-x86_64.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: logisim-windows-x86_64.zip
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: logisim-macos-x86_64.tar.gz
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux GUI dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxkbcommon-dev \
+            libwayland-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libegl1-mesa-dev \
+            pkg-config
+
+      - name: Build release binaries
+        run: >
+          cargo build
+          -p logisim-gui
+          -p logisim-cli
+          --release
+          --target ${{ matrix.target }}
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir dist
+          cp target/${{ matrix.target }}/release/logisim dist/
+          cp target/${{ matrix.target }}/release/logisim-cli dist/
+          cp README.md dist/
+          tar -czf ${{ matrix.artifact }} -C dist .
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist
+          Copy-Item target/${{ matrix.target }}/release/logisim.exe dist/
+          Copy-Item target/${{ matrix.target }}/release/logisim-cli.exe dist/
+          Copy-Item README.md dist/
+          Compress-Archive -Path dist/* -DestinationPath ${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+
+      - name: Create GitHub Release
+        if: runner.os == 'Linux'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ matrix.artifact }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

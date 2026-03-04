@@ -1,0 +1,25 @@
+[workspace]
+members = [
+    "logisim-core",
+    "logisim-file",
+    "logisim-gui",
+    "logisim-cli",
+]
+resolver = "2"
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+authors = ["Logisim-RUST Contributors"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/crossplatformdev/Logisim-RUST"
+
+[workspace.dependencies]
+logisim-core = { path = "logisim-core" }
+logisim-file = { path = "logisim-file" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+quick-xml = { version = "0.36", features = ["serialize"] }
+thiserror = "2.0"
+log = "0.4"
+env_logger = "0.11"
