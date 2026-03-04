@@ -13,7 +13,7 @@ Upstream reference: <https://github.com/logisim-evolution/logisim-evolution/rele
 1. **No stubs.** Every function must do real work. Delete or skip a feature rather than stub it.
 2. **No TODO comments** that defer required upstream behavior.
 3. **No placeholder implementations** disguised as progress.
-4. **No documentation-only mitigation.** If a feature is missing, implement it; do not describe the gap.
+4. **No documentation-only mitigation.** If a feature is missing, prioritize implementing it; do not use documentation as a substitute for implementation. Parity-status documentation (e.g., `docs/PARITY_MATRIX.md`) is allowed and should reflect the current state.
 5. **No scope objections.** "This is too large" is not an acceptable response; reduce the parity gap
    with concrete commits instead.
 6. **Run `cargo fmt --all` before every commit.** The workspace must pass `cargo fmt --all -- --check`.

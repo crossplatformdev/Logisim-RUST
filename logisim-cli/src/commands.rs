@@ -63,6 +63,12 @@ fn parse_opts(args: &[String]) -> Result<Opts, String> {
                 }
             }
             arg if !arg.starts_with('-') => {
+                if opts.file.is_some() {
+                    return Err(
+                        "Multiple input files specified; please provide exactly one input file"
+                            .to_string(),
+                    );
+                }
                 opts.file = Some(arg.to_string());
             }
             arg => {
